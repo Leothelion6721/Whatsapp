@@ -834,6 +834,19 @@
         .scroll-to-bottom:active {
             transform: scale(0.95);
         }
+
+        /* Fix for activeChat container */
+        #activeChat {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #activeChat.active {
+            display: flex !important;
+        }
     </style>
 </head>
 <body>
@@ -908,7 +921,7 @@
             </div>
 
             <!-- Active Chat -->
-            <div id="activeChat" style="display: none; flex: 1; flex-direction: column;">
+            <div id="activeChat">
                 <div class="chat-header">
                     <div class="chat-header-info">
                         <button class="icon-btn" onclick="toggleSidebar()">☰</button>
@@ -1495,7 +1508,7 @@
             if (!chat) return;
             
             document.getElementById('emptyChat').style.display = 'none';
-            document.getElementById('activeChat').style.display = 'flex';
+            document.getElementById('activeChat').classList.add('active');
             
             const initials = chat.name.substring(0, 2).toUpperCase();
             document.getElementById('chatAvatarText').textContent = initials;
