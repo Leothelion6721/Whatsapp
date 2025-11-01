@@ -18,6 +18,30 @@
             overflow: hidden;
         }
 
+        /* Smooth Scrolling */
+        * {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111b21;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #374955;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475e6d;
+        }
+
         /* Auth Screen */
         .auth-screen {
             display: flex;
@@ -769,6 +793,40 @@
                 right: 10px;
             }
         }
+
+        /* Scroll to Bottom Button */
+        .scroll-to-bottom {
+            position: absolute;
+            bottom: 90px;
+            right: 30px;
+            width: 42px;
+            height: 42px;
+            background: #202c33;
+            border: none;
+            border-radius: 50%;
+            color: #8696a0;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .scroll-to-bottom.visible {
+            display: flex;
+        }
+
+        .scroll-to-bottom:hover {
+            background: #2a3942;
+            transform: scale(1.1);
+        }
+
+        .scroll-to-bottom:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -862,7 +920,11 @@
                 </div>
                 
                 <div class="messages-container" id="messagesContainer"></div>
-                
+
+                <button class="scroll-to-bottom" id="scrollToBottomBtn" onclick="scrollToBottom(true)" title="Scroll to bottom">
+                    ⬇️
+                </button>
+
                 <div class="message-input-container">
                     <div style="flex: 1;">
                         <div class="attachment-preview" id="attachmentPreview">
@@ -974,6 +1036,8 @@
                 authToken = savedToken;
                 initSocket();
             }
+            // Initialize scroll handling
+            initScrollHandling();
         });
 
         function toggleAuthMode() {
@@ -1454,20 +1518,20 @@
             chat.messages.forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
-                
+
                 let content = '';
-                
+
                 if (!msg.sent) {
                     content += `<div class="message-sender">${msg.senderUsername}</div>`;
                 }
-                
+
                 if (msg.text) {
                     content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
                 }
-                
+
                 if (msg.file) {
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
-                    
+
                     if (isImage) {
                         content += `
                             <a href="${msg.file.url}" target="_blank">
@@ -1491,18 +1555,19 @@
                         `;
                     }
                 }
-                
+
                 content += `
                     <div class="message-meta">
                         <span>${formatTime(msg.timestamp)}</span>
                     </div>
                 `;
-                
+
                 messageDiv.innerHTML = content;
                 container.appendChild(messageDiv);
             });
-            
+
             scrollToBottom();
+            checkScrollPosition();
         }
 
         function handleFileSelect(event) {
@@ -1588,11 +1653,37 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
         }
 
-        function scrollToBottom() {
+        function scrollToBottom(immediate = false) {
             const container = document.getElementById('messagesContainer');
-            setTimeout(() => {
+            if (immediate) {
                 container.scrollTop = container.scrollHeight;
-            }, 100);
+            } else {
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 100);
+            }
+        }
+
+        function checkScrollPosition() {
+            const container = document.getElementById('messagesContainer');
+            const scrollBtn = document.getElementById('scrollToBottomBtn');
+
+            if (!container || !scrollBtn) return;
+
+            const isScrolledUp = container.scrollHeight - container.scrollTop - container.clientHeight > 100;
+
+            if (isScrolledUp) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        }
+
+        function initScrollHandling() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.addEventListener('scroll', checkScrollPosition);
+            }
         }
 
         function toggleSidebar() {
