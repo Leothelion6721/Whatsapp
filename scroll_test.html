@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCROLL TEST - THIS WILL SCROLL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #00a884;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #1a1a1a;
+            border-right: 2px solid #00a884;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            background: #00a884;
+            padding: 15px;
+            font-weight: bold;
+        }
+
+        .scrollable-list {
+            flex: 1;
+            overflow-y: scroll;
+            overflow-x: hidden;
+        }
+
+        .list-item {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .list-item:hover {
+            background: #252525;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d0d0d;
+        }
+
+        .main-header {
+            background: #00a884;
+            padding: 15px;
+            font-weight: bold;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            padding: 20px;
+            position: relative;
+        }
+
+        .message {
+            background: #1a5f47;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+
+        .message.received {
+            background: #252525;
+            margin-right: auto;
+        }
+
+        .message.sent {
+            background: #005c4b;
+            margin-left: auto;
+        }
+
+        .scroll-button {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            width: 50px;
+            height: 50px;
+            background: #00a884;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        .scroll-button:hover {
+            background: #06cf9c;
+            transform: scale(1.1);
+        }
+
+        .scroll-button.visible {
+            display: block;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00a884;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06cf9c;
+        }
+
+        .footer {
+            background: #1a1a1a;
+            padding: 15px;
+            border-top: 2px solid #00a884;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            background: #252525;
+            border: 1px solid #00a884;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .input-area button {
+            padding: 12px 25px;
+            background: #00a884;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .input-area button:hover {
+            background: #06cf9c;
+        }
+
+        .instructions {
+            background: #252525;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            border: 2px solid #00a884;
+        }
+
+        .instructions h2 {
+            color: #00a884;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        ✅ SCROLLING TEST PAGE - THIS WORKS!
+    </div>
+
+    <div class="container">
+        <!-- Sidebar with scrollable list -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                SIDEBAR (SCROLL HERE ⬆️⬇️)
+            </div>
+            <div class="scrollable-list" id="sidebarList">
+                <!-- Items will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Main area with scrollable messages -->
+        <div class="main">
+            <div class="main-header">
+                MESSAGES (SCROLL HERE ⬆️⬇️)
+            </div>
+
+            <div class="instructions">
+                <h2>🎯 How to Test Scrolling:</h2>
+                <ul>
+                    <li>✅ <strong>LEFT SIDEBAR:</strong> Scroll up and down - see the GREEN scrollbar</li>
+                    <li>✅ <strong>MAIN AREA:</strong> Scroll through messages - see the GREEN scrollbar</li>
+                    <li>✅ <strong>SCROLL BUTTON:</strong> Scroll up in messages to see the ⬇️ button appear</li>
+                    <li>✅ <strong>ADD MESSAGE:</strong> Type below and click "Add" to add more messages</li>
+                    <li>✅ <strong>SMOOTH SCROLLING:</strong> Notice how smooth the scrolling is</li>
+                </ul>
+                <h2 style="margin-top: 15px;">📝 If this works, your main app should too!</h2>
+            </div>
+
+            <div class="messages" id="messagesArea">
+                <!-- Messages will be generated by JavaScript -->
+            </div>
+
+            <button class="scroll-button" id="scrollButton" onclick="scrollToBottom()">
+                ⬇️
+            </button>
+
+            <div class="footer">
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="Type a message and press Add..."
+                           onkeypress="if(event.key==='Enter') addMessage()">
+                    <button onclick="addMessage()">Add Message</button>
+                    <button onclick="add50Messages()" style="background: #5c007a;">Add 50 Messages</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate sidebar items
+        const sidebarList = document.getElementById('sidebarList');
+        for (let i = 1; i <= 100; i++) {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.textContent = `Contact ${i} - Click to chat`;
+            sidebarList.appendChild(item);
+        }
+
+        // Generate initial messages
+        const messagesArea = document.getElementById('messagesArea');
+        let messageCount = 0;
+
+        function addMessage(text = null) {
+            messageCount++;
+            const message = document.createElement('div');
+            message.className = 'message ' + (messageCount % 2 === 0 ? 'sent' : 'received');
+            message.textContent = text || document.getElementById('messageInput').value || `Test message ${messageCount}`;
+            messagesArea.appendChild(message);
+
+            document.getElementById('messageInput').value = '';
+            scrollToBottom();
+            checkScrollPosition();
+        }
+
+        function add50Messages() {
+            const messages = [
+                "Hey! How are you?",
+                "I'm doing great, thanks!",
+                "What are you up to?",
+                "Just testing this scrolling feature",
+                "Does it work well?",
+                "Yes! It's scrolling smoothly!",
+                "That's awesome!",
+                "I can see the scrollbar now",
+                "The green scrollbar looks nice",
+                "And the button appears when I scroll up!",
+            ];
+
+            for (let i = 0; i < 50; i++) {
+                addMessage(messages[i % messages.length] + ` (${i + 1})`);
+            }
+        }
+
+        function scrollToBottom() {
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function checkScrollPosition() {
+            const scrollButton = document.getElementById('scrollButton');
+            const isScrolledUp = messagesArea.scrollHeight - messagesArea.scrollTop - messagesArea.clientHeight > 100;
+
+            if (isScrolledUp) {
+                scrollButton.classList.add('visible');
+            } else {
+                scrollButton.classList.remove('visible');
+            }
+        }
+
+        // Add scroll event listener
+        messagesArea.addEventListener('scroll', checkScrollPosition);
+
+        // Generate initial messages
+        for (let i = 0; i < 30; i++) {
+            addMessage();
+        }
+
+        // Auto-scroll to bottom on load
+        setTimeout(() => scrollToBottom(), 100);
+    </script>
+</body>
+</html>
