@@ -1639,8 +1639,18 @@
                     if (!currentConversation.messages) currentConversation.messages = [];
                     currentConversation.messages.push(data.message);
 
+                    // Determine last message text based on message type
+                    let lastMessageText = data.message.text;
+                    if (data.message.voiceMessage) {
+                        lastMessageText = '🎤 Voice message';
+                    } else if (data.message.file) {
+                        lastMessageText = '📎 File';
+                    } else if (!lastMessageText) {
+                        lastMessageText = '';
+                    }
+
                     currentConversation.lastMessage = {
-                        text: data.message.text || '📎 File',
+                        text: lastMessageText,
                         time: data.message.timestamp
                     };
 
