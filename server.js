@@ -178,7 +178,8 @@ app.post('/api/register', async (req, res) => {
         contacts: [],
         createdAt: Date.now(),
         online: false,
-        socketId: null
+        socketId: null,
+        publicKey: null // For E2E encryption
     });
     
     saveData();
@@ -327,7 +328,21 @@ io.on('connection', (socket) => {
                         online: contact ? contact.online : false
                     };
                 });
-                
+
+                // Collect public keys from contacts for E2E encryption
+                const contactKeys = user.contacts
+                    .map(contactUsername => {
+                        const contact = users.get(contactUsername);
+                        if (contact && contact.publicKey) {
+                            return {
+                                username: contactUsername,
+                                publicKey: contact.publicKey
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(k => k !== null);
+
                 const chatsList = [];
                 for (const [chatId, chat] of chats.entries()) {
                     if (chat.participants.includes(currentUsername)) {
@@ -342,11 +357,12 @@ io.on('connection', (socket) => {
                         }
                     }
                 }
-                
+
                 socket.emit('authenticated', {
                     username: currentUsername,
                     contacts: contactsList,
-                    chats: chatsList
+                    chats: chatsList,
+                    contactKeys: contactKeys
                 });
                 
                 saveData();
@@ -674,6 +690,32 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle public key exchange for E2E encryption
+    socket.on('public-key', (data) => {
+        const { publicKey } = data;
+
+        if (!currentUsername) return;
+
+        const user = users.get(currentUsername);
+        if (user) {
+            user.publicKey = publicKey;
+            saveData();
+
+            // Send public key to all contacts
+            user.contacts.forEach(contactUsername => {
+                const contact = users.get(contactUsername);
+                if (contact && contact.online && contact.socketId) {
+                    io.to(contact.socketId).emit('public-key-received', {
+                        username: currentUsername,
+                        publicKey: publicKey
+                    });
+                }
+            });
+
+            console.log(`🔐 Public key stored for ${currentUsername}`);
+        }
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);
@@ -741,6 +783,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 WhatsApp Clone Server running on port ${PORT}`);
     console.log(`🔐 Authentication enabled with password protection`);
+    console.log(`🔒 End-to-End Encryption enabled (RSA-2048 + AES-256-GCM)`);
     console.log(`👥 Contact list feature enabled`);
     console.log(`📎 File upload feature enabled`);
     console.log(`📞 Voice & Video calling enabled (WebRTC)`);

@@ -930,7 +930,10 @@
                         </div>
                         <div class="chat-header-details">
                             <div class="chat-header-name" id="chatName">Select a chat</div>
-                            <div class="chat-header-status" id="chatStatus">offline</div>
+                            <div class="chat-header-status">
+                                <span id="chatStatus">offline</span>
+                                <span id="encryptionIndicator" style="margin-left: 8px; color: #00a884; display: none;">🔒 Encrypted</span>
+                            </div>
                         </div>
                     </div>
                     <div class="header-actions">
@@ -1049,6 +1052,179 @@
             ]
         };
 
+        // ========== END-TO-END ENCRYPTION ==========
+        // E2E Encryption Variables
+        let myKeyPair = null;
+        let myPublicKeyExported = null;
+        let contactPublicKeys = new Map(); // Map of username -> public key
+
+        // Generate RSA key pair for current user
+        async function generateKeyPair() {
+            try {
+                const keyPair = await window.crypto.subtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 2048,
+                        publicExponent: new Uint8Array([1, 0, 1]),
+                        hash: "SHA-256"
+                    },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+
+                myKeyPair = keyPair;
+
+                // Export public key to send to server
+                const exportedPublicKey = await window.crypto.subtle.exportKey(
+                    "spki",
+                    keyPair.publicKey
+                );
+
+                myPublicKeyExported = arrayBufferToBase64(exportedPublicKey);
+                console.log('🔐 Key pair generated successfully');
+                return myPublicKeyExported;
+            } catch (error) {
+                console.error('Error generating key pair:', error);
+                return null;
+            }
+        }
+
+        // Import a public key from base64
+        async function importPublicKey(base64Key) {
+            try {
+                const binaryKey = base64ToArrayBuffer(base64Key);
+                const publicKey = await window.crypto.subtle.importKey(
+                    "spki",
+                    binaryKey,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256"
+                    },
+                    true,
+                    ["encrypt"]
+                );
+                return publicKey;
+            } catch (error) {
+                console.error('Error importing public key:', error);
+                return null;
+            }
+        }
+
+        // Encrypt message with AES-GCM
+        async function encryptMessage(message, recipientUsername) {
+            try {
+                const recipientPublicKeyBase64 = contactPublicKeys.get(recipientUsername);
+                if (!recipientPublicKeyBase64) {
+                    console.warn('No public key for recipient, sending unencrypted');
+                    return { text: message, encrypted: false };
+                }
+
+                const recipientPublicKey = await importPublicKey(recipientPublicKeyBase64);
+                if (!recipientPublicKey) {
+                    return { text: message, encrypted: false };
+                }
+
+                // Generate random AES key
+                const aesKey = await window.crypto.subtle.generateKey(
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+
+                // Encrypt message with AES
+                const encoder = new TextEncoder();
+                const messageData = encoder.encode(message);
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+                const encryptedMessage = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    aesKey,
+                    messageData
+                );
+
+                // Export AES key
+                const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+
+                // Encrypt AES key with recipient's RSA public key
+                const encryptedAesKey = await window.crypto.subtle.encrypt(
+                    { name: "RSA-OAEP" },
+                    recipientPublicKey,
+                    exportedAesKey
+                );
+
+                return {
+                    encrypted: true,
+                    ciphertext: arrayBufferToBase64(encryptedMessage),
+                    encryptedKey: arrayBufferToBase64(encryptedAesKey),
+                    iv: arrayBufferToBase64(iv)
+                };
+            } catch (error) {
+                console.error('Encryption error:', error);
+                return { text: message, encrypted: false };
+            }
+        }
+
+        // Decrypt message with AES-GCM
+        async function decryptMessage(encryptedData) {
+            try {
+                if (!encryptedData.encrypted || !myKeyPair) {
+                    return encryptedData.text || '[Encrypted message]';
+                }
+
+                // Decrypt AES key with our RSA private key
+                const encryptedAesKey = base64ToArrayBuffer(encryptedData.encryptedKey);
+                const aesKeyData = await window.crypto.subtle.decrypt(
+                    { name: "RSA-OAEP" },
+                    myKeyPair.privateKey,
+                    encryptedAesKey
+                );
+
+                // Import AES key
+                const aesKey = await window.crypto.subtle.importKey(
+                    "raw",
+                    aesKeyData,
+                    { name: "AES-GCM" },
+                    false,
+                    ["decrypt"]
+                );
+
+                // Decrypt message
+                const iv = base64ToArrayBuffer(encryptedData.iv);
+                const ciphertext = base64ToArrayBuffer(encryptedData.ciphertext);
+
+                const decryptedMessage = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    aesKey,
+                    ciphertext
+                );
+
+                const decoder = new TextDecoder();
+                return decoder.decode(decryptedMessage);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                return '[Failed to decrypt message]';
+            }
+        }
+
+        // Helper functions for base64 conversion
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = window.atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
         // Check for saved token (using sessionStorage so each tab is independent)
         window.addEventListener('load', () => {
             const savedToken = sessionStorage.getItem('authToken');
@@ -1163,24 +1339,39 @@
                 socket.emit('authenticate', { token: authToken });
             });
 
-            socket.on('authenticated', (data) => {
+            socket.on('authenticated', async (data) => {
                 currentUser = data;
                 document.getElementById('authScreen').style.display = 'none';
                 document.getElementById('chatScreen').classList.add('active');
-                
+
                 const initials = data.username.substring(0, 2).toUpperCase();
                 document.getElementById('userAvatar').textContent = initials;
                 document.getElementById('userName').textContent = data.username;
-                
+
                 contacts = data.contacts || [];
-                
+
+                // Generate encryption keys
+                await generateKeyPair();
+
+                // Send public key to server
+                if (myPublicKeyExported) {
+                    socket.emit('public-key', { publicKey: myPublicKeyExported });
+                }
+
+                // Store contact public keys if available
+                if (data.contactKeys) {
+                    data.contactKeys.forEach(contact => {
+                        contactPublicKeys.set(contact.username, contact.publicKey);
+                    });
+                }
+
                 if (data.chats && data.chats.length > 0) {
                     data.chats.forEach(chat => {
                         chats.set(chat.id, chat);
                     });
                     renderChatList();
                 }
-                
+
                 renderContactsList();
             });
 
@@ -1193,6 +1384,13 @@
                 contacts.push(contact);
                 renderContactsList();
                 showSuccess(`${contact.username} added to contacts!`);
+            });
+
+            // Receive public keys from contacts
+            socket.on('public-key-received', (data) => {
+                const { username, publicKey } = data;
+                contactPublicKeys.set(username, publicKey);
+                console.log(`🔐 Received public key from ${username}`);
             });
 
             socket.on('contact-removed', (data) => {
@@ -1504,38 +1702,48 @@
         function selectChat(chatId) {
             currentChatId = chatId;
             const chat = chats.get(chatId);
-            
+
             if (!chat) return;
-            
+
             document.getElementById('emptyChat').style.display = 'none';
             document.getElementById('activeChat').classList.add('active');
-            
+
             const initials = chat.name.substring(0, 2).toUpperCase();
             document.getElementById('chatAvatarText').textContent = initials;
             document.getElementById('chatName').textContent = chat.name;
             document.getElementById('chatStatus').textContent = chat.online ? 'online' : 'offline';
-            
+
+            // Show encryption indicator if we have the contact's public key
+            const encryptionIndicator = document.getElementById('encryptionIndicator');
+            if (contactPublicKeys.has(chat.name)) {
+                encryptionIndicator.style.display = 'inline';
+            } else {
+                encryptionIndicator.style.display = 'none';
+            }
+
             if (!chat.messages || chat.messages.length === 0) {
                 socket.emit('get-messages', { chatId });
             } else {
                 renderMessages();
             }
-            
+
             renderChatList();
             document.getElementById('messageInput').focus();
         }
 
-        function renderMessages() {
+        async function renderMessages() {
             const container = document.getElementById('messagesContainer');
             const chat = chats.get(currentChatId);
-            
+
             if (!chat || !chat.messages || chat.messages.length === 0) {
                 container.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
                 return;
             }
-            
+
             container.innerHTML = '';
-            chat.messages.forEach(msg => {
+
+            // Decrypt and render messages
+            for (const msg of chat.messages) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
 
@@ -1545,8 +1753,16 @@
                     content += `<div class="message-sender">${msg.senderUsername}</div>`;
                 }
 
-                if (msg.text) {
-                    content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
+                // Decrypt message if encrypted
+                let messageText = msg.text || '';
+                if (msg.encrypted) {
+                    messageText = await decryptMessage(msg);
+                    // Add encryption indicator
+                    content += `<div style="font-size: 10px; color: #8696a0; margin-bottom: 4px;">🔒 End-to-end encrypted</div>`;
+                }
+
+                if (messageText) {
+                    content += `<div class="message-text">${escapeHtml(messageText)}</div>`;
                 }
 
                 if (msg.file) {
@@ -1584,7 +1800,7 @@
 
                 messageDiv.innerHTML = content;
                 container.appendChild(messageDiv);
-            });
+            }
 
             scrollToBottom();
             checkScrollPosition();
@@ -1619,12 +1835,12 @@
             document.getElementById('attachmentPreview').classList.remove('active');
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
-            
+
             if (!currentChatId || (!text && !selectedFile)) return;
-            
+
             if (selectedFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -1637,9 +1853,21 @@
                 };
                 reader.readAsDataURL(selectedFile);
             } else {
+                // Get recipient username from current chat
+                const chat = chats.get(currentChatId);
+                const recipientUsername = chat ? chat.name : null;
+
+                // Encrypt message if we have recipient's public key
+                let messageData;
+                if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
+                    messageData = await encryptMessage(text, recipientUsername);
+                } else {
+                    messageData = { text: text, encrypted: false };
+                }
+
                 socket.emit('send-message', {
                     chatId: currentChatId,
-                    text: text
+                    ...messageData
                 });
                 messageInput.value = '';
                 autoResize(messageInput);
