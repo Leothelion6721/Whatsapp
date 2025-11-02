@@ -662,6 +662,177 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('edit-message', (data) => {
+        const { chatId, messageId, text, encrypted, ciphertext, encryptedKey, iv } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const group = groups.get(chatId);
+        const chat = chats.get(chatId);
+
+        let recipients = [];
+
+        if (group) {
+            if (!group.members.includes(currentUsername)) {
+                socket.emit('message-error', { error: 'Not a member of this group' });
+                return;
+            }
+            recipients = group.members;
+        } else if (chat) {
+            if (!chat.participants.includes(currentUsername)) return;
+            recipients = chat.participants;
+        } else {
+            return;
+        }
+
+        // Find and update the message
+        const chatMessages = messages.get(chatId) || [];
+        const messageIndex = chatMessages.findIndex(m => m.id === messageId);
+
+        if (messageIndex === -1) {
+            socket.emit('message-error', { error: 'Message not found' });
+            return;
+        }
+
+        const message = chatMessages[messageIndex];
+
+        // Verify user owns the message
+        if (message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot edit message sent by another user' });
+            return;
+        }
+
+        // Update message
+        message.text = text || '';
+        message.encrypted = encrypted || false;
+        message.ciphertext = ciphertext || null;
+        message.encryptedKey = encryptedKey || null;
+        message.iv = iv || null;
+        message.edited = true;
+        message.editedAt = Date.now();
+
+        messages.set(chatId, chatMessages);
+
+        // Update last message if this is the last message
+        if (messageIndex === chatMessages.length - 1) {
+            const lastMessageData = {
+                text: text || '',
+                time: Date.now()
+            };
+
+            if (group) {
+                group.lastMessage = lastMessageData;
+            } else if (chat) {
+                chat.lastMessage = lastMessageData;
+            }
+        }
+
+        saveData();
+
+        // Broadcast to all recipients
+        recipients.forEach(recipientUsername => {
+            const recipient = users.get(recipientUsername);
+            if (recipient && recipient.online && recipient.socketId) {
+                io.to(recipient.socketId).emit('message-edited', {
+                    chatId,
+                    messageId,
+                    text: message.text,
+                    encrypted: message.encrypted,
+                    ciphertext: message.ciphertext,
+                    encryptedKey: message.encryptedKey,
+                    iv: message.iv
+                });
+            }
+        });
+
+        const chatType = group ? 'group' : 'chat';
+        console.log(`Message edited in ${chatType} ${chatId} by ${currentUsername}`);
+    });
+
+    socket.on('delete-message', (data) => {
+        const { chatId, messageId } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const group = groups.get(chatId);
+        const chat = chats.get(chatId);
+
+        let recipients = [];
+
+        if (group) {
+            if (!group.members.includes(currentUsername)) {
+                socket.emit('message-error', { error: 'Not a member of this group' });
+                return;
+            }
+            recipients = group.members;
+        } else if (chat) {
+            if (!chat.participants.includes(currentUsername)) return;
+            recipients = chat.participants;
+        } else {
+            return;
+        }
+
+        // Find and delete the message
+        const chatMessages = messages.get(chatId) || [];
+        const messageIndex = chatMessages.findIndex(m => m.id === messageId);
+
+        if (messageIndex === -1) {
+            socket.emit('message-error', { error: 'Message not found' });
+            return;
+        }
+
+        const message = chatMessages[messageIndex];
+
+        // Verify user owns the message
+        if (message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot delete message sent by another user' });
+            return;
+        }
+
+        // Mark message as deleted (keep metadata for history)
+        message.deleted = true;
+        message.text = '';
+        message.file = null;
+        message.voiceMessage = null;
+        message.encrypted = false;
+        message.ciphertext = null;
+        message.encryptedKey = null;
+        message.iv = null;
+        message.deletedAt = Date.now();
+
+        messages.set(chatId, chatMessages);
+
+        // Update last message if this is the last message
+        if (messageIndex === chatMessages.length - 1) {
+            const lastMessageData = {
+                text: '🚫 This message was deleted',
+                time: Date.now()
+            };
+
+            if (group) {
+                group.lastMessage = lastMessageData;
+            } else if (chat) {
+                chat.lastMessage = lastMessageData;
+            }
+        }
+
+        saveData();
+
+        // Broadcast to all recipients
+        recipients.forEach(recipientUsername => {
+            const recipient = users.get(recipientUsername);
+            if (recipient && recipient.online && recipient.socketId) {
+                io.to(recipient.socketId).emit('message-deleted', {
+                    chatId,
+                    messageId
+                });
+            }
+        });
+
+        const chatType = group ? 'group' : 'chat';
+        console.log(`Message deleted in ${chatType} ${chatId} by ${currentUsername}`);
+    });
+
     socket.on('add-contact', async (data) => {
         const { contactUsername } = data;
         
@@ -980,6 +1151,8 @@ io.on('connection', (socket) => {
                 ciphertext: msg.ciphertext,
                 encryptedKey: msg.encryptedKey,
                 iv: msg.iv,
+                edited: msg.edited || false,
+                deleted: msg.deleted || false,
                 senderUsername: msg.senderUsername,
                 timestamp: msg.timestamp,
                 sent: msg.senderUsername === currentUsername

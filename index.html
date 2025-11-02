@@ -528,6 +528,125 @@
             margin-top: 2px;
         }
 
+        /* Message Options */
+        .message-options-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            color: #8696a0;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .message.sent:hover .message-options-btn {
+            display: flex;
+        }
+
+        .message-options-btn:hover {
+            background: rgba(0, 0, 0, 0.5);
+            color: #e9edef;
+        }
+
+        .message-options-menu {
+            position: absolute;
+            top: 30px;
+            right: 5px;
+            background: #233138;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            min-width: 120px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .message-option {
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #e9edef;
+            font-size: 14px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .message-option:hover {
+            background: #2a3942;
+        }
+
+        .message-option.delete {
+            color: #f44336;
+        }
+
+        .message-edited {
+            font-size: 11px;
+            color: #8696a0;
+            font-style: italic;
+            margin-left: 5px;
+        }
+
+        .message-deleted {
+            opacity: 0.6;
+            font-style: italic;
+            color: #8696a0;
+        }
+
+        .message-edit-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid #00a884;
+            border-radius: 6px;
+            padding: 8px;
+            color: #e9edef;
+            font-size: 14px;
+            width: 100%;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .message-edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: flex-end;
+        }
+
+        .message-edit-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .message-edit-btn.save {
+            background: #00a884;
+            color: white;
+        }
+
+        .message-edit-btn.save:hover {
+            background: #008f6c;
+        }
+
+        .message-edit-btn.cancel {
+            background: #374248;
+            color: #e9edef;
+        }
+
+        .message-edit-btn.cancel:hover {
+            background: #4a5860;
+        }
+
         /* Message Input */
         .message-input-container {
             background: #202c33;
@@ -1739,6 +1858,70 @@
                 }
             });
 
+            socket.on('message-edited', (data) => {
+                const { chatId, messageId, text, encrypted, ciphertext, encryptedKey, iv } = data;
+                const chat = chats.get(chatId);
+                const group = groups.get(chatId);
+                const currentConversation = group || chat;
+
+                if (currentConversation && currentConversation.messages) {
+                    const message = currentConversation.messages.find(m => m.id === messageId);
+                    if (message) {
+                        message.text = text || '';
+                        message.encrypted = encrypted || false;
+                        message.ciphertext = ciphertext || null;
+                        message.encryptedKey = encryptedKey || null;
+                        message.iv = iv || null;
+                        message.edited = true;
+
+                        // Update last message if this was the last one
+                        const lastMsg = currentConversation.messages[currentConversation.messages.length - 1];
+                        if (lastMsg && lastMsg.id === messageId) {
+                            currentConversation.lastMessage = {
+                                text: text || '',
+                                time: message.timestamp
+                            };
+                            renderChatList();
+                        }
+
+                        if (currentChatId === chatId) {
+                            renderMessages();
+                        }
+                    }
+                }
+            });
+
+            socket.on('message-deleted', (data) => {
+                const { chatId, messageId } = data;
+                const chat = chats.get(chatId);
+                const group = groups.get(chatId);
+                const currentConversation = group || chat;
+
+                if (currentConversation && currentConversation.messages) {
+                    const message = currentConversation.messages.find(m => m.id === messageId);
+                    if (message) {
+                        message.deleted = true;
+                        message.text = '';
+                        message.file = null;
+                        message.voiceMessage = null;
+
+                        // Update last message if this was the last one
+                        const lastMsg = currentConversation.messages[currentConversation.messages.length - 1];
+                        if (lastMsg && lastMsg.id === messageId) {
+                            currentConversation.lastMessage = {
+                                text: '🚫 This message was deleted',
+                                time: message.timestamp
+                            };
+                            renderChatList();
+                        }
+
+                        if (currentChatId === chatId) {
+                            renderMessages();
+                        }
+                    }
+                }
+            });
+
             // Call event handlers
             socket.on('incoming-call', async (data) => {
                 const { from, offer, isVideo } = data;
@@ -2064,66 +2247,82 @@
             for (const msg of currentConversation.messages) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
+                messageDiv.setAttribute('data-message-id', msg.id);
 
                 let content = '';
+
+                // Add options button for sent messages (only if not deleted)
+                if (msg.sent && !msg.deleted) {
+                    content += `
+                        <button class="message-options-btn" onclick="toggleMessageOptions(event, '${msg.id}')">
+                            ⋮
+                        </button>
+                    `;
+                }
 
                 if (!msg.sent) {
                     content += `<div class="message-sender">${msg.senderUsername}</div>`;
                 }
 
-                // Decrypt message if encrypted
-                let messageText = msg.text || '';
-                if (msg.encrypted) {
-                    messageText = await decryptMessage(msg);
-                    // Add encryption indicator
-                    content += `<div style="font-size: 10px; color: #8696a0; margin-bottom: 4px;">🔒 End-to-end encrypted</div>`;
-                }
+                // Handle deleted messages
+                if (msg.deleted) {
+                    content += `<div class="message-text message-deleted">🚫 This message was deleted</div>`;
+                } else {
+                    // Decrypt message if encrypted
+                    let messageText = msg.text || '';
+                    if (msg.encrypted) {
+                        messageText = await decryptMessage(msg);
+                        // Add encryption indicator
+                        content += `<div style="font-size: 10px; color: #8696a0; margin-bottom: 4px;">🔒 End-to-end encrypted</div>`;
+                    }
 
-                if (messageText) {
-                    content += `<div class="message-text">${escapeHtml(messageText)}</div>`;
-                }
+                    if (messageText) {
+                        content += `<div class="message-text">${escapeHtml(messageText)}</div>`;
+                    }
 
-                if (msg.voiceMessage) {
-                    const voiceId = `voice-${msg.timestamp}`;
-                    content += `
-                        <div class="voice-message">
-                            <button class="voice-play-btn" id="${voiceId}" onclick="playVoiceMessage('${msg.voiceMessage.url}', '${voiceId}')">
-                                ▶
-                            </button>
-                            <div class="voice-wave"></div>
-                            <span class="voice-duration">${formatDuration(msg.voiceMessage.duration)}</span>
-                        </div>
-                    `;
-                } else if (msg.file) {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
-
-                    if (isImage) {
+                    if (msg.voiceMessage) {
+                        const voiceId = `voice-${msg.timestamp}`;
                         content += `
-                            <a href="${msg.file.url}" target="_blank">
-                                <img src="${msg.file.url}" alt="${msg.file.originalName}" class="message-image">
-                            </a>
-                        `;
-                    } else {
-                        const icon = getFileIcon(msg.file.mimetype);
-                        content += `
-                            <div class="message-file">
-                                <div class="file-info">
-                                    <span class="file-icon">${icon}</span>
-                                    <div>
-                                        <a href="${msg.file.url}" target="_blank" class="file-name" download="${msg.file.originalName}">
-                                            ${msg.file.originalName}
-                                        </a>
-                                        <div class="file-size">${formatFileSize(msg.file.size)}</div>
-                                    </div>
-                                </div>
+                            <div class="voice-message">
+                                <button class="voice-play-btn" id="${voiceId}" onclick="playVoiceMessage('${msg.voiceMessage.url}', '${voiceId}')">
+                                    ▶
+                                </button>
+                                <div class="voice-wave"></div>
+                                <span class="voice-duration">${formatDuration(msg.voiceMessage.duration)}</span>
                             </div>
                         `;
+                    } else if (msg.file) {
+                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
+
+                        if (isImage) {
+                            content += `
+                                <a href="${msg.file.url}" target="_blank">
+                                    <img src="${msg.file.url}" alt="${msg.file.originalName}" class="message-image">
+                                </a>
+                            `;
+                        } else {
+                            const icon = getFileIcon(msg.file.mimetype);
+                            content += `
+                                <div class="message-file">
+                                    <div class="file-info">
+                                        <span class="file-icon">${icon}</span>
+                                        <div>
+                                            <a href="${msg.file.url}" target="_blank" class="file-name" download="${msg.file.originalName}">
+                                                ${msg.file.originalName}
+                                            </a>
+                                            <div class="file-size">${formatFileSize(msg.file.size)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }
                 }
 
                 content += `
                     <div class="message-meta">
                         <span>${formatTime(msg.timestamp)}</span>
+                        ${msg.edited ? '<span class="message-edited">(edited)</span>' : ''}
                     </div>
                 `;
 
@@ -2333,6 +2532,153 @@
                 playBtn.textContent = '▶';
             });
         }
+
+        // Message Edit/Delete Functions
+        let currentOptionsMessageId = null;
+
+        function toggleMessageOptions(event, messageId) {
+            event.stopPropagation();
+
+            // Close any existing menu
+            const existingMenu = document.querySelector('.message-options-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+
+            // If clicking the same message, just close
+            if (currentOptionsMessageId === messageId) {
+                currentOptionsMessageId = null;
+                return;
+            }
+
+            currentOptionsMessageId = messageId;
+
+            // Create options menu
+            const menu = document.createElement('div');
+            menu.className = 'message-options-menu';
+            menu.innerHTML = `
+                <div class="message-option" onclick="startEditMessage('${messageId}')">
+                    ✏️ Edit
+                </div>
+                <div class="message-option delete" onclick="confirmDeleteMessage('${messageId}')">
+                    🗑️ Delete
+                </div>
+            `;
+
+            // Add menu to message
+            const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageDiv) {
+                messageDiv.appendChild(menu);
+            }
+        }
+
+        function startEditMessage(messageId) {
+            // Close options menu
+            const menu = document.querySelector('.message-options-menu');
+            if (menu) menu.remove();
+            currentOptionsMessageId = null;
+
+            const chat = chats.get(currentChatId);
+            const group = groups.get(currentChatId);
+            const currentConversation = group || chat;
+
+            if (!currentConversation) return;
+
+            const message = currentConversation.messages.find(m => m.id === messageId);
+            if (!message || message.deleted || message.voiceMessage || message.file) {
+                alert('Cannot edit this message');
+                return;
+            }
+
+            const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageDiv) return;
+
+            const messageTextDiv = messageDiv.querySelector('.message-text');
+            if (!messageTextDiv) return;
+
+            const currentText = messageTextDiv.textContent;
+
+            // Replace text with input
+            messageTextDiv.innerHTML = `
+                <textarea class="message-edit-input" id="edit-input-${messageId}">${escapeHtml(currentText)}</textarea>
+                <div class="message-edit-actions">
+                    <button class="message-edit-btn cancel" onclick="cancelEditMessage('${messageId}')">Cancel</button>
+                    <button class="message-edit-btn save" onclick="saveEditMessage('${messageId}')">Save</button>
+                </div>
+            `;
+
+            // Focus input
+            const input = document.getElementById(`edit-input-${messageId}`);
+            if (input) {
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            }
+        }
+
+        function cancelEditMessage(messageId) {
+            renderMessages();
+        }
+
+        async function saveEditMessage(messageId) {
+            const input = document.getElementById(`edit-input-${messageId}`);
+            if (!input) return;
+
+            const newText = input.value.trim();
+            if (!newText) {
+                alert('Message cannot be empty');
+                return;
+            }
+
+            const chat = chats.get(currentChatId);
+            const group = groups.get(currentChatId);
+            const currentConversation = group || chat;
+
+            if (!currentConversation) return;
+
+            const message = currentConversation.messages.find(m => m.id === messageId);
+            if (!message) return;
+
+            // Check if message needs encryption
+            let messageData = { text: newText };
+
+            if (!group && chat) {
+                // 1-on-1 chat: encrypt if we have recipient's public key
+                const recipientUsername = chat.name;
+                if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
+                    messageData = await encryptMessage(newText, recipientUsername);
+                }
+            }
+
+            // Emit edit event to server
+            socket.emit('edit-message', {
+                chatId: currentChatId,
+                messageId: messageId,
+                ...messageData
+            });
+        }
+
+        function confirmDeleteMessage(messageId) {
+            // Close options menu
+            const menu = document.querySelector('.message-options-menu');
+            if (menu) menu.remove();
+            currentOptionsMessageId = null;
+
+            if (confirm('Are you sure you want to delete this message?')) {
+                socket.emit('delete-message', {
+                    chatId: currentChatId,
+                    messageId: messageId
+                });
+            }
+        }
+
+        // Close options menu when clicking outside
+        document.addEventListener('click', () => {
+            const menu = document.querySelector('.message-options-menu');
+            if (menu) {
+                menu.remove();
+                currentOptionsMessageId = null;
+            }
+        });
 
         async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
