@@ -882,6 +882,7 @@
                     <div class="user-name" id="userName">User</div>
                 </div>
                 <div class="header-actions">
+                    <button class="icon-btn" title="Create Group" onclick="createGroup()">👥</button>
                     <button class="icon-btn" title="Logout" onclick="logout()">🚪</button>
                 </div>
             </div>
@@ -1028,6 +1029,7 @@
         let currentChatId = null;
         let chats = new Map();
         let contacts = [];
+        let groups = new Map(); // For group chats
         let typingTimeout = null;
         let isTyping = false;
         let selectedFile = null;
@@ -1369,9 +1371,16 @@
                     data.chats.forEach(chat => {
                         chats.set(chat.id, chat);
                     });
-                    renderChatList();
                 }
 
+                // Load groups
+                if (data.groups && data.groups.length > 0) {
+                    data.groups.forEach(group => {
+                        groups.set(group.id, group);
+                    });
+                }
+
+                renderChatList();
                 renderContactsList();
             });
 
@@ -1400,6 +1409,74 @@
 
             socket.on('contact-error', (data) => {
                 alert(data.error);
+            });
+
+            // ========== GROUP EVENT LISTENERS ==========
+
+            socket.on('group-created', (data) => {
+                groups.set(data.id, {
+                    id: data.id,
+                    name: data.name,
+                    members: data.members,
+                    admin: data.admin,
+                    isGroup: true,
+                    messages: [],
+                    lastMessage: null
+                });
+                renderChatList();
+                alert(`Group "${data.name}" created successfully!`);
+            });
+
+            socket.on('group-error', (data) => {
+                alert(data.error);
+            });
+
+            socket.on('group-member-added', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.members = data.members;
+                    renderChatList();
+                }
+            });
+
+            socket.on('group-member-removed', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.members = data.members;
+                    renderChatList();
+                }
+            });
+
+            socket.on('removed-from-group', (data) => {
+                groups.delete(data.groupId);
+                if (currentChatId === data.groupId) {
+                    currentChatId = null;
+                    document.getElementById('activeChat').classList.remove('active');
+                    document.getElementById('emptyChat').style.display = 'flex';
+                }
+                renderChatList();
+                alert('You have been removed from the group');
+            });
+
+            socket.on('group-member-left', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.members = data.members;
+                    if (data.newAdmin) {
+                        group.admin = data.newAdmin;
+                    }
+                    renderChatList();
+                }
+            });
+
+            socket.on('left-group', (data) => {
+                groups.delete(data.groupId);
+                if (currentChatId === data.groupId) {
+                    currentChatId = null;
+                    document.getElementById('activeChat').classList.remove('active');
+                    document.getElementById('emptyChat').style.display = 'flex';
+                }
+                renderChatList();
             });
 
             socket.on('chat-created', (data) => {
@@ -1431,17 +1508,20 @@
 
             socket.on('new-message', (data) => {
                 const chat = chats.get(data.chatId);
-                if (chat) {
-                    if (!chat.messages) chat.messages = [];
-                    chat.messages.push(data.message);
-                    
-                    chat.lastMessage = {
+                const group = groups.get(data.chatId);
+                const currentConversation = group || chat;
+
+                if (currentConversation) {
+                    if (!currentConversation.messages) currentConversation.messages = [];
+                    currentConversation.messages.push(data.message);
+
+                    currentConversation.lastMessage = {
                         text: data.message.text || '📎 File',
                         time: data.message.timestamp
                     };
-                    
+
                     renderChatList();
-                    
+
                     if (currentChatId === data.chatId) {
                         renderMessages();
                         scrollToBottom();
@@ -1510,8 +1590,15 @@
 
             socket.on('messages-loaded', (data) => {
                 const chat = chats.get(data.chatId);
+                const group = groups.get(data.chatId);
+
                 if (chat) {
                     chat.messages = data.messages;
+                    if (currentChatId === data.chatId) {
+                        renderMessages();
+                    }
+                } else if (group) {
+                    group.messages = data.messages;
                     if (currentChatId === data.chatId) {
                         renderMessages();
                     }
@@ -1586,6 +1673,41 @@
                 }
                 location.reload();
             }
+        }
+
+        function createGroup() {
+            if (contacts.length === 0) {
+                alert('You need to add contacts first before creating a group!');
+                return;
+            }
+
+            const groupName = prompt('Enter group name:');
+            if (!groupName || groupName.trim() === '') return;
+
+            // Show contact selection
+            let selectedContacts = [];
+            let contactList = 'Select members (enter numbers separated by commas):\n\n';
+            contacts.forEach((contact, index) => {
+                contactList += `${index + 1}. ${contact.username}\n`;
+            });
+
+            const selection = prompt(contactList);
+            if (!selection) return;
+
+            const indices = selection.split(',').map(s => parseInt(s.trim()) - 1);
+            selectedContacts = indices
+                .filter(i => i >= 0 && i < contacts.length)
+                .map(i => contacts[i].username);
+
+            if (selectedContacts.length === 0) {
+                alert('No valid contacts selected!');
+                return;
+            }
+
+            socket.emit('create-group', {
+                groupName: groupName.trim(),
+                memberUsernames: selectedContacts
+            });
         }
 
         function showChats() {
@@ -1667,22 +1789,49 @@
 
         function renderChatList() {
             const chatList = document.getElementById('chatList');
-            
-            if (chats.size === 0) {
-                chatList.innerHTML = '<div class="loading">No chats yet. Add contacts to start chatting!</div>';
+
+            if (chats.size === 0 && groups.size === 0) {
+                chatList.innerHTML = '<div class="loading">No chats yet. Add contacts or create a group!</div>';
                 return;
             }
 
             chatList.innerHTML = '';
+
+            // Render groups first (with group icon)
+            groups.forEach((group, groupId) => {
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item' + (groupId === currentChatId ? ' active' : '');
+                chatItem.onclick = () => selectChat(groupId);
+
+                const initials = group.name.substring(0, 2).toUpperCase();
+                const lastMessageText = group.lastMessage?.text || 'No messages yet';
+                const time = group.lastMessage?.time ? formatTime(group.lastMessage.time) : '';
+
+                chatItem.innerHTML = `
+                    <div class="chat-avatar" style="background: #128C7E;">
+                        ${initials}
+                        <span style="position: absolute; bottom: -2px; right: -2px; font-size: 14px;">👥</span>
+                    </div>
+                    <div class="chat-details">
+                        <div class="chat-name">${group.name} <span style="font-size: 11px; color: #8696a0;">(${group.members.length})</span></div>
+                        <div class="chat-last-message">${lastMessageText}</div>
+                    </div>
+                    ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
+                `;
+
+                chatList.appendChild(chatItem);
+            });
+
+            // Render 1-on-1 chats
             chats.forEach((chat, chatId) => {
                 const chatItem = document.createElement('div');
                 chatItem.className = 'chat-item' + (chatId === currentChatId ? ' active' : '');
                 chatItem.onclick = () => selectChat(chatId);
-                
+
                 const initials = chat.name.substring(0, 2).toUpperCase();
                 const lastMessageText = chat.lastMessage?.text || 'Start a conversation';
                 const time = chat.lastMessage?.time ? formatTime(chat.lastMessage.time) : '';
-                
+
                 chatItem.innerHTML = `
                     <div class="chat-avatar">
                         ${initials}
@@ -1694,7 +1843,7 @@
                     </div>
                     ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
                 `;
-                
+
                 chatList.appendChild(chatItem);
             });
         }
@@ -1702,29 +1851,47 @@
         function selectChat(chatId) {
             currentChatId = chatId;
             const chat = chats.get(chatId);
+            const group = groups.get(chatId);
 
-            if (!chat) return;
+            if (!chat && !group) return;
 
             document.getElementById('emptyChat').style.display = 'none';
             document.getElementById('activeChat').classList.add('active');
 
-            const initials = chat.name.substring(0, 2).toUpperCase();
-            document.getElementById('chatAvatarText').textContent = initials;
-            document.getElementById('chatName').textContent = chat.name;
-            document.getElementById('chatStatus').textContent = chat.online ? 'online' : 'offline';
-
-            // Show encryption indicator if we have the contact's public key
             const encryptionIndicator = document.getElementById('encryptionIndicator');
-            if (contactPublicKeys.has(chat.name)) {
-                encryptionIndicator.style.display = 'inline';
-            } else {
-                encryptionIndicator.style.display = 'none';
-            }
 
-            if (!chat.messages || chat.messages.length === 0) {
-                socket.emit('get-messages', { chatId });
+            if (group) {
+                // Handle group chat
+                const initials = group.name.substring(0, 2).toUpperCase();
+                document.getElementById('chatAvatarText').textContent = initials;
+                document.getElementById('chatName').textContent = group.name + ' 👥';
+                document.getElementById('chatStatus').textContent = `${group.members.length} members`;
+                encryptionIndicator.style.display = 'none'; // Groups don't show encryption indicator
+
+                if (!group.messages || group.messages.length === 0) {
+                    socket.emit('get-group-messages', { groupId: chatId });
+                } else {
+                    renderMessages();
+                }
             } else {
-                renderMessages();
+                // Handle 1-on-1 chat
+                const initials = chat.name.substring(0, 2).toUpperCase();
+                document.getElementById('chatAvatarText').textContent = initials;
+                document.getElementById('chatName').textContent = chat.name;
+                document.getElementById('chatStatus').textContent = chat.online ? 'online' : 'offline';
+
+                // Show encryption indicator if we have the contact's public key
+                if (contactPublicKeys.has(chat.name)) {
+                    encryptionIndicator.style.display = 'inline';
+                } else {
+                    encryptionIndicator.style.display = 'none';
+                }
+
+                if (!chat.messages || chat.messages.length === 0) {
+                    socket.emit('get-messages', { chatId });
+                } else {
+                    renderMessages();
+                }
             }
 
             renderChatList();
@@ -1734,8 +1901,10 @@
         async function renderMessages() {
             const container = document.getElementById('messagesContainer');
             const chat = chats.get(currentChatId);
+            const group = groups.get(currentChatId);
 
-            if (!chat || !chat.messages || chat.messages.length === 0) {
+            const currentConversation = group || chat;
+            if (!currentConversation || !currentConversation.messages || currentConversation.messages.length === 0) {
                 container.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
                 return;
             }
@@ -1743,7 +1912,7 @@
             container.innerHTML = '';
 
             // Decrypt and render messages
-            for (const msg of chat.messages) {
+            for (const msg of currentConversation.messages) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
 
