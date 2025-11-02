@@ -980,6 +980,9 @@
     <!-- Call Modal -->
     <div class="call-modal" id="callModal">
         <div class="call-container">
+            <!-- CRITICAL: Audio element for voice calls - ALWAYS available, not hidden -->
+            <audio id="remoteAudio" autoplay></audio>
+
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
                 <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
@@ -1608,22 +1611,27 @@
             // Call event handlers
             socket.on('incoming-call', async (data) => {
                 const { from, offer, isVideo } = data;
-                
+
+                console.log('Incoming call from:', from, 'isVideo:', isVideo);
+
+                // FIXED: Set global isVideoCall variable
+                isVideoCall = isVideo;
+
                 // Create peer connection
                 createPeerConnection();
-                
+
                 // Set remote description
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                
+
                 // Show incoming call UI
                 currentCall = {
                     type: 'incoming',
                     contactName: from,
                     isVideo: isVideo
                 };
-                
+
                 showCallUI(from, 'incoming', isVideo);
-                
+
                 // Play ringtone (optional)
                 // new Audio('/ringtone.mp3').play();
             });
@@ -2032,15 +2040,25 @@
                 };
                 reader.readAsDataURL(selectedFile);
             } else {
-                // Get recipient username from current chat
+                // FIXED: Check if it's a group or 1-on-1 chat
+                const group = groups.get(currentChatId);
                 const chat = chats.get(currentChatId);
-                const recipientUsername = chat ? chat.name : null;
 
-                // Encrypt message if we have recipient's public key
                 let messageData;
-                if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
-                    messageData = await encryptMessage(text, recipientUsername);
+
+                if (group) {
+                    // Groups: No encryption (multi-recipient encryption not implemented)
+                    messageData = { text: text, encrypted: false };
+                } else if (chat) {
+                    // 1-on-1 chat: Encrypt if we have recipient's public key
+                    const recipientUsername = chat.name;
+                    if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
+                        messageData = await encryptMessage(text, recipientUsername);
+                    } else {
+                        messageData = { text: text, encrypted: false };
+                    }
                 } else {
+                    // Shouldn't happen, but fallback
                     messageData = { text: text, encrypted: false };
                 }
 
@@ -2289,25 +2307,37 @@
                 }
             };
 
-            // Handle remote stream
+            // Handle remote stream - FIXED: Use audio element for voice calls
             peerConnection.ontrack = (event) => {
+                console.log('Received remote track:', event.track.kind);
+
                 if (!remoteStream) {
                     remoteStream = new MediaStream();
-                    document.getElementById('remoteVideo').srcObject = remoteStream;
+
+                    // CRITICAL FIX: Use appropriate element based on call type
+                    if (isVideoCall) {
+                        // Video calls: use video element
+                        document.getElementById('remoteVideo').srcObject = remoteStream;
+                    } else {
+                        // Voice calls: use audio element (NOT hidden!)
+                        document.getElementById('remoteAudio').srcObject = remoteStream;
+                    }
                 }
+
                 remoteStream.addTrack(event.track);
-                
-                if (isVideoCall) {
+
+                if (isVideoCall && event.track.kind === 'video') {
                     document.getElementById('videoPlaceholder').style.display = 'none';
                 }
             };
 
             // Handle connection state
             peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') {
                     startCallTimer();
                     document.getElementById('callStatus').textContent = 'Connected';
-                } else if (peerConnection.connectionState === 'disconnected' || 
+                } else if (peerConnection.connectionState === 'disconnected' ||
                            peerConnection.connectionState === 'failed') {
                     endCall();
                 }
@@ -2449,6 +2479,15 @@
                 remoteStream.getTracks().forEach(track => track.stop());
                 remoteStream = null;
             }
+
+            // FIXED: Clear srcObject from BOTH audio and video elements
+            const remoteAudio = document.getElementById('remoteAudio');
+            const remoteVideo = document.getElementById('remoteVideo');
+            const localVideo = document.getElementById('localVideo');
+
+            if (remoteAudio) remoteAudio.srcObject = null;
+            if (remoteVideo) remoteVideo.srcObject = null;
+            if (localVideo) localVideo.srcObject = null;
 
             // Reset call state
             currentCall = null;
