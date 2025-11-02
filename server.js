@@ -1277,6 +1277,29 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Whiteboard handlers
+    socket.on('whiteboard-draw', (data) => {
+        if (!currentUsername) return;
+
+        const { imageData } = data;
+
+        // Broadcast whiteboard update to all connected users
+        socket.broadcast.emit('whiteboard-update', { imageData });
+
+        console.log(`Whiteboard updated by ${currentUsername}`);
+    });
+
+    socket.on('join-whiteboard', () => {
+        if (!currentUsername) return;
+
+        // Count users in whiteboard (simplified - broadcasts to everyone)
+        const connectedUsers = Array.from(users.values()).filter(u => u.online).length;
+
+        io.emit('whiteboard-users-count', { count: connectedUsers });
+
+        console.log(`${currentUsername} joined whiteboard`);
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);
