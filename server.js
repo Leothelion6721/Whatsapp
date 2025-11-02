@@ -526,18 +526,18 @@ io.on('connection', (socket) => {
 
     socket.on('upload-file', async (data) => {
         const { chatId, fileData, fileName, fileType } = data;
-        
+
         if (!currentUsername || !chatId || !fileData) return;
-        
+
         try {
             const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + fileName;
             const filePath = path.join(uploadsDir, uniqueFilename);
-            
+
             const base64Data = fileData.replace(/^data:.*?;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             fs.writeFileSync(filePath, buffer);
-            
+
             const fileInfo = {
                 filename: uniqueFilename,
                 originalName: fileName,
@@ -545,15 +545,120 @@ io.on('connection', (socket) => {
                 size: buffer.length,
                 url: `/uploads/${uniqueFilename}`
             };
-            
+
             socket.emit('file-uploaded', {
                 chatId,
                 file: fileInfo
             });
-            
+
         } catch (error) {
             console.error('File upload error:', error);
             socket.emit('upload-error', { error: 'Failed to upload file' });
+        }
+    });
+
+    socket.on('send-voice-message', async (data) => {
+        const { chatId, audioData, duration } = data;
+
+        if (!currentUsername || !chatId || !audioData) return;
+
+        try {
+            // Save audio file
+            const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
+            const filePath = path.join(uploadsDir, uniqueFilename);
+
+            const base64Data = audioData.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            fs.writeFileSync(filePath, buffer);
+
+            const voiceInfo = {
+                filename: uniqueFilename,
+                duration: duration || 0,
+                size: buffer.length,
+                url: `/uploads/${uniqueFilename}`
+            };
+
+            // Check if it's a group or regular chat
+            const group = groups.get(chatId);
+            const chat = chats.get(chatId);
+
+            let recipients = [];
+
+            if (group) {
+                if (!group.members.includes(currentUsername)) {
+                    socket.emit('message-error', { error: 'Not a member of this group' });
+                    return;
+                }
+                recipients = group.members;
+            } else if (chat) {
+                if (!chat.participants.includes(currentUsername)) return;
+
+                const currentUser = users.get(currentUsername);
+                const otherParticipant = chat.participants.find(p => p !== currentUsername);
+
+                if (!currentUser.contacts.includes(otherParticipant)) {
+                    socket.emit('message-error', { error: 'Cannot send message to non-contact' });
+                    return;
+                }
+                recipients = chat.participants;
+            } else {
+                return;
+            }
+
+            // Create voice message
+            const message = {
+                id: generateId(),
+                chatId,
+                senderUsername: currentUsername,
+                text: '',
+                voiceMessage: voiceInfo,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            const chatMessages = messages.get(chatId) || [];
+            chatMessages.push(message);
+            messages.set(chatId, chatMessages);
+
+            // Update last message
+            const lastMessageData = {
+                text: '🎤 Voice message',
+                time: Date.now()
+            };
+
+            if (group) {
+                group.lastMessage = lastMessageData;
+            } else if (chat) {
+                chat.lastMessage = lastMessageData;
+            }
+
+            saveData();
+
+            // Broadcast to all recipients
+            recipients.forEach(recipientUsername => {
+                const recipient = users.get(recipientUsername);
+                if (recipient && recipient.online && recipient.socketId) {
+                    io.to(recipient.socketId).emit('new-message', {
+                        chatId,
+                        message: {
+                            id: message.id,
+                            text: message.text,
+                            voiceMessage: message.voiceMessage,
+                            senderUsername: message.senderUsername,
+                            timestamp: message.timestamp,
+                            sent: recipientUsername === currentUsername
+                        }
+                    });
+                }
+            });
+
+            const chatType = group ? 'group' : 'chat';
+            console.log(`Voice message sent in ${chatType} ${chatId} by ${currentUsername}`);
+
+        } catch (error) {
+            console.error('Voice message error:', error);
+            socket.emit('voice-message-error', { error: 'Failed to send voice message' });
         }
     });
 

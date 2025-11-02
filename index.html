@@ -585,6 +585,117 @@
             font-size: 20px;
         }
 
+        /* Voice Message Recording */
+        .voice-btn {
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .voice-btn.recording {
+            background: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #202c33;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: #fff;
+        }
+
+        .recording-indicator.active {
+            display: flex;
+        }
+
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #f44336;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .recording-time {
+            font-size: 14px;
+            color: #00a884;
+            font-weight: 500;
+        }
+
+        /* Voice Message Player */
+        .voice-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            max-width: 300px;
+        }
+
+        .voice-play-btn {
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .voice-wave {
+            flex: 1;
+            height: 30px;
+            background: repeating-linear-gradient(
+                90deg,
+                #00a884 0px,
+                #00a884 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            border-radius: 4px;
+            opacity: 0.5;
+        }
+
+        .voice-duration {
+            font-size: 12px;
+            color: #8696a0;
+            white-space: nowrap;
+        }
+
         /* Empty State */
         .empty-chat {
             flex: 1;
@@ -958,17 +1069,27 @@
                             </div>
                             <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
                         </div>
-                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+
+                        <!-- Voice Recording Indicator -->
+                        <div class="recording-indicator" id="recordingIndicator">
+                            <div class="recording-dot"></div>
+                            <span class="recording-time" id="recordingTime">0:00</span>
+                            <button class="contact-btn remove" onclick="stopVoiceRecording()">Stop & Send</button>
+                            <button class="contact-btn" onclick="cancelVoiceRecording()" style="background: #666;">Cancel</button>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; align-items: flex-end;" id="messageInputArea">
                             <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
                             <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
-                            <textarea 
-                                class="message-input" 
-                                id="messageInput" 
-                                placeholder="Type a message" 
+                            <textarea
+                                class="message-input"
+                                id="messageInput"
+                                placeholder="Type a message"
                                 rows="1"
                                 onkeypress="handleKeyPress(event)"
                                 oninput="handleTyping(); autoResize(this)"
                             ></textarea>
+                            <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Voice message">🎤</button>
                             <button class="send-btn" onclick="sendMessage()">➤</button>
                         </div>
                     </div>
@@ -1952,7 +2073,18 @@
                     content += `<div class="message-text">${escapeHtml(messageText)}</div>`;
                 }
 
-                if (msg.file) {
+                if (msg.voiceMessage) {
+                    const voiceId = `voice-${msg.timestamp}`;
+                    content += `
+                        <div class="voice-message">
+                            <button class="voice-play-btn" id="${voiceId}" onclick="playVoiceMessage('${msg.voiceMessage.url}', '${voiceId}')">
+                                ▶
+                            </button>
+                            <div class="voice-wave"></div>
+                            <span class="voice-duration">${formatDuration(msg.voiceMessage.duration)}</span>
+                        </div>
+                    `;
+                } else if (msg.file) {
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
 
                     if (isImage) {
@@ -2020,6 +2152,176 @@
             selectedFile = null;
             document.getElementById('fileInput').value = '';
             document.getElementById('attachmentPreview').classList.remove('active');
+        }
+
+        // Voice Recording Variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let audioStream = null;
+
+        async function toggleVoiceRecording() {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopVoiceRecording();
+            } else {
+                startVoiceRecording();
+            }
+        }
+
+        async function startVoiceRecording() {
+            try {
+                // Request microphone access
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Create MediaRecorder
+                mediaRecorder = new MediaRecorder(audioStream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Create audio blob from chunks
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    // Send voice message
+                    await sendVoiceMessage(audioBlob);
+
+                    // Cleanup
+                    cleanupRecording();
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+
+                // Update UI
+                document.getElementById('voiceBtn').classList.add('recording');
+                document.getElementById('recordingIndicator').classList.add('active');
+                document.getElementById('messageInputArea').style.display = 'none';
+
+                // Start timer
+                updateRecordingTime();
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+
+                console.log('🎤 Voice recording started');
+            } catch (error) {
+                console.error('Error starting voice recording:', error);
+                alert('Could not access microphone. Please grant permission.');
+                cleanupRecording();
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                console.log('🎤 Voice recording stopped');
+            }
+        }
+
+        function cancelVoiceRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.ondataavailable = null;
+                mediaRecorder.onstop = null;
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }
+            cleanupRecording();
+            console.log('🎤 Voice recording cancelled');
+        }
+
+        function cleanupRecording() {
+            // Stop all audio tracks
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+
+            // Clear timer
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+
+            // Reset UI
+            document.getElementById('voiceBtn').classList.remove('recording');
+            document.getElementById('recordingIndicator').classList.remove('active');
+            document.getElementById('messageInputArea').style.display = 'flex';
+            document.getElementById('recordingTime').textContent = '0:00';
+
+            // Reset variables
+            mediaRecorder = null;
+            audioChunks = [];
+            recordingStartTime = null;
+        }
+
+        function updateRecordingTime() {
+            if (!recordingStartTime) return;
+
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+
+            document.getElementById('recordingTime').textContent =
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            if (!currentChatId) return;
+
+            try {
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Data = e.target.result;
+
+                    // Send voice message to server
+                    socket.emit('send-voice-message', {
+                        chatId: currentChatId,
+                        audioData: base64Data,
+                        duration: Math.floor((Date.now() - recordingStartTime) / 1000)
+                    });
+
+                    console.log('🎤 Voice message sent');
+                };
+                reader.readAsDataURL(audioBlob);
+            } catch (error) {
+                console.error('Error sending voice message:', error);
+                alert('Failed to send voice message');
+            }
+        }
+
+        function playVoiceMessage(audioUrl, playBtnId) {
+            const audio = new Audio(audioUrl);
+            const playBtn = document.getElementById(playBtnId);
+
+            if (!playBtn) return;
+
+            playBtn.textContent = '⏸';
+
+            audio.onended = () => {
+                playBtn.textContent = '▶';
+            };
+
+            audio.onerror = () => {
+                console.error('Error playing voice message');
+                playBtn.textContent = '▶';
+            };
+
+            audio.play().catch(error => {
+                console.error('Playback error:', error);
+                playBtn.textContent = '▶';
+            });
         }
 
         async function sendMessage() {
@@ -2151,6 +2453,13 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
         function getFileIcon(mimetype) {
