@@ -788,6 +788,25 @@
             cursor: pointer;
         }
 
+        .toolbar-select {
+            background: #2a3942;
+            border: none;
+            color: #e9edef;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .toolbar-select:hover {
+            background: #374248;
+        }
+
+        .toolbar-select option {
+            background: #202c33;
+        }
+
         .whiteboard-canvas-container {
             flex: 1;
             position: relative;
@@ -807,6 +826,29 @@
 
         #whiteboardCanvas.pan-mode:active {
             cursor: grabbing;
+        }
+
+        #whiteboardCanvas.eraser-mode {
+            cursor: none;
+        }
+
+        #whiteboardCanvas.select-mode {
+            cursor: default;
+        }
+
+        /* Eraser cursor preview */
+        .eraser-cursor {
+            position: absolute;
+            border: 2px solid #f44336;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .eraser-cursor.active {
+            display: block;
         }
 
         .zoom-controls {
@@ -1486,6 +1528,9 @@
 
         <div class="whiteboard-toolbar">
             <div class="toolbar-group">
+                <button class="toolbar-btn" id="toolSelect" onclick="selectTool('select')" title="Select & Move">
+                    ⬚
+                </button>
                 <button class="toolbar-btn active" id="toolPen" onclick="selectTool('pen')" title="Pen">
                     ✏️
                 </button>
@@ -1507,8 +1552,14 @@
                 <button class="toolbar-btn" id="toolCircle" onclick="selectTool('circle')" title="Circle">
                     ○
                 </button>
+                <button class="toolbar-btn" id="toolTriangle" onclick="selectTool('triangle')" title="Triangle">
+                    △
+                </button>
                 <button class="toolbar-btn" id="toolArrow" onclick="selectTool('arrow')" title="Arrow">
                     →
+                </button>
+                <button class="toolbar-btn" id="toolStar" onclick="selectTool('star')" title="Star">
+                    ★
                 </button>
             </div>
 
@@ -1519,11 +1570,63 @@
                 <button class="toolbar-btn" id="toolSticky" onclick="addStickyNote()" title="Sticky Note">
                     📌
                 </button>
+                <button class="toolbar-btn" onclick="document.getElementById('imageUpload').click()" title="Upload Image">
+                    🖼️
+                </button>
+                <input type="file" id="imageUpload" accept="image/*" style="display:none;" onchange="uploadImage(event)">
             </div>
 
             <div class="toolbar-group">
-                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Color">
-                <input type="range" id="strokeWidth" class="stroke-width-slider" min="1" max="20" value="3" title="Stroke Width">
+                <label style="color: #8696a0; font-size: 11px; margin-right: 5px;">Stroke:</label>
+                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Stroke Color">
+                <label style="color: #8696a0; font-size: 11px; margin: 0 5px;">Fill:</label>
+                <input type="color" id="fillColorPicker" class="color-picker" value="#ffffff" title="Fill Color">
+                <label style="color: #8696a0; font-size: 11px; margin-left: 10px;">
+                    <input type="checkbox" id="fillShapes" onchange="updateFillOption()"> Fill
+                </label>
+            </div>
+
+            <div class="toolbar-group">
+                <select id="lineStyle" class="toolbar-select" title="Line Style" onchange="updateLineStyle()">
+                    <option value="solid">─ Solid</option>
+                    <option value="dashed">┄ Dashed</option>
+                    <option value="dotted">··· Dotted</option>
+                </select>
+                <input type="range" id="strokeWidth" class="stroke-width-slider" min="1" max="30" value="3" title="Stroke Width">
+                <span id="strokeWidthLabel" style="color: #8696a0; font-size: 12px; min-width: 35px;">3px</span>
+            </div>
+
+            <div class="toolbar-group">
+                <select id="fontSize" class="toolbar-select" title="Font Size" onchange="updateFontSize()">
+                    <option value="16">Small</option>
+                    <option value="24" selected>Medium</option>
+                    <option value="32">Large</option>
+                    <option value="48">XLarge</option>
+                </select>
+                <button class="toolbar-btn" id="fontBold" onclick="toggleBold()" title="Bold">
+                    <strong>B</strong>
+                </button>
+                <button class="toolbar-btn" id="fontItalic" onclick="toggleItalic()" title="Italic">
+                    <em>I</em>
+                </button>
+            </div>
+
+            <div class="toolbar-group">
+                <button class="toolbar-btn" onclick="addStamp('😊')" title="Happy">😊</button>
+                <button class="toolbar-btn" onclick="addStamp('👍')" title="Thumbs Up">👍</button>
+                <button class="toolbar-btn" onclick="addStamp('❤️')" title="Heart">❤️</button>
+                <button class="toolbar-btn" onclick="addStamp('⭐')" title="Star">⭐</button>
+                <button class="toolbar-btn" onclick="addStamp('✓')" title="Checkmark">✓</button>
+                <button class="toolbar-btn" onclick="addStamp('✗')" title="X Mark">✗</button>
+            </div>
+
+            <div class="toolbar-group">
+                <select id="backgroundTemplate" class="toolbar-select" onchange="changeBackground()">
+                    <option value="blank">⬜ Blank</option>
+                    <option value="grid">▦ Grid</option>
+                    <option value="lines">☰ Lined</option>
+                    <option value="dots">⠿ Dots</option>
+                </select>
             </div>
 
             <div class="toolbar-group">
@@ -1539,11 +1642,15 @@
                 <button class="toolbar-btn" onclick="clearWhiteboard()" title="Clear All">
                     🗑️
                 </button>
+                <button class="toolbar-btn" onclick="exportWhiteboard()" title="Export as PNG">
+                    💾
+                </button>
             </div>
         </div>
 
         <div class="whiteboard-canvas-container">
             <canvas id="whiteboardCanvas"></canvas>
+            <div class="eraser-cursor" id="eraserCursor"></div>
             <div class="zoom-controls">
                 <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
                 <div class="zoom-level" id="zoomLevel">100%</div>
@@ -1600,7 +1707,14 @@
         let isDrawing = false;
         let currentTool = 'pen';
         let currentColor = '#000000';
+        let currentFillColor = '#ffffff';
+        let fillShapes = false;
         let currentStrokeWidth = 3;
+        let currentLineStyle = 'solid';
+        let currentFontSize = 24;
+        let isBold = false;
+        let isItalic = false;
+        let currentBackground = 'blank';
         let drawingHistory = [];
         let historyStep = -1;
         let startX = 0;
@@ -1611,6 +1725,7 @@
         let zoomLevel = 1;
         let minZoom = 0.25;
         let maxZoom = 4;
+        let eraserCursor = null;
 
         // Generate RSA key pair for current user
         async function generateKeyPair() {
@@ -3228,6 +3343,7 @@
         function initWhiteboard() {
             whiteboardCanvas = document.getElementById('whiteboardCanvas');
             whiteboardCtx = whiteboardCanvas.getContext('2d');
+            eraserCursor = document.getElementById('eraserCursor');
 
             // Set canvas size to fill container
             resizeWhiteboardCanvas();
@@ -3244,19 +3360,58 @@
             whiteboardCanvas.addEventListener('touchmove', handleTouchMove);
             whiteboardCanvas.addEventListener('touchend', stopDrawing);
 
+            // Eraser cursor tracking
+            whiteboardCanvas.addEventListener('mousemove', updateEraserCursor);
+            whiteboardCanvas.addEventListener('mouseleave', () => {
+                if (eraserCursor) eraserCursor.classList.remove('active');
+            });
+
             // Color and stroke listeners
             document.getElementById('colorPicker').addEventListener('change', (e) => {
                 currentColor = e.target.value;
             });
 
+            document.getElementById('fillColorPicker').addEventListener('change', (e) => {
+                currentFillColor = e.target.value;
+            });
+
             document.getElementById('strokeWidth').addEventListener('input', (e) => {
                 currentStrokeWidth = parseInt(e.target.value);
+                document.getElementById('strokeWidthLabel').textContent = currentStrokeWidth + 'px';
+                if (currentTool === 'eraser') {
+                    updateEraserCursorSize();
+                }
             });
+
+            // Draw initial background
+            drawBackground();
 
             // Save initial state
             saveState();
 
             console.log('Whiteboard initialized');
+        }
+
+        function updateEraserCursor(e) {
+            if (currentTool === 'eraser' && eraserCursor) {
+                eraserCursor.classList.add('active');
+                const rect = whiteboardCanvas.getBoundingClientRect();
+                const size = currentStrokeWidth * 4;
+                eraserCursor.style.width = size + 'px';
+                eraserCursor.style.height = size + 'px';
+                eraserCursor.style.left = (e.clientX - size / 2) + 'px';
+                eraserCursor.style.top = (e.clientY - size / 2) + 'px';
+            } else {
+                if (eraserCursor) eraserCursor.classList.remove('active');
+            }
+        }
+
+        function updateEraserCursorSize() {
+            if (eraserCursor && currentTool === 'eraser') {
+                const size = currentStrokeWidth * 4;
+                eraserCursor.style.width = size + 'px';
+                eraserCursor.style.height = size + 'px';
+            }
         }
 
         function resizeWhiteboardCanvas() {
@@ -3277,14 +3432,21 @@
             document.querySelectorAll('.toolbar-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1)).classList.add('active');
+            const toolBtn = document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1));
+            if (toolBtn) toolBtn.classList.add('active');
 
-            // Update cursor
+            // Remove all cursor mode classes
+            whiteboardCanvas.classList.remove('pan-mode', 'eraser-mode', 'select-mode');
+
+            // Update cursor based on tool
             if (tool === 'pan') {
                 whiteboardCanvas.classList.add('pan-mode');
+            } else if (tool === 'eraser') {
+                whiteboardCanvas.classList.add('eraser-mode');
+            } else if (tool === 'select') {
+                whiteboardCanvas.classList.add('select-mode');
             } else {
-                whiteboardCanvas.classList.remove('pan-mode');
-                whiteboardCanvas.style.cursor = tool === 'eraser' ? 'crosshair' : 'crosshair';
+                whiteboardCanvas.style.cursor = 'crosshair';
             }
         }
 
@@ -3421,6 +3583,15 @@
             whiteboardCtx.lineWidth = currentStrokeWidth;
             whiteboardCtx.lineCap = 'round';
 
+            // Apply line style
+            if (currentLineStyle === 'dashed') {
+                whiteboardCtx.setLineDash([10, 5]);
+            } else if (currentLineStyle === 'dotted') {
+                whiteboardCtx.setLineDash([2, 5]);
+            } else {
+                whiteboardCtx.setLineDash([]);
+            }
+
             whiteboardCtx.beginPath();
 
             if (currentTool === 'line') {
@@ -3428,15 +3599,68 @@
                 whiteboardCtx.lineTo(x2, y2);
             } else if (currentTool === 'rectangle') {
                 whiteboardCtx.rect(x1, y1, x2 - x1, y2 - y1);
+                if (fillShapes) {
+                    whiteboardCtx.fillStyle = currentFillColor;
+                    whiteboardCtx.fill();
+                }
             } else if (currentTool === 'circle') {
                 const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
                 whiteboardCtx.arc(x1, y1, radius, 0, Math.PI * 2);
+                if (fillShapes) {
+                    whiteboardCtx.fillStyle = currentFillColor;
+                    whiteboardCtx.fill();
+                }
+            } else if (currentTool === 'triangle') {
+                const height = y2 - y1;
+                const width = x2 - x1;
+                whiteboardCtx.moveTo(x1 + width / 2, y1);  // top
+                whiteboardCtx.lineTo(x2, y2);  // bottom right
+                whiteboardCtx.lineTo(x1, y2);  // bottom left
+                whiteboardCtx.closePath();
+                if (fillShapes) {
+                    whiteboardCtx.fillStyle = currentFillColor;
+                    whiteboardCtx.fill();
+                }
+            } else if (currentTool === 'star') {
+                drawStar(x1, y1, x2, y2);
+                if (fillShapes) {
+                    whiteboardCtx.fillStyle = currentFillColor;
+                    whiteboardCtx.fill();
+                }
             } else if (currentTool === 'arrow') {
                 drawArrow(x1, y1, x2, y2);
             }
 
             whiteboardCtx.stroke();
             whiteboardCtx.restore();
+        }
+
+        function drawStar(x1, y1, x2, y2) {
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+            const outerRadius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2;
+            const innerRadius = outerRadius / 2.5;
+            const spikes = 5;
+
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+
+            whiteboardCtx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                whiteboardCtx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                whiteboardCtx.lineTo(x, y);
+                rot += step;
+            }
+            whiteboardCtx.lineTo(cx, cy - outerRadius);
+            whiteboardCtx.closePath();
         }
 
         function drawArrow(x1, y1, x2, y2) {
@@ -3461,7 +3685,14 @@
             whiteboardCtx.translate(panX / zoomLevel, panY / zoomLevel);
 
             whiteboardCtx.fillStyle = currentColor;
-            whiteboardCtx.font = `${currentStrokeWidth * 8}px Arial`;
+
+            // Build font string
+            let fontStyle = '';
+            if (isItalic) fontStyle += 'italic ';
+            if (isBold) fontStyle += 'bold ';
+            fontStyle += `${currentFontSize}px Arial`;
+
+            whiteboardCtx.font = fontStyle;
             whiteboardCtx.fillText(text, x, y);
 
             whiteboardCtx.restore();
@@ -3592,6 +3823,143 @@
                 const imageData = whiteboardCanvas.toDataURL();
                 socket.emit('whiteboard-draw', { imageData });
             }
+        }
+
+        // Additional Whiteboard Functions
+
+        function updateFillOption() {
+            fillShapes = document.getElementById('fillShapes').checked;
+            currentFillColor = document.getElementById('fillColorPicker').value;
+        }
+
+        function updateLineStyle() {
+            currentLineStyle = document.getElementById('lineStyle').value;
+        }
+
+        function updateFontSize() {
+            currentFontSize = parseInt(document.getElementById('fontSize').value);
+        }
+
+        function toggleBold() {
+            isBold = !isBold;
+            document.getElementById('fontBold').classList.toggle('active');
+        }
+
+        function toggleItalic() {
+            isItalic = !isItalic;
+            document.getElementById('fontItalic').classList.toggle('active');
+        }
+
+        function addStamp(emoji) {
+            const x = whiteboardCanvas.width / 2;
+            const y = whiteboardCanvas.height / 2;
+
+            whiteboardCtx.save();
+            whiteboardCtx.font = '48px Arial';
+            whiteboardCtx.fillText(emoji, x, y);
+            whiteboardCtx.restore();
+
+            saveState();
+            broadcastDraw();
+        }
+
+        function uploadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const maxWidth = 400;
+                    const maxHeight = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+
+                    const x = 100;
+                    const y = 100;
+
+                    whiteboardCtx.save();
+                    whiteboardCtx.drawImage(img, x, y, width, height);
+                    whiteboardCtx.restore();
+
+                    saveState();
+                    broadcastDraw();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function changeBackground() {
+            currentBackground = document.getElementById('backgroundTemplate').value;
+            drawBackground();
+            redrawCanvas();
+        }
+
+        function drawBackground() {
+            const canvas = whiteboardCanvas;
+            const ctx = whiteboardCtx;
+
+            // Clear and set white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (currentBackground === 'grid') {
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                const gridSize = 30;
+
+                for (let x = 0; x < canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+
+                for (let y = 0; y < canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+            } else if (currentBackground === 'lines') {
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                const lineSpacing = 40;
+
+                for (let y = lineSpacing; y < canvas.height; y += lineSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+            } else if (currentBackground === 'dots') {
+                ctx.fillStyle = '#d0d0d0';
+                const dotSpacing = 20;
+                const dotRadius = 1.5;
+
+                for (let x = dotSpacing; x < canvas.width; x += dotSpacing) {
+                    for (let y = dotSpacing; y < canvas.height; y += dotSpacing) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function exportWhiteboard() {
+            const link = document.createElement('a');
+            link.download = 'whiteboard-' + Date.now() + '.png';
+            link.href = whiteboardCanvas.toDataURL();
+            link.click();
         }
 
         // ========== CALL FUNCTIONALITY ==========
