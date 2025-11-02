@@ -1300,6 +1300,56 @@ io.on('connection', (socket) => {
         console.log(`${currentUsername} joined whiteboard`);
     });
 
+    // Read receipts handler
+    socket.on('mark-messages-read', (data) => {
+        const { chatId, messageIds } = data;
+
+        if (!currentUsername || !chatId || !messageIds || messageIds.length === 0) return;
+
+        const group = groups.get(chatId);
+        const chat = chats.get(chatId);
+
+        if (!group && !chat) return;
+
+        // Get the chat messages
+        const chatMessages = messages.get(chatId) || [];
+
+        // Mark messages as read
+        let updated = false;
+        chatMessages.forEach(msg => {
+            if (messageIds.includes(msg.id) && !msg.read) {
+                msg.read = true;
+                updated = true;
+            }
+        });
+
+        if (updated) {
+            messages.set(chatId, chatMessages);
+            saveData();
+
+            // Notify the sender that their messages were read
+            // Find who sent these messages
+            const senderUsernames = new Set();
+            chatMessages.forEach(msg => {
+                if (messageIds.includes(msg.id) && msg.senderUsername !== currentUsername) {
+                    senderUsernames.add(msg.senderUsername);
+                }
+            });
+
+            senderUsernames.forEach(senderUsername => {
+                const sender = users.get(senderUsername);
+                if (sender && sender.online && sender.socketId) {
+                    io.to(sender.socketId).emit('messages-read', {
+                        chatId,
+                        messageIds
+                    });
+                }
+            });
+
+            console.log(`Messages marked as read in chat ${chatId} by ${currentUsername}`);
+        }
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);

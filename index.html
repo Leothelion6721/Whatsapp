@@ -565,6 +565,22 @@
             margin-top: 2px;
         }
 
+        .message-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 4px;
+        }
+
+        .checkmark {
+            font-size: 14px;
+            color: #8696a0;
+        }
+
+        .checkmark.read {
+            color: #53bdeb;
+        }
+
         /* Message Options */
         .message-options-btn {
             position: absolute;
@@ -2362,6 +2378,30 @@
                 document.getElementById('whiteboardUsers').textContent = data.count;
             });
 
+            // Read receipts event handler
+            socket.on('messages-read', (data) => {
+                const { chatId, messageIds } = data;
+                const chat = chats.get(chatId);
+                const group = groups.get(chatId);
+                const currentConversation = group || chat;
+
+                if (currentConversation && currentConversation.messages) {
+                    // Mark messages as read
+                    currentConversation.messages.forEach(msg => {
+                        if (messageIds.includes(msg.id)) {
+                            msg.read = true;
+                        }
+                    });
+
+                    // Re-render if currently viewing this chat
+                    if (currentChatId === chatId) {
+                        renderMessages();
+                    }
+
+                    console.log(`Messages marked as read in chat ${chatId}`);
+                }
+            });
+
             // Call event handlers
             socket.on('incoming-call', async (data) => {
                 const { from, offer, isVideo } = data;
@@ -2763,6 +2803,7 @@
                     <div class="message-meta">
                         <span>${formatTime(msg.timestamp)}</span>
                         ${msg.edited ? '<span class="message-edited">(edited)</span>' : ''}
+                        ${msg.sent ? getMessageStatusIcon(msg) : ''}
                     </div>
                 `;
 
@@ -2772,6 +2813,39 @@
 
             scrollToBottom();
             checkScrollPosition();
+
+            // Mark unread messages as read
+            markMessagesAsRead();
+        }
+
+        function markMessagesAsRead() {
+            if (!currentChatId) return;
+
+            const chat = chats.get(currentChatId);
+            const group = groups.get(currentChatId);
+            const currentConversation = group || chat;
+
+            if (!currentConversation || !currentConversation.messages) return;
+
+            // Find unread messages that were sent by others
+            const unreadMessageIds = currentConversation.messages
+                .filter(msg => !msg.sent && !msg.read)
+                .map(msg => msg.id);
+
+            if (unreadMessageIds.length > 0) {
+                // Emit to server to mark as read
+                socket.emit('mark-messages-read', {
+                    chatId: currentChatId,
+                    messageIds: unreadMessageIds
+                });
+
+                // Update local state
+                currentConversation.messages.forEach(msg => {
+                    if (unreadMessageIds.includes(msg.id)) {
+                        msg.read = true;
+                    }
+                });
+            }
         }
 
         function handleFileSelect(event) {
@@ -3256,6 +3330,21 @@
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function getMessageStatusIcon(msg) {
+            // Only show status for sent messages (not received)
+            if (!msg.sent) return '';
+
+            const isRead = msg.read || false;
+
+            if (isRead) {
+                // Double checkmark (read) - blue color
+                return '<span class="message-status"><span class="checkmark read">✓</span><span class="checkmark read">✓</span></span>';
+            } else {
+                // Single checkmark (sent but not read) - gray color
+                return '<span class="message-status"><span class="checkmark">✓</span></span>';
+            }
         }
 
         function getFileIcon(mimetype) {
