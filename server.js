@@ -514,6 +514,7 @@ io.on('connection', (socket) => {
                         iv: message.iv,
                         senderUsername: message.senderUsername,
                         timestamp: message.timestamp,
+                        read: message.read || false,
                         sent: recipientUsername === currentUsername
                     }
                 });
@@ -1153,6 +1154,7 @@ io.on('connection', (socket) => {
                 iv: msg.iv,
                 edited: msg.edited || false,
                 deleted: msg.deleted || false,
+                read: msg.read || false,
                 senderUsername: msg.senderUsername,
                 timestamp: msg.timestamp,
                 sent: msg.senderUsername === currentUsername
