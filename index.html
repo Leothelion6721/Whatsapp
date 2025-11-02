@@ -938,8 +938,8 @@
                         </div>
                     </div>
                     <div class="header-actions">
-                        <button class="icon-btn" onclick="startVoiceCall()" title="Voice Call">📞</button>
-                        <button class="icon-btn" onclick="startVideoCall()" title="Video Call">📹</button>
+                        <button class="icon-btn" id="voiceCallBtn" onclick="startVoiceCall()" title="Voice Call">📞</button>
+                        <button class="icon-btn" id="videoCallBtn" onclick="startVideoCall()" title="Video Call">📹</button>
                     </div>
                 </div>
                 
@@ -1859,6 +1859,8 @@
             document.getElementById('activeChat').classList.add('active');
 
             const encryptionIndicator = document.getElementById('encryptionIndicator');
+            const voiceCallBtn = document.getElementById('voiceCallBtn');
+            const videoCallBtn = document.getElementById('videoCallBtn');
 
             if (group) {
                 // Handle group chat
@@ -1867,6 +1869,10 @@
                 document.getElementById('chatName').textContent = group.name + ' 👥';
                 document.getElementById('chatStatus').textContent = `${group.members.length} members`;
                 encryptionIndicator.style.display = 'none'; // Groups don't show encryption indicator
+
+                // Hide call buttons for groups (calls only work 1-on-1)
+                if (voiceCallBtn) voiceCallBtn.style.display = 'none';
+                if (videoCallBtn) videoCallBtn.style.display = 'none';
 
                 if (!group.messages || group.messages.length === 0) {
                     socket.emit('get-group-messages', { groupId: chatId });
@@ -1886,6 +1892,10 @@
                 } else {
                     encryptionIndicator.style.display = 'none';
                 }
+
+                // Show call buttons for 1-on-1 chats
+                if (voiceCallBtn) voiceCallBtn.style.display = 'inline-block';
+                if (videoCallBtn) videoCallBtn.style.display = 'inline-block';
 
                 if (!chat.messages || chat.messages.length === 0) {
                     socket.emit('get-messages', { chatId });
@@ -2165,12 +2175,40 @@
 
         async function startVoiceCall() {
             if (!currentChatId) return;
+
+            // Check if it's a group (calls only work for 1-on-1)
+            const group = groups.get(currentChatId);
+            if (group) {
+                alert('Voice calls are only available for 1-on-1 chats, not groups.');
+                return;
+            }
+
+            const chat = chats.get(currentChatId);
+            if (!chat) {
+                alert('Please select a contact to call.');
+                return;
+            }
+
             isVideoCall = false;
             await initiateCall(false);
         }
 
         async function startVideoCall() {
             if (!currentChatId) return;
+
+            // Check if it's a group (calls only work for 1-on-1)
+            const group = groups.get(currentChatId);
+            if (group) {
+                alert('Video calls are only available for 1-on-1 chats, not groups.');
+                return;
+            }
+
+            const chat = chats.get(currentChatId);
+            if (!chat) {
+                alert('Please select a contact to call.');
+                return;
+            }
+
             isVideoCall = true;
             await initiateCall(true);
         }
@@ -2221,7 +2259,19 @@
 
             } catch (error) {
                 console.error('Error starting call:', error);
-                alert('Could not access camera/microphone. Please check permissions.');
+
+                let errorMessage = 'Could not start call. ';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage += 'Please allow access to your camera and microphone.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage += 'No camera or microphone found.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage += 'Camera/microphone is already in use by another application.';
+                } else {
+                    errorMessage += error.message || 'Unknown error occurred.';
+                }
+
+                alert(errorMessage);
                 closeCallUI();
             }
         }
