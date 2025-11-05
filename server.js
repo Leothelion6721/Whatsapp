@@ -648,6 +648,7 @@ io.on('connection', (socket) => {
                             voiceMessage: message.voiceMessage,
                             senderUsername: message.senderUsername,
                             timestamp: message.timestamp,
+                            read: message.read || false,
                             sent: recipientUsername === currentUsername
                         }
                     });
