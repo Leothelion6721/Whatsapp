@@ -3028,37 +3028,75 @@
         let audioPlayers = new Map();
 
         function playVoiceMessage(audioUrl, playBtnId) {
+            console.log('playVoiceMessage called with URL:', audioUrl, 'Button ID:', playBtnId);
+
             const playBtn = document.getElementById(playBtnId);
-            if (!playBtn) return;
+            if (!playBtn) {
+                console.error('Play button not found:', playBtnId);
+                return;
+            }
 
             // Check if we already have an audio player for this message
             let audio = audioPlayers.get(playBtnId);
 
             if (!audio) {
+                console.log('Creating new audio player for:', playBtnId);
                 // Create new audio element
                 audio = new Audio();
-                audio.src = audioUrl;
-                audio.preload = 'auto';
+                audio.preload = 'metadata';
+
+                audio.onloadedmetadata = () => {
+                    console.log('Audio loaded, duration:', audio.duration);
+                };
 
                 audio.onended = () => {
+                    console.log('Audio playback ended');
                     playBtn.textContent = '▶';
                 };
 
                 audio.onerror = (e) => {
-                    console.error('Error playing voice message:', e);
+                    console.error('Audio error event:', e);
+                    console.error('Audio element error:', audio.error);
                     console.error('Audio URL:', audioUrl);
-                    alert('Cannot play voice message. The audio file might be missing or corrupted.');
+                    console.error('Audio readyState:', audio.readyState);
+                    console.error('Audio networkState:', audio.networkState);
+
+                    let errorMsg = 'Cannot play voice message. ';
+                    if (audio.error) {
+                        switch(audio.error.code) {
+                            case audio.error.MEDIA_ERR_ABORTED:
+                                errorMsg += 'Playback aborted.';
+                                break;
+                            case audio.error.MEDIA_ERR_NETWORK:
+                                errorMsg += 'Network error loading audio file.';
+                                break;
+                            case audio.error.MEDIA_ERR_DECODE:
+                                errorMsg += 'Audio file is corrupted or in unsupported format.';
+                                break;
+                            case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                errorMsg += 'Audio format not supported or file not found.';
+                                break;
+                        }
+                    }
+                    alert(errorMsg);
                     playBtn.textContent = '▶';
                 };
+
+                // Set the source
+                audio.src = audioUrl;
+                console.log('Audio src set to:', audio.src);
 
                 audioPlayers.set(playBtnId, audio);
             }
 
             // Toggle play/pause
             if (audio.paused) {
+                console.log('Starting playback');
+
                 // Stop all other playing audio
                 audioPlayers.forEach((otherAudio, otherId) => {
                     if (otherId !== playBtnId && !otherAudio.paused) {
+                        console.log('Stopping other audio:', otherId);
                         otherAudio.pause();
                         otherAudio.currentTime = 0;
                         const otherBtn = document.getElementById(otherId);
@@ -3067,12 +3105,15 @@
                 });
 
                 playBtn.textContent = '⏸';
-                audio.play().catch(error => {
-                    console.error('Playback error:', error);
+                audio.play().then(() => {
+                    console.log('Playback started successfully');
+                }).catch(error => {
+                    console.error('Play() promise rejected:', error);
                     alert('Failed to play voice message: ' + error.message);
                     playBtn.textContent = '▶';
                 });
             } else {
+                console.log('Pausing playback');
                 audio.pause();
                 audio.currentTime = 0;
                 playBtn.textContent = '▶';
