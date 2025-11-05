@@ -1225,6 +1225,32 @@
             background: #f15c6d;
         }
 
+        .call-btn.screen {
+            background: #374955;
+            color: white;
+        }
+
+        .call-btn.screen.active {
+            background: #00a884;
+        }
+
+        .screen-share-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 168, 132, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10;
+            display: none;
+        }
+
+        .screen-share-indicator.active {
+            display: block;
+        }
+
         /* Video Call Styles */
         .video-container {
             position: relative;
@@ -1492,6 +1518,9 @@
 
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
+                <div class="screen-share-indicator" id="screenShareIndicator">
+                    🖥️ Screen Sharing
+                </div>
                 <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
                 <video id="localVideo" class="local-video" autoplay playsinline muted></video>
                 <div class="video-placeholder" id="videoPlaceholder">
@@ -1519,6 +1548,7 @@
                 <div id="activeCallActions" style="display: none;">
                     <button class="call-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">🎤</button>
                     <button class="call-btn video" id="videoBtn" onclick="toggleVideo()" title="Video" style="display: none;">📹</button>
+                    <button class="call-btn screen" id="screenShareBtn" onclick="toggleScreenShare()" title="Share Screen">🖥️</button>
                     <button class="call-btn decline" onclick="endCall()" title="End Call">📵</button>
                 </div>
 
@@ -1701,6 +1731,9 @@
         let isMuted = false;
         let isVideoEnabled = false;
         let isVideoCall = false;
+        let isScreenSharing = false;
+        let screenStream = null;
+        let originalStream = null;
 
         // ICE servers for WebRTC
         const iceServers = {
@@ -4415,6 +4448,16 @@
                 remoteStream = null;
             }
 
+            // Stop screen sharing if active
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+
+            if (originalStream) {
+                originalStream = null;
+            }
+
             // FIXED: Clear srcObject from BOTH audio and video elements
             const remoteAudio = document.getElementById('remoteAudio');
             const remoteVideo = document.getElementById('remoteVideo');
@@ -4428,6 +4471,7 @@
             currentCall = null;
             isMuted = false;
             isVideoEnabled = false;
+            isScreenSharing = false;
             callStartTime = null;
 
             // Close UI
@@ -4469,6 +4513,131 @@
             } else {
                 videoBtn.classList.remove('active');
                 videoBtn.innerHTML = '📹';
+            }
+        }
+
+        async function toggleScreenShare() {
+            if (!peerConnection) {
+                alert('No active call to share screen');
+                return;
+            }
+
+            const screenShareBtn = document.getElementById('screenShareBtn');
+            const screenShareIndicator = document.getElementById('screenShareIndicator');
+
+            try {
+                if (!isScreenSharing) {
+                    // Start screen sharing
+                    console.log('Starting screen share...');
+
+                    // Save original stream
+                    originalStream = localStream;
+
+                    // Get screen stream
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: {
+                            cursor: 'always'
+                        },
+                        audio: false
+                    });
+
+                    // Handle when user stops sharing via browser UI
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        console.log('Screen share stopped via browser UI');
+                        stopScreenShare();
+                    };
+
+                    // Replace video track in peer connection
+                    const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (videoSender) {
+                        await videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
+                    } else {
+                        // Add screen track if no video track exists
+                        peerConnection.addTrack(screenStream.getVideoTracks()[0], screenStream);
+                    }
+
+                    // Update local video to show screen
+                    const localVideo = document.getElementById('localVideo');
+                    if (localVideo) {
+                        localVideo.srcObject = screenStream;
+                    }
+
+                    // Update UI
+                    isScreenSharing = true;
+                    screenShareBtn.classList.add('active');
+                    screenShareBtn.innerHTML = '🛑';
+                    screenShareIndicator.classList.add('active');
+
+                    // Show video container if it's not visible (for voice calls)
+                    if (!isVideoCall) {
+                        document.getElementById('videoContainer').style.display = 'block';
+                        document.getElementById('voiceCallAvatar').style.display = 'none';
+                    }
+
+                    console.log('Screen sharing started');
+                } else {
+                    // Stop screen sharing
+                    stopScreenShare();
+                }
+            } catch (error) {
+                console.error('Error toggling screen share:', error);
+
+                let errorMsg = 'Could not share screen. ';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg += 'Permission denied.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg += 'No screen to share.';
+                } else {
+                    errorMsg += error.message || 'Unknown error.';
+                }
+                alert(errorMsg);
+            }
+        }
+
+        async function stopScreenShare() {
+            if (!isScreenSharing) return;
+
+            console.log('Stopping screen share...');
+
+            try {
+                // Stop screen stream
+                if (screenStream) {
+                    screenStream.getTracks().forEach(track => track.stop());
+                    screenStream = null;
+                }
+
+                // Restore original camera video
+                if (originalStream && peerConnection) {
+                    const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (videoSender && originalStream.getVideoTracks()[0]) {
+                        await videoSender.replaceTrack(originalStream.getVideoTracks()[0]);
+                    }
+
+                    // Update local video to show camera again
+                    const localVideo = document.getElementById('localVideo');
+                    if (localVideo) {
+                        localVideo.srcObject = originalStream;
+                    }
+                }
+
+                // Update UI
+                isScreenSharing = false;
+                const screenShareBtn = document.getElementById('screenShareBtn');
+                const screenShareIndicator = document.getElementById('screenShareIndicator');
+
+                screenShareBtn.classList.remove('active');
+                screenShareBtn.innerHTML = '🖥️';
+                screenShareIndicator.classList.remove('active');
+
+                // Hide video container if it was a voice call
+                if (!isVideoCall) {
+                    document.getElementById('videoContainer').style.display = 'none';
+                    document.getElementById('voiceCallAvatar').style.display = 'block';
+                }
+
+                console.log('Screen sharing stopped');
+            } catch (error) {
+                console.error('Error stopping screen share:', error);
             }
         }
 
