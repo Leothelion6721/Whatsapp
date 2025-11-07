@@ -4528,18 +4528,20 @@
             try {
                 if (!isScreenSharing) {
                     // Start screen sharing
-                    console.log('Starting screen share...');
+                    console.log('Starting screen share...', 'isVideoCall:', isVideoCall);
 
                     // Save original stream
                     originalStream = localStream;
 
                     // Get screen stream
+                    console.log('Requesting display media...');
                     screenStream = await navigator.mediaDevices.getDisplayMedia({
                         video: {
                             cursor: 'always'
                         },
                         audio: false
                     });
+                    console.log('Screen stream obtained:', screenStream);
 
                     // Handle when user stops sharing via browser UI
                     screenStream.getVideoTracks()[0].onended = () => {
@@ -4547,19 +4549,42 @@
                         stopScreenShare();
                     };
 
-                    // Replace video track in peer connection
+                    // Replace or add video track in peer connection
                     const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    console.log('Video sender found:', !!videoSender);
+
                     if (videoSender) {
+                        // Video track exists, replace it
+                        console.log('Replacing existing video track...');
                         await videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
                     } else {
-                        // Add screen track if no video track exists
-                        peerConnection.addTrack(screenStream.getVideoTracks()[0], screenStream);
+                        // No video track, add one (voice call scenario)
+                        console.log('Adding new video track to peer connection...');
+                        const sender = peerConnection.addTrack(screenStream.getVideoTracks()[0], screenStream);
+                        console.log('Track added, sender:', sender);
+
+                        // Renegotiate connection to add new track
+                        console.log('Creating new offer for renegotiation...');
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+
+                        // Send renegotiation offer
+                        const chat = chats.get(currentChatId);
+                        if (chat) {
+                            console.log('Sending renegotiation offer...');
+                            socket.emit('call-offer', {
+                                to: chat.name,
+                                offer: offer,
+                                isVideo: true // Now it's a video call
+                            });
+                        }
                     }
 
                     // Update local video to show screen
                     const localVideo = document.getElementById('localVideo');
                     if (localVideo) {
                         localVideo.srcObject = screenStream;
+                        console.log('Local video updated to show screen');
                     }
 
                     // Update UI
@@ -4572,23 +4597,31 @@
                     if (!isVideoCall) {
                         document.getElementById('videoContainer').style.display = 'block';
                         document.getElementById('voiceCallAvatar').style.display = 'none';
+                        console.log('Video container shown for voice call');
                     }
 
-                    console.log('Screen sharing started');
+                    console.log('Screen sharing started successfully');
                 } else {
                     // Stop screen sharing
                     stopScreenShare();
                 }
             } catch (error) {
                 console.error('Error toggling screen share:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
 
                 let errorMsg = 'Could not share screen. ';
                 if (error.name === 'NotAllowedError') {
-                    errorMsg += 'Permission denied.';
+                    errorMsg += 'Permission denied. Please allow screen sharing and try again.';
                 } else if (error.name === 'NotFoundError') {
-                    errorMsg += 'No screen to share.';
+                    errorMsg += 'No screen to share was found.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg += 'Screen is already in use by another application.';
+                } else if (error.name === 'AbortError') {
+                    errorMsg += 'Screen sharing was cancelled.';
                 } else {
-                    errorMsg += error.message || 'Unknown error.';
+                    errorMsg += error.message || 'Unknown error occurred.';
                 }
                 alert(errorMsg);
             }
@@ -4606,17 +4639,44 @@
                     screenStream = null;
                 }
 
-                // Restore original camera video
+                // Handle restoration based on call type
                 if (originalStream && peerConnection) {
                     const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                    if (videoSender && originalStream.getVideoTracks()[0]) {
-                        await videoSender.replaceTrack(originalStream.getVideoTracks()[0]);
-                    }
+                    const hasOriginalVideo = originalStream.getVideoTracks().length > 0;
 
-                    // Update local video to show camera again
-                    const localVideo = document.getElementById('localVideo');
-                    if (localVideo) {
-                        localVideo.srcObject = originalStream;
+                    console.log('Has original video track:', hasOriginalVideo);
+
+                    if (videoSender) {
+                        if (hasOriginalVideo) {
+                            // Restore camera (video call)
+                            console.log('Restoring camera video track...');
+                            await videoSender.replaceTrack(originalStream.getVideoTracks()[0]);
+
+                            // Update local video to show camera again
+                            const localVideo = document.getElementById('localVideo');
+                            if (localVideo) {
+                                localVideo.srcObject = originalStream;
+                            }
+                        } else {
+                            // Remove video track (was voice call)
+                            console.log('Removing video track for voice call...');
+                            peerConnection.removeTrack(videoSender);
+
+                            // Renegotiate to remove track
+                            const offer = await peerConnection.createOffer();
+                            await peerConnection.setLocalDescription(offer);
+
+                            // Send renegotiation offer
+                            const chat = chats.get(currentChatId);
+                            if (chat) {
+                                console.log('Sending renegotiation offer to remove video...');
+                                socket.emit('call-offer', {
+                                    to: chat.name,
+                                    offer: offer,
+                                    isVideo: false // Back to voice only
+                                });
+                            }
+                        }
                     }
                 }
 
@@ -4625,9 +4685,13 @@
                 const screenShareBtn = document.getElementById('screenShareBtn');
                 const screenShareIndicator = document.getElementById('screenShareIndicator');
 
-                screenShareBtn.classList.remove('active');
-                screenShareBtn.innerHTML = '🖥️';
-                screenShareIndicator.classList.remove('active');
+                if (screenShareBtn) {
+                    screenShareBtn.classList.remove('active');
+                    screenShareBtn.innerHTML = '🖥️';
+                }
+                if (screenShareIndicator) {
+                    screenShareIndicator.classList.remove('active');
+                }
 
                 // Hide video container if it was a voice call
                 if (!isVideoCall) {
@@ -4635,9 +4699,11 @@
                     document.getElementById('voiceCallAvatar').style.display = 'block';
                 }
 
-                console.log('Screen sharing stopped');
+                console.log('Screen sharing stopped successfully');
             } catch (error) {
                 console.error('Error stopping screen share:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
             }
         }
 
