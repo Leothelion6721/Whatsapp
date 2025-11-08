@@ -73,6 +73,7 @@ let messages = new Map();
 let chats = new Map();
 let groups = new Map(); // For group chats
 let sessions = new Map();
+let passwordResetTokens = new Map(); // For password recovery: token -> {username, email, expires}
 
 // Load data from files if they exist
 function loadData() {
@@ -156,49 +157,98 @@ function verifyToken(token) {
     }
 }
 
+function generateResetToken() {
+    // Generate cryptographically secure random token
+    const crypto = require('crypto');
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function sendPasswordResetEmail(email, username, resetToken) {
+    // In production, this would use a real email service (SendGrid, AWS SES, etc.)
+    // For development, we log to console
+    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+
+    console.log('\n╔════════════════════════════════════════════════════════════╗');
+    console.log('║         PASSWORD RESET EMAIL (Development Mode)           ║');
+    console.log('╠════════════════════════════════════════════════════════════╣');
+    console.log(`║ To: ${email.padEnd(54)}║`);
+    console.log(`║ Username: ${username.padEnd(47)}║`);
+    console.log('╠════════════════════════════════════════════════════════════╣');
+    console.log('║ Hello,                                                     ║');
+    console.log('║                                                            ║');
+    console.log('║ You requested to reset your password.                     ║');
+    console.log('║ Click the link below to reset your password:              ║');
+    console.log('║                                                            ║');
+    console.log(`║ ${resetLink.substring(0, 56).padEnd(58)}║`);
+    if (resetLink.length > 56) {
+        console.log(`║ ${resetLink.substring(56).padEnd(58)}║`);
+    }
+    console.log('║                                                            ║');
+    console.log('║ This link will expire in 1 hour.                          ║');
+    console.log('║                                                            ║');
+    console.log('║ If you did not request this, please ignore this email.    ║');
+    console.log('╚════════════════════════════════════════════════════════════╝\n');
+
+    return true;
+}
+
 // REST API Endpoints
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
+    const { username, password, email } = req.body;
+
+    if (!username || !password || !email) {
+        return res.status(400).json({ error: 'Username, password, and email are required' });
     }
-    
+
     if (username.length < 3 || username.length > 20) {
         return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
-    
+
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email address' });
+    }
+
     if (users.has(username)) {
         return res.status(400).json({ error: 'Username already exists' });
     }
-    
+
+    // Check if email already exists
+    for (const [, user] of users) {
+        if (user.email === email) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = generateId();
-    
+
     users.set(username, {
         userId,
         password: hashedPassword,
         username,
+        email,
         contacts: [],
         createdAt: Date.now(),
         online: false,
         socketId: null,
         publicKey: null // For E2E encryption
     });
-    
+
     saveData();
-    
+
     const token = generateToken(userId);
     sessions.set(token, userId);
-    
-    res.json({ 
-        success: true, 
+
+    res.json({
+        success: true,
         token,
         userId,
         username
@@ -226,11 +276,108 @@ app.post('/api/login', async (req, res) => {
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
     
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         token,
         userId: user.userId,
         username: user.username
+    });
+});
+
+// Forgot password endpoint
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user by email
+    let user = null;
+    let username = null;
+    for (const [uname, userData] of users) {
+        if (userData.email === email) {
+            user = userData;
+            username = uname;
+            break;
+        }
+    }
+
+    // Always return success for security (don't reveal if email exists)
+    // But only send email if user exists
+    if (user) {
+        // Generate reset token
+        const resetToken = generateResetToken();
+        const expiresAt = Date.now() + (60 * 60 * 1000); // 1 hour from now
+
+        // Store reset token
+        passwordResetTokens.set(resetToken, {
+            username,
+            email,
+            expiresAt
+        });
+
+        // Send email (in dev, logs to console)
+        sendPasswordResetEmail(email, username, resetToken);
+
+        console.log(`Password reset requested for ${username} (${email})`);
+    }
+
+    // Always return success to prevent email enumeration
+    res.json({
+        success: true,
+        message: 'If your email is registered, you will receive a password reset link.'
+    });
+});
+
+// Reset password endpoint
+app.post('/api/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Verify reset token
+    const resetData = passwordResetTokens.get(token);
+    if (!resetData) {
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Check if token is expired
+    if (Date.now() > resetData.expiresAt) {
+        passwordResetTokens.delete(token);
+        return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
+    }
+
+    // Get user
+    const user = users.get(resetData.username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedPassword;
+    users.set(resetData.username, user);
+
+    // Delete used token
+    passwordResetTokens.delete(token);
+
+    // Save data
+    saveData();
+
+    console.log(`Password reset successful for ${resetData.username}`);
+
+    res.json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.'
     });
 });
 

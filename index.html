@@ -1366,19 +1366,69 @@
         <div class="auth-box">
             <h1>🔐 Secure WhatsApp</h1>
             <p id="authTitle">Sign in to your account</p>
-            
+
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
-            
+
             <input type="text" id="usernameInput" placeholder="Username" maxlength="20">
+            <input type="email" id="emailInput" placeholder="Email" style="display:none;">
             <input type="password" id="passwordInput" placeholder="Password">
             <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" style="display:none;">
-            
+
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
-            
+
+            <p id="forgotPasswordLink" style="margin-top: 10px;">
+                <span class="auth-switch" onclick="showForgotPassword()">Forgot Password?</span>
+            </p>
+
             <p>
                 <span id="authSwitchText">Don't have an account?</span>
                 <span class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Sign Up</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Forgot Password Screen -->
+    <div class="auth-screen" id="forgotPasswordScreen" style="display: none;">
+        <div class="auth-box">
+            <h1>🔐 Secure WhatsApp</h1>
+            <p id="forgotTitle">Reset Your Password</p>
+            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
+                Enter your email address and we'll send you a link to reset your password.
+            </p>
+
+            <div class="error-message" id="forgotErrorMessage"></div>
+            <div class="success-message" id="forgotSuccessMessage"></div>
+
+            <input type="email" id="forgotEmailInput" placeholder="Email">
+
+            <button id="forgotBtn" onclick="handleForgotPassword()">Send Reset Link</button>
+
+            <p style="margin-top: 15px;">
+                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Reset Password Screen -->
+    <div class="auth-screen" id="resetPasswordScreen" style="display: none;">
+        <div class="auth-box">
+            <h1>🔐 Secure WhatsApp</h1>
+            <p id="resetTitle">Create New Password</p>
+            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
+                Enter your new password below.
+            </p>
+
+            <div class="error-message" id="resetErrorMessage"></div>
+            <div class="success-message" id="resetSuccessMessage"></div>
+
+            <input type="password" id="newPasswordInput" placeholder="New Password">
+            <input type="password" id="confirmNewPasswordInput" placeholder="Confirm New Password">
+
+            <button id="resetBtn" onclick="handleResetPassword()">Reset Password</button>
+
+            <p style="margin-top: 15px;">
+                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
             </p>
         </div>
     </div>
@@ -1945,10 +1995,21 @@
 
         // Check for saved token (using sessionStorage so each tab is independent)
         window.addEventListener('load', () => {
-            const savedToken = sessionStorage.getItem('authToken');
-            if (savedToken) {
-                authToken = savedToken;
-                initSocket();
+            // Check if this is a password reset link
+            const urlParams = new URLSearchParams(window.location.search);
+            const resetToken = urlParams.get('token');
+
+            if (resetToken) {
+                // Show reset password screen
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('resetPasswordScreen').style.display = 'flex';
+                clearResetMessages();
+            } else {
+                const savedToken = sessionStorage.getItem('authToken');
+                if (savedToken) {
+                    authToken = savedToken;
+                    initSocket();
+                }
             }
             // Initialize scroll handling
             initScrollHandling();
@@ -1961,21 +2022,41 @@
             const switchText = document.getElementById('authSwitchText');
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
-            
+            const emailInput = document.getElementById('emailInput');
+            const forgotLink = document.getElementById('forgotPasswordLink');
+
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
                 btn.textContent = 'Sign In';
                 switchText.textContent = "Don't have an account?";
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
+                emailInput.style.display = 'none';
+                forgotLink.style.display = 'block';
             } else {
                 title.textContent = 'Create a new account';
                 btn.textContent = 'Sign Up';
                 switchText.textContent = 'Already have an account?';
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
+                emailInput.style.display = 'block';
+                forgotLink.style.display = 'none';
             }
-            
+
+            clearMessages();
+        }
+
+        function showForgotPassword() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('forgotPasswordScreen').style.display = 'flex';
+            document.getElementById('forgotEmailInput').value = '';
+            clearForgotMessages();
+        }
+
+        function backToLogin() {
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('forgotPasswordScreen').style.display = 'none';
+            document.getElementById('resetPasswordScreen').style.display = 'none';
             clearMessages();
         }
 
@@ -1984,52 +2065,72 @@
             document.getElementById('successMessage').style.display = 'none';
         }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            document.getElementById('successMessage').style.display = 'none';
+        function clearForgotMessages() {
+            document.getElementById('forgotErrorMessage').style.display = 'none';
+            document.getElementById('forgotSuccessMessage').style.display = 'none';
         }
 
-        function showSuccess(message) {
-            const successDiv = document.getElementById('successMessage');
+        function clearResetMessages() {
+            document.getElementById('resetErrorMessage').style.display = 'none';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+        }
+
+        function showError(message, target = 'auth') {
+            const errorDiv = document.getElementById(target === 'forgot' ? 'forgotErrorMessage' : target === 'reset' ? 'resetErrorMessage' : 'errorMessage');
+            const successDiv = document.getElementById(target === 'forgot' ? 'forgotSuccessMessage' : target === 'reset' ? 'resetSuccessMessage' : 'successMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            successDiv.style.display = 'none';
+        }
+
+        function showSuccess(message, target = 'auth') {
+            const successDiv = document.getElementById(target === 'forgot' ? 'forgotSuccessMessage' : target === 'reset' ? 'resetSuccessMessage' : 'successMessage');
+            const errorDiv = document.getElementById(target === 'forgot' ? 'forgotErrorMessage' : target === 'reset' ? 'resetErrorMessage' : 'errorMessage');
             successDiv.textContent = message;
             successDiv.style.display = 'block';
-            document.getElementById('errorMessage').style.display = 'none';
+            errorDiv.style.display = 'none';
         }
 
         async function handleAuth() {
             const username = document.getElementById('usernameInput').value.trim();
             const password = document.getElementById('passwordInput').value;
             const confirmPassword = document.getElementById('confirmPasswordInput').value;
-            
+            const email = document.getElementById('emailInput').value.trim();
+
             if (!username || !password) {
                 showError('Please enter username and password');
                 return;
             }
-            
-            if (!isLoginMode && password !== confirmPassword) {
-                showError('Passwords do not match');
-                return;
+
+            if (!isLoginMode) {
+                if (!email) {
+                    showError('Please enter your email address');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    showError('Passwords do not match');
+                    return;
+                }
             }
-            
+
             const endpoint = isLoginMode ? '/api/login' : '/api/register';
-            
+            const body = isLoginMode ? { username, password } : { username, password, email };
+
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify(body)
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     authToken = data.token;
                     sessionStorage.setItem('authToken', authToken);
-                    
+
                     if (!isLoginMode) {
                         showSuccess('Account created successfully! Logging you in...');
                         setTimeout(() => {
@@ -2043,6 +2144,101 @@
                 }
             } catch (error) {
                 showError('Network error. Please try again.');
+            }
+        }
+
+        async function handleForgotPassword() {
+            const email = document.getElementById('forgotEmailInput').value.trim();
+
+            if (!email) {
+                showError('Please enter your email address', 'forgot');
+                return;
+            }
+
+            const btn = document.getElementById('forgotBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data.message + '\n\nIn development mode, check the server console for the reset link.', 'forgot');
+                    document.getElementById('forgotEmailInput').value = '';
+                } else {
+                    showError(data.error || 'Failed to send reset link', 'forgot');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.', 'forgot');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }
+        }
+
+        async function handleResetPassword() {
+            const newPassword = document.getElementById('newPasswordInput').value;
+            const confirmNewPassword = document.getElementById('confirmNewPasswordInput').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if (!token) {
+                showError('Invalid reset link', 'reset');
+                return;
+            }
+
+            if (!newPassword || !confirmNewPassword) {
+                showError('Please enter and confirm your new password', 'reset');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showError('Passwords do not match', 'reset');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showError('Password must be at least 6 characters', 'reset');
+                return;
+            }
+
+            const btn = document.getElementById('resetBtn');
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+
+            try {
+                const response = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data.message + ' Redirecting to login...', 'reset');
+                    setTimeout(() => {
+                        // Clear URL params and go back to login
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showError(data.error || 'Failed to reset password', 'reset');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.', 'reset');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reset Password';
             }
         }
 
