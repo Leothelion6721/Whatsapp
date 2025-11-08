@@ -6,6 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +22,42 @@ const io = socketIo(server, {
 
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Email Configuration
+// Set these environment variables to enable email sending:
+// EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM
+const emailConfig = {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com', // e.g., 'smtp.gmail.com' for Gmail
+    port: process.env.EMAIL_PORT || 587,
+    secure: false, // true for 465, false for other ports
+    auth: process.env.EMAIL_USER ? {
+        user: process.env.EMAIL_USER, // Your email address
+        pass: process.env.EMAIL_PASS  // Your email password or app password
+    } : null
+};
+
+const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@securewhatsapp.com';
+
+// Create email transporter (only if credentials are provided)
+let emailTransporter = null;
+if (emailConfig.auth) {
+    emailTransporter = nodemailer.createTransport(emailConfig);
+    console.log('✅ Email service configured');
+
+    // Verify email configuration
+    emailTransporter.verify((error, success) => {
+        if (error) {
+            console.error('❌ Email service error:', error.message);
+            emailTransporter = null;
+        } else {
+            console.log('✅ Email service ready to send messages');
+        }
+    });
+} else {
+    console.log('⚠️  Email service not configured - will log to console instead');
+    console.log('   To enable email, set these environment variables:');
+    console.log('   EMAIL_USER, EMAIL_PASS, EMAIL_HOST (optional), EMAIL_FROM (optional)');
+}
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -162,12 +199,182 @@ function generateResetToken() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function sendPasswordResetEmail(email, username, resetCode) {
-    // In production, this would use a real email service (SendGrid, AWS SES, etc.)
-    // For development, we log to console
+async function sendPasswordResetEmail(email, username, resetCode) {
+    // Create email HTML template
+    const htmlTemplate = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .email-container {
+                background-color: #ffffff;
+                border-radius: 10px;
+                padding: 40px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                color: #00a884;
+                margin: 0;
+                font-size: 28px;
+            }
+            .header .icon {
+                font-size: 50px;
+                margin-bottom: 10px;
+            }
+            .content {
+                color: #666;
+                font-size: 16px;
+            }
+            .code-container {
+                background-color: #f0f0f0;
+                border: 2px solid #00a884;
+                border-radius: 8px;
+                padding: 30px;
+                text-align: center;
+                margin: 30px 0;
+            }
+            .code {
+                font-size: 36px;
+                font-weight: bold;
+                letter-spacing: 8px;
+                color: #00a884;
+                font-family: 'Courier New', monospace;
+            }
+            .code-label {
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+            .warning {
+                background-color: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 4px;
+            }
+            .warning p {
+                margin: 0;
+                color: #856404;
+                font-size: 14px;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+                text-align: center;
+                color: #999;
+                font-size: 12px;
+            }
+            .button {
+                display: inline-block;
+                background-color: #00a884;
+                color: white;
+                padding: 12px 30px;
+                text-decoration: none;
+                border-radius: 5px;
+                margin: 20px 0;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <div class="icon">🔐</div>
+                <h1>Password Reset</h1>
+            </div>
 
+            <div class="content">
+                <p>Hello <strong>${username}</strong>,</p>
+
+                <p>You recently requested to reset your password for your Secure WhatsApp account. Use the verification code below to complete the password reset:</p>
+
+                <div class="code-container">
+                    <div class="code-label">Your Verification Code</div>
+                    <div class="code">${resetCode}</div>
+                </div>
+
+                <p>This code will <strong>expire in 15 minutes</strong> for security reasons.</p>
+
+                <div class="warning">
+                    <p>⚠️ <strong>Security Notice:</strong> If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
+                </div>
+
+                <p>If you have any questions or need help, please don't hesitate to contact our support team.</p>
+
+                <p>Best regards,<br><strong>Secure WhatsApp Team</strong></p>
+            </div>
+
+            <div class="footer">
+                <p>This is an automated message, please do not reply to this email.</p>
+                <p>&copy; ${new Date().getFullYear()} Secure WhatsApp. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    // Plain text version for email clients that don't support HTML
+    const textVersion = `
+Password Reset Request
+
+Hello ${username},
+
+You recently requested to reset your password for your Secure WhatsApp account.
+
+Your Verification Code: ${resetCode}
+
+This code will expire in 15 minutes.
+
+If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
+
+Best regards,
+Secure WhatsApp Team
+
+---
+This is an automated message, please do not reply to this email.
+© ${new Date().getFullYear()} Secure WhatsApp. All rights reserved.
+    `.trim();
+
+    // Try to send email if transporter is configured
+    if (emailTransporter) {
+        try {
+            const info = await emailTransporter.sendMail({
+                from: `"Secure WhatsApp" <${emailFrom}>`,
+                to: email,
+                subject: `Password Reset Code: ${resetCode}`,
+                text: textVersion,
+                html: htmlTemplate
+            });
+
+            console.log(`✅ Password reset email sent to ${email}`);
+            console.log(`   Message ID: ${info.messageId}`);
+            console.log(`   Reset code: ${resetCode} (expires in 15 minutes)`);
+            return true;
+        } catch (error) {
+            console.error(`❌ Failed to send email to ${email}:`, error.message);
+            // Fall through to console logging
+        }
+    }
+
+    // Fallback: Log to console if email is not configured or failed
     console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║         PASSWORD RESET EMAIL (Development Mode)           ║');
+    console.log('║         PASSWORD RESET EMAIL (Console Mode)               ║');
     console.log('╠════════════════════════════════════════════════════════════╣');
     console.log(`║ To: ${email.padEnd(54)}║`);
     console.log(`║ Username: ${username.padEnd(47)}║`);
@@ -312,11 +519,10 @@ app.post('/api/forgot-password', async (req, res) => {
             expiresAt
         });
 
-        // Send email (in dev, logs to console)
-        sendPasswordResetEmail(email, username, resetCode);
+        // Send email (sends real email if configured, otherwise logs to console)
+        await sendPasswordResetEmail(email, username, resetCode);
 
         console.log(`Password reset requested for ${username} (${email})`);
-        console.log(`Reset code: ${resetCode} (expires in 15 minutes)`);
     }
 
     // Always return success to prevent email enumeration
