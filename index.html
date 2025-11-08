@@ -866,19 +866,15 @@
                 <div class="message-input-container">
                     <div style="flex: 1;">
                         <div class="attachment-preview" id="attachmentPreview">
-                            <div class="preview-info">
-                                <div id="previewName"></div>
-                                <div style="font-size: 12px; color: #8696a0;" id="previewSize"></div>
-                            </div>
-                            <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
+                            <div id="attachmentsContainer" style="display: flex; flex-direction: column; gap: 8px; width: 100%;"></div>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
-                            <textarea 
-                                class="message-input" 
-                                id="messageInput" 
-                                placeholder="Type a message" 
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
+                            <textarea
+                                class="message-input"
+                                id="messageInput"
+                                placeholder="Type a message"
                                 rows="1"
                                 onkeypress="handleKeyPress(event)"
                                 oninput="handleTyping(); autoResize(this)"
@@ -945,7 +941,7 @@
         let contacts = [];
         let typingTimeout = null;
         let isTyping = false;
-        let selectedFile = null;
+        let selectedFiles = [];
         let isLoginMode = true;
 
         // WebRTC Call Variables
@@ -1168,15 +1164,12 @@
             });
 
             socket.on('file-uploaded', (data) => {
-                if (data.chatId === currentChatId && selectedFile) {
+                if (data.chatId === currentChatId) {
                     socket.emit('send-message', {
                         chatId: currentChatId,
-                        text: document.getElementById('messageInput').value.trim(),
+                        text: '',
                         file: data.file
                     });
-                    
-                    document.getElementById('messageInput').value = '';
-                    removeAttachment();
                 }
             });
 
@@ -1506,51 +1499,105 @@
         }
 
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
-                event.target.value = '';
-                return;
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            // Validate each file
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB`);
+                    event.target.value = '';
+                    return;
+                }
             }
-            
-            selectedFile = file;
-            
-            const preview = document.getElementById('attachmentPreview');
-            const previewName = document.getElementById('previewName');
-            const previewSize = document.getElementById('previewSize');
-            
-            previewName.textContent = file.name;
-            previewSize.textContent = formatFileSize(file.size);
-            preview.classList.add('active');
-            
+
+            // Add new files to the selected files array
+            selectedFiles = selectedFiles.concat(files);
+
+            // Clear the input so the same files can be selected again if needed
+            event.target.value = '';
+
+            renderAttachmentPreviews();
             document.getElementById('messageInput').focus();
         }
 
+        function renderAttachmentPreviews() {
+            const container = document.getElementById('attachmentsContainer');
+            const preview = document.getElementById('attachmentPreview');
+
+            if (selectedFiles.length === 0) {
+                preview.classList.remove('active');
+                container.innerHTML = '';
+                return;
+            }
+
+            preview.classList.add('active');
+            container.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const fileDiv = document.createElement('div');
+                fileDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;';
+
+                const icon = getFileIcon(file.type);
+
+                fileDiv.innerHTML = `
+                    <span style="font-size: 20px;">${icon}</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #e9edef; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(file.name)}</div>
+                        <div style="color: #8696a0; font-size: 12px;">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="contact-btn remove" onclick="removeAttachmentAt(${index})" style="flex-shrink: 0;">Remove</button>
+                `;
+
+                container.appendChild(fileDiv);
+            });
+        }
+
+        function removeAttachmentAt(index) {
+            selectedFiles.splice(index, 1);
+            renderAttachmentPreviews();
+        }
+
         function removeAttachment() {
-            selectedFile = null;
+            selectedFiles = [];
             document.getElementById('fileInput').value = '';
-            document.getElementById('attachmentPreview').classList.remove('active');
+            renderAttachmentPreviews();
         }
 
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
-            
-            if (!currentChatId || (!text && !selectedFile)) return;
-            
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('upload-file', {
+
+            if (!currentChatId || (!text && selectedFiles.length === 0)) return;
+
+            if (selectedFiles.length > 0) {
+                // Send message with text first if there is text
+                if (text) {
+                    socket.emit('send-message', {
                         chatId: currentChatId,
-                        fileData: e.target.result,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
+                        text: text
                     });
-                };
-                reader.readAsDataURL(selectedFile);
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                }
+
+                // Upload all files
+                const filesToSend = [...selectedFiles];
+                selectedFiles = [];
+                renderAttachmentPreviews();
+
+                filesToSend.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        socket.emit('upload-file', {
+                            chatId: currentChatId,
+                            fileData: e.target.result,
+                            fileName: file.name,
+                            fileType: file.type
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
             } else {
                 socket.emit('send-message', {
                     chatId: currentChatId,
