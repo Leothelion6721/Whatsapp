@@ -1388,13 +1388,13 @@
         </div>
     </div>
 
-    <!-- Forgot Password Screen -->
+    <!-- Forgot Password Screen (Step 1: Enter Email) -->
     <div class="auth-screen" id="forgotPasswordScreen" style="display: none;">
         <div class="auth-box">
             <h1>🔐 Secure WhatsApp</h1>
             <p id="forgotTitle">Reset Your Password</p>
             <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
-                Enter your email address and we'll send you a link to reset your password.
+                Enter your email address and we'll send you a verification code.
             </p>
 
             <div class="error-message" id="forgotErrorMessage"></div>
@@ -1402,7 +1402,7 @@
 
             <input type="email" id="forgotEmailInput" placeholder="Email">
 
-            <button id="forgotBtn" onclick="handleForgotPassword()">Send Reset Link</button>
+            <button id="forgotBtn" onclick="handleForgotPassword()">Send Verification Code</button>
 
             <p style="margin-top: 15px;">
                 <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
@@ -1410,7 +1410,32 @@
         </div>
     </div>
 
-    <!-- Reset Password Screen -->
+    <!-- Verify Code Screen (Step 2: Enter Code) -->
+    <div class="auth-screen" id="verifyCodeScreen" style="display: none;">
+        <div class="auth-box">
+            <h1>🔐 Secure WhatsApp</h1>
+            <p id="verifyTitle">Enter Verification Code</p>
+            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
+                We sent a 6-digit code to your email. Check the server console in development mode.
+            </p>
+
+            <div class="error-message" id="verifyErrorMessage"></div>
+            <div class="success-message" id="verifySuccessMessage"></div>
+
+            <input type="text" id="verificationCodeInput" placeholder="Enter 6-digit code" maxlength="6"
+                   style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: bold;">
+
+            <button id="verifyBtn" onclick="handleVerifyCode()">Verify Code</button>
+
+            <p style="margin-top: 15px;">
+                <span class="auth-switch" onclick="backToForgotPassword()">Resend Code</span>
+                <span style="margin: 0 8px; color: #8696a0;">|</span>
+                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Reset Password Screen (Step 3: Enter New Password) -->
     <div class="auth-screen" id="resetPasswordScreen" style="display: none;">
         <div class="auth-box">
             <h1>🔐 Secure WhatsApp</h1>
@@ -1995,21 +2020,10 @@
 
         // Check for saved token (using sessionStorage so each tab is independent)
         window.addEventListener('load', () => {
-            // Check if this is a password reset link
-            const urlParams = new URLSearchParams(window.location.search);
-            const resetToken = urlParams.get('token');
-
-            if (resetToken) {
-                // Show reset password screen
-                document.getElementById('authScreen').style.display = 'none';
-                document.getElementById('resetPasswordScreen').style.display = 'flex';
-                clearResetMessages();
-            } else {
-                const savedToken = sessionStorage.getItem('authToken');
-                if (savedToken) {
-                    authToken = savedToken;
-                    initSocket();
-                }
+            const savedToken = sessionStorage.getItem('authToken');
+            if (savedToken) {
+                authToken = savedToken;
+                initSocket();
             }
             // Initialize scroll handling
             initScrollHandling();
@@ -2046,17 +2060,30 @@
             clearMessages();
         }
 
+        // Store verification code temporarily
+        let verificationCode = '';
+
         function showForgotPassword() {
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('forgotPasswordScreen').style.display = 'flex';
+            document.getElementById('verifyCodeScreen').style.display = 'none';
+            document.getElementById('resetPasswordScreen').style.display = 'none';
             document.getElementById('forgotEmailInput').value = '';
+            clearForgotMessages();
+        }
+
+        function backToForgotPassword() {
+            document.getElementById('verifyCodeScreen').style.display = 'none';
+            document.getElementById('forgotPasswordScreen').style.display = 'flex';
             clearForgotMessages();
         }
 
         function backToLogin() {
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('forgotPasswordScreen').style.display = 'none';
+            document.getElementById('verifyCodeScreen').style.display = 'none';
             document.getElementById('resetPasswordScreen').style.display = 'none';
+            verificationCode = '';
             clearMessages();
         }
 
@@ -2070,22 +2097,51 @@
             document.getElementById('forgotSuccessMessage').style.display = 'none';
         }
 
+        function clearVerifyMessages() {
+            document.getElementById('verifyErrorMessage').style.display = 'none';
+            document.getElementById('verifySuccessMessage').style.display = 'none';
+        }
+
         function clearResetMessages() {
             document.getElementById('resetErrorMessage').style.display = 'none';
             document.getElementById('resetSuccessMessage').style.display = 'none';
         }
 
         function showError(message, target = 'auth') {
-            const errorDiv = document.getElementById(target === 'forgot' ? 'forgotErrorMessage' : target === 'reset' ? 'resetErrorMessage' : 'errorMessage');
-            const successDiv = document.getElementById(target === 'forgot' ? 'forgotSuccessMessage' : target === 'reset' ? 'resetSuccessMessage' : 'successMessage');
+            let errorDiv, successDiv;
+            if (target === 'forgot') {
+                errorDiv = document.getElementById('forgotErrorMessage');
+                successDiv = document.getElementById('forgotSuccessMessage');
+            } else if (target === 'verify') {
+                errorDiv = document.getElementById('verifyErrorMessage');
+                successDiv = document.getElementById('verifySuccessMessage');
+            } else if (target === 'reset') {
+                errorDiv = document.getElementById('resetErrorMessage');
+                successDiv = document.getElementById('resetSuccessMessage');
+            } else {
+                errorDiv = document.getElementById('errorMessage');
+                successDiv = document.getElementById('successMessage');
+            }
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             successDiv.style.display = 'none';
         }
 
         function showSuccess(message, target = 'auth') {
-            const successDiv = document.getElementById(target === 'forgot' ? 'forgotSuccessMessage' : target === 'reset' ? 'resetSuccessMessage' : 'successMessage');
-            const errorDiv = document.getElementById(target === 'forgot' ? 'forgotErrorMessage' : target === 'reset' ? 'resetErrorMessage' : 'errorMessage');
+            let errorDiv, successDiv;
+            if (target === 'forgot') {
+                errorDiv = document.getElementById('forgotErrorMessage');
+                successDiv = document.getElementById('forgotSuccessMessage');
+            } else if (target === 'verify') {
+                errorDiv = document.getElementById('verifyErrorMessage');
+                successDiv = document.getElementById('verifySuccessMessage');
+            } else if (target === 'reset') {
+                errorDiv = document.getElementById('resetErrorMessage');
+                successDiv = document.getElementById('resetSuccessMessage');
+            } else {
+                errorDiv = document.getElementById('errorMessage');
+                successDiv = document.getElementById('successMessage');
+            }
             successDiv.textContent = message;
             successDiv.style.display = 'block';
             errorDiv.style.display = 'none';
@@ -2171,27 +2227,77 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showSuccess(data.message + '\n\nIn development mode, check the server console for the reset link.', 'forgot');
-                    document.getElementById('forgotEmailInput').value = '';
+                    // Show verify code screen
+                    document.getElementById('forgotPasswordScreen').style.display = 'none';
+                    document.getElementById('verifyCodeScreen').style.display = 'flex';
+                    document.getElementById('verificationCodeInput').value = '';
+                    clearVerifyMessages();
+                    showSuccess('Check the server console for your 6-digit verification code!', 'verify');
                 } else {
-                    showError(data.error || 'Failed to send reset link', 'forgot');
+                    showError(data.error || 'Failed to send verification code', 'forgot');
                 }
             } catch (error) {
                 showError('Network error. Please try again.', 'forgot');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Send Reset Link';
+                btn.textContent = 'Send Verification Code';
+            }
+        }
+
+        async function handleVerifyCode() {
+            const code = document.getElementById('verificationCodeInput').value.trim();
+
+            if (!code) {
+                showError('Please enter the verification code', 'verify');
+                return;
+            }
+
+            if (code.length !== 6 || !/^\d+$/.test(code)) {
+                showError('Verification code must be 6 digits', 'verify');
+                return;
+            }
+
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch('/api/verify-reset-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store code and move to reset password screen
+                    verificationCode = code;
+                    document.getElementById('verifyCodeScreen').style.display = 'none';
+                    document.getElementById('resetPasswordScreen').style.display = 'flex';
+                    document.getElementById('newPasswordInput').value = '';
+                    document.getElementById('confirmNewPasswordInput').value = '';
+                    clearResetMessages();
+                } else {
+                    showError(data.error || 'Invalid verification code', 'verify');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.', 'verify');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Verify Code';
             }
         }
 
         async function handleResetPassword() {
             const newPassword = document.getElementById('newPasswordInput').value;
             const confirmNewPassword = document.getElementById('confirmNewPasswordInput').value;
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
 
-            if (!token) {
-                showError('Invalid reset link', 'reset');
+            if (!verificationCode) {
+                showError('No verification code found. Please start over.', 'reset');
+                setTimeout(() => backToLogin(), 2000);
                 return;
             }
 
@@ -2220,7 +2326,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ token, newPassword })
+                    body: JSON.stringify({ code: verificationCode, newPassword })
                 });
 
                 const data = await response.json();
@@ -2228,8 +2334,7 @@
                 if (response.ok) {
                     showSuccess(data.message + ' Redirecting to login...', 'reset');
                     setTimeout(() => {
-                        // Clear URL params and go back to login
-                        window.location.href = window.location.pathname;
+                        backToLogin();
                     }, 2000);
                 } else {
                     showError(data.error || 'Failed to reset password', 'reset');

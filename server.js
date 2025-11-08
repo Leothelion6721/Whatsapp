@@ -158,15 +158,13 @@ function verifyToken(token) {
 }
 
 function generateResetToken() {
-    // Generate cryptographically secure random token
-    const crypto = require('crypto');
-    return crypto.randomBytes(32).toString('hex');
+    // Generate 6-digit verification code
+    return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function sendPasswordResetEmail(email, username, resetToken) {
+function sendPasswordResetEmail(email, username, resetCode) {
     // In production, this would use a real email service (SendGrid, AWS SES, etc.)
     // For development, we log to console
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
 
     console.log('\n╔════════════════════════════════════════════════════════════╗');
     console.log('║         PASSWORD RESET EMAIL (Development Mode)           ║');
@@ -177,14 +175,11 @@ function sendPasswordResetEmail(email, username, resetToken) {
     console.log('║ Hello,                                                     ║');
     console.log('║                                                            ║');
     console.log('║ You requested to reset your password.                     ║');
-    console.log('║ Click the link below to reset your password:              ║');
+    console.log('║ Use the verification code below to reset your password:   ║');
     console.log('║                                                            ║');
-    console.log(`║ ${resetLink.substring(0, 56).padEnd(58)}║`);
-    if (resetLink.length > 56) {
-        console.log(`║ ${resetLink.substring(56).padEnd(58)}║`);
-    }
+    console.log(`║              Verification Code: ${resetCode}                    ║`);
     console.log('║                                                            ║');
-    console.log('║ This link will expire in 1 hour.                          ║');
+    console.log('║ This code will expire in 15 minutes.                      ║');
     console.log('║                                                            ║');
     console.log('║ If you did not request this, please ignore this email.    ║');
     console.log('╚════════════════════════════════════════════════════════════╝\n');
@@ -306,52 +301,79 @@ app.post('/api/forgot-password', async (req, res) => {
     // Always return success for security (don't reveal if email exists)
     // But only send email if user exists
     if (user) {
-        // Generate reset token
-        const resetToken = generateResetToken();
-        const expiresAt = Date.now() + (60 * 60 * 1000); // 1 hour from now
+        // Generate reset code (6 digits)
+        const resetCode = generateResetToken();
+        const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutes from now
 
-        // Store reset token
-        passwordResetTokens.set(resetToken, {
+        // Store reset code
+        passwordResetTokens.set(resetCode, {
             username,
             email,
             expiresAt
         });
 
         // Send email (in dev, logs to console)
-        sendPasswordResetEmail(email, username, resetToken);
+        sendPasswordResetEmail(email, username, resetCode);
 
         console.log(`Password reset requested for ${username} (${email})`);
+        console.log(`Reset code: ${resetCode} (expires in 15 minutes)`);
     }
 
     // Always return success to prevent email enumeration
     res.json({
         success: true,
-        message: 'If your email is registered, you will receive a password reset link.'
+        message: 'If your email is registered, you will receive a verification code.'
+    });
+});
+
+// Verify reset code endpoint
+app.post('/api/verify-reset-code', async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Verification code is required' });
+    }
+
+    // Verify reset code
+    const resetData = passwordResetTokens.get(code);
+    if (!resetData) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    // Check if code is expired
+    if (Date.now() > resetData.expiresAt) {
+        passwordResetTokens.delete(code);
+        return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    res.json({
+        success: true,
+        message: 'Code verified successfully'
     });
 });
 
 // Reset password endpoint
 app.post('/api/reset-password', async (req, res) => {
-    const { token, newPassword } = req.body;
+    const { code, newPassword } = req.body;
 
-    if (!token || !newPassword) {
-        return res.status(400).json({ error: 'Token and new password are required' });
+    if (!code || !newPassword) {
+        return res.status(400).json({ error: 'Verification code and new password are required' });
     }
 
     if (newPassword.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // Verify reset token
-    const resetData = passwordResetTokens.get(token);
+    // Verify reset code
+    const resetData = passwordResetTokens.get(code);
     if (!resetData) {
-        return res.status(400).json({ error: 'Invalid or expired reset token' });
+        return res.status(400).json({ error: 'Invalid or expired verification code' });
     }
 
-    // Check if token is expired
+    // Check if code is expired
     if (Date.now() > resetData.expiresAt) {
-        passwordResetTokens.delete(token);
-        return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
+        passwordResetTokens.delete(code);
+        return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
     }
 
     // Get user
@@ -367,8 +389,8 @@ app.post('/api/reset-password', async (req, res) => {
     user.password = hashedPassword;
     users.set(resetData.username, user);
 
-    // Delete used token
-    passwordResetTokens.delete(token);
+    // Delete used code
+    passwordResetTokens.delete(code);
 
     // Save data
     saveData();
