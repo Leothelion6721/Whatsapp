@@ -26,14 +26,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 // Email Configuration
 // Set these environment variables to enable email sending:
 // EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM
+const emailPort = parseInt(process.env.EMAIL_PORT || '465', 10);
 const emailConfig = {
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com', // e.g., 'smtp.gmail.com' for Gmail
-    port: process.env.EMAIL_PORT || 587,
-    secure: false, // true for 465, false for other ports
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: emailPort,
+    secure: emailPort === 465, // true for 465 (SSL), false for 587 (STARTTLS)
     auth: process.env.EMAIL_USER ? {
-        user: process.env.EMAIL_USER, // Your email address
-        pass: process.env.EMAIL_PASS  // Your email password or app password
-    } : null
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    } : null,
+    // Connection settings for cloud platforms like Render
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    // Additional options for better reliability
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
+    tls: {
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
+    }
 };
 
 const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@securewhatsapp.com';
@@ -66,7 +81,7 @@ if (emailConfig.auth) {
     console.log('║     • EMAIL_USER (your email)                              ║');
     console.log('║     • EMAIL_PASS (app password)                            ║');
     console.log('║     • EMAIL_HOST (smtp.gmail.com for Gmail)                ║');
-    console.log('║     • EMAIL_PORT (587)                                     ║');
+    console.log('║     • EMAIL_PORT (465 for Render - NOT 587!)               ║');
     console.log('║  3. Save changes and redeploy                              ║');
     console.log('║                                                            ║');
     console.log('║  See RENDER_SETUP.md for detailed instructions!           ║');

@@ -51,23 +51,26 @@ Choose an email provider and get an **App Password** (not your regular password)
    | `EMAIL_USER` | Your email address | `yourname@gmail.com` |
    | `EMAIL_PASS` | Your app password | `abcdefghijklmnop` |
    | `EMAIL_HOST` | SMTP server | `smtp.gmail.com` |
-   | `EMAIL_PORT` | SMTP port | `587` |
+   | `EMAIL_PORT` | SMTP port | `465` (recommended for Render) |
    | `EMAIL_FROM` | From address (optional) | `noreply@yourapp.com` |
 
-   **For Gmail specifically:**
+   **For Gmail specifically (RECOMMENDED FOR RENDER):**
    ```
    EMAIL_USER = yourname@gmail.com
    EMAIL_PASS = abcdefghijklmnop (your 16-char app password, no spaces)
    EMAIL_HOST = smtp.gmail.com
-   EMAIL_PORT = 587
+   EMAIL_PORT = 465
    ```
+
+   > **Note:** Port 465 (SSL) is more reliable on cloud platforms like Render than port 587 (STARTTLS).
+   > If you get connection timeout errors with 587, use 465 instead.
 
    **For Outlook:**
    ```
    EMAIL_USER = yourname@outlook.com
    EMAIL_PASS = your-password
    EMAIL_HOST = smtp-mail.outlook.com
-   EMAIL_PORT = 587
+   EMAIL_PORT = 465
    ```
 
    **For Yahoo:**
@@ -75,7 +78,7 @@ Choose an email provider and get an **App Password** (not your regular password)
    EMAIL_USER = yourname@yahoo.com
    EMAIL_PASS = your-app-password
    EMAIL_HOST = smtp.mail.yahoo.com
-   EMAIL_PORT = 587
+   EMAIL_PORT = 465
    ```
 
 5. **Click "Save Changes"**
@@ -115,6 +118,41 @@ Choose an email provider and get an **App Password** (not your regular password)
 2. Make sure there are no typos in variable names (must be EXACT)
 3. Wait for the app to fully redeploy (check deployment status)
 4. Check Render logs for error messages
+
+### Problem: "Connection timeout" error 🔴 COMMON ON RENDER
+
+**Error message:**
+```
+❌ Email service error: Connection timeout
+```
+
+**This is the most common issue on cloud platforms like Render!**
+
+**Solution - Change to Port 465:**
+
+The app now defaults to port 465 (SSL) which is more reliable than port 587 (STARTTLS) on Render.
+
+1. **In Render Dashboard → Environment:**
+   - Find the `EMAIL_PORT` variable
+   - Change it from `587` to `465`
+   - Click "Save Changes"
+
+2. **Wait for redeploy** and check logs for:
+   ```
+   ✅ Email service ready to send messages
+   ```
+
+**Why this happens:**
+- Port 587 uses STARTTLS which can timeout on cloud platforms
+- Port 465 uses direct SSL which is more reliable
+- Render's network configuration works better with port 465
+
+**Still having issues?**
+- Make sure `EMAIL_HOST` is exactly `smtp.gmail.com` (no typos!)
+- Verify your app password is correct (no spaces)
+- Try regenerating your Gmail app password
+
+---
 
 ### Problem: "Email service error" in logs
 
