@@ -156,7 +156,7 @@ NODE_ENV=production
 | "User is not in your contacts" | Both users must add each other |
 | "Cannot send message to non-contact" | Add user as contact first |
 | Lost password | Delete user from `data/users.json` and re-register |
-
+| Lost password | Contact leothelion123@outlook.fr |
 ## 📝 License
 
 MIT License - Free to use for any purpose!
