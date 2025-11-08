@@ -866,15 +866,15 @@
                 <div class="message-input-container">
                     <div style="flex: 1;">
                         <div class="attachment-preview" id="attachmentPreview">
-                            <div class="preview-info">
-                                <div id="previewName"></div>
-                                <div style="font-size: 12px; color: #8696a0;" id="previewSize"></div>
+                            <div class="preview-info" style="flex: 1; max-width: 100%;">
+                                <div style="font-weight: 600; margin-bottom: 5px;" id="previewCount"></div>
+                                <div id="previewList" style="display: flex; flex-direction: column; gap: 5px; max-height: 150px; overflow-y: auto;"></div>
                             </div>
-                            <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
+                            <button class="contact-btn remove" onclick="removeAllAttachments()">Remove All</button>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
                             <textarea 
                                 class="message-input" 
                                 id="messageInput" 
@@ -945,7 +945,7 @@
         let contacts = [];
         let typingTimeout = null;
         let isTyping = false;
-        let selectedFile = null;
+        let selectedFiles = [];
         let isLoginMode = true;
 
         // WebRTC Call Variables
@@ -1168,15 +1168,12 @@
             });
 
             socket.on('file-uploaded', (data) => {
-                if (data.chatId === currentChatId && selectedFile) {
+                if (data.chatId === currentChatId) {
                     socket.emit('send-message', {
                         chatId: currentChatId,
-                        text: document.getElementById('messageInput').value.trim(),
+                        text: data.messageText || '',
                         file: data.file
                     });
-                    
-                    document.getElementById('messageInput').value = '';
-                    removeAttachment();
                 }
             });
 
@@ -1506,52 +1503,140 @@
         }
 
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            // Validate each file
+            const validFiles = [];
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB`);
+                    continue;
+                }
+                validFiles.push(file);
+            }
+
+            if (validFiles.length === 0) {
                 event.target.value = '';
                 return;
             }
-            
-            selectedFile = file;
-            
-            const preview = document.getElementById('attachmentPreview');
-            const previewName = document.getElementById('previewName');
-            const previewSize = document.getElementById('previewSize');
-            
-            previewName.textContent = file.name;
-            previewSize.textContent = formatFileSize(file.size);
-            preview.classList.add('active');
-            
+
+            // Add to selected files
+            selectedFiles = [...selectedFiles, ...validFiles];
+
+            // Update preview
+            updateFilePreview();
+
+            // Clear input to allow selecting same files again
+            event.target.value = '';
+
             document.getElementById('messageInput').focus();
         }
 
-        function removeAttachment() {
-            selectedFile = null;
+        function updateFilePreview() {
+            const preview = document.getElementById('attachmentPreview');
+            const previewCount = document.getElementById('previewCount');
+            const previewList = document.getElementById('previewList');
+
+            if (selectedFiles.length === 0) {
+                preview.classList.remove('active');
+                return;
+            }
+
+            previewCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
+            previewList.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 5px; background: rgba(0,0,0,0.2); border-radius: 4px;';
+
+                const fileInfo = document.createElement('div');
+                fileInfo.style.cssText = 'flex: 1; overflow: hidden;';
+                fileInfo.innerHTML = `
+                    <div style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(file.name)}</div>
+                    <div style="font-size: 11px; color: #8696a0;">${formatFileSize(file.size)}</div>
+                `;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.cssText = 'background: transparent; border: none; color: #f15c6d; cursor: pointer; font-size: 16px; padding: 0 5px; margin-left: 10px;';
+                removeBtn.onclick = () => removeFile(index);
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                previewList.appendChild(fileItem);
+            });
+
+            preview.classList.add('active');
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFilePreview();
+        }
+
+        function removeAllAttachments() {
+            selectedFiles = [];
             document.getElementById('fileInput').value = '';
-            document.getElementById('attachmentPreview').classList.remove('active');
+            updateFilePreview();
         }
 
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
-            
-            if (!currentChatId || (!text && !selectedFile)) return;
-            
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('upload-file', {
-                        chatId: currentChatId,
-                        fileData: e.target.result,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
-                    });
+
+            if (!currentChatId || (!text && selectedFiles.length === 0)) return;
+
+            if (selectedFiles.length > 0) {
+                // Upload all files sequentially
+                const filesToUpload = [...selectedFiles];
+                selectedFiles = [];
+                updateFilePreview();
+
+                let filesUploaded = 0;
+                const totalFiles = filesToUpload.length;
+
+                const uploadNext = (index) => {
+                    if (index >= totalFiles) {
+                        // All files uploaded, now send the text message if any
+                        if (text) {
+                            socket.emit('send-message', {
+                                chatId: currentChatId,
+                                text: text
+                            });
+                            messageInput.value = '';
+                            autoResize(messageInput);
+                        }
+                        return;
+                    }
+
+                    const file = filesToUpload[index];
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        socket.emit('upload-file', {
+                            chatId: currentChatId,
+                            fileData: e.target.result,
+                            fileName: file.name,
+                            fileType: file.type,
+                            messageText: (index === totalFiles - 1 && text) ? text : ''
+                        });
+
+                        filesUploaded++;
+                        // Upload next file after a short delay to avoid overwhelming the server
+                        setTimeout(() => uploadNext(index + 1), 100);
+                    };
+                    reader.readAsDataURL(file);
                 };
-                reader.readAsDataURL(selectedFile);
+
+                uploadNext(0);
+
+                // Clear the text input if there's text
+                if (text) {
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                }
             } else {
+                // No files, just send text
                 socket.emit('send-message', {
                     chatId: currentChatId,
                     text: text

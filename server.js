@@ -449,19 +449,19 @@ io.on('connection', (socket) => {
     });
 
     socket.on('upload-file', async (data) => {
-        const { chatId, fileData, fileName, fileType } = data;
-        
+        const { chatId, fileData, fileName, fileType, messageText } = data;
+
         if (!currentUsername || !chatId || !fileData) return;
-        
+
         try {
             const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + fileName;
             const filePath = path.join(uploadsDir, uniqueFilename);
-            
+
             const base64Data = fileData.replace(/^data:.*?;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             fs.writeFileSync(filePath, buffer);
-            
+
             const fileInfo = {
                 filename: uniqueFilename,
                 originalName: fileName,
@@ -469,12 +469,13 @@ io.on('connection', (socket) => {
                 size: buffer.length,
                 url: `/uploads/${uniqueFilename}`
             };
-            
+
             socket.emit('file-uploaded', {
                 chatId,
-                file: fileInfo
+                file: fileInfo,
+                messageText: messageText || ''
             });
-            
+
         } catch (error) {
             console.error('File upload error:', error);
             socket.emit('upload-error', { error: 'Failed to upload file' });
