@@ -54,9 +54,23 @@ if (emailConfig.auth) {
         }
     });
 } else {
-    console.log('⚠️  Email service not configured - will log to console instead');
-    console.log('   To enable email, set these environment variables:');
-    console.log('   EMAIL_USER, EMAIL_PASS, EMAIL_HOST (optional), EMAIL_FROM (optional)');
+    console.log('\n╔════════════════════════════════════════════════════════════╗');
+    console.log('║  ⚠️  EMAIL SERVICE NOT CONFIGURED                          ║');
+    console.log('╠════════════════════════════════════════════════════════════╣');
+    console.log('║  Verification codes will be logged to console only!       ║');
+    console.log('║  Users will NOT receive emails until you configure this.  ║');
+    console.log('╠════════════════════════════════════════════════════════════╣');
+    console.log('║  DEPLOYING ON RENDER?                                      ║');
+    console.log('║  1. Go to Render Dashboard → Your Service → Environment   ║');
+    console.log('║  2. Add these environment variables:                       ║');
+    console.log('║     • EMAIL_USER (your email)                              ║');
+    console.log('║     • EMAIL_PASS (app password)                            ║');
+    console.log('║     • EMAIL_HOST (smtp.gmail.com for Gmail)                ║');
+    console.log('║     • EMAIL_PORT (587)                                     ║');
+    console.log('║  3. Save changes and redeploy                              ║');
+    console.log('║                                                            ║');
+    console.log('║  See RENDER_SETUP.md for detailed instructions!           ║');
+    console.log('╚════════════════════════════════════════════════════════════╝\n');
 }
 
 // Create necessary directories
@@ -374,7 +388,8 @@ This is an automated message, please do not reply to this email.
 
     // Fallback: Log to console if email is not configured or failed
     console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║         PASSWORD RESET EMAIL (Console Mode)               ║');
+    console.log('║  ⚠️  EMAIL NOT SENT - SHOWING IN CONSOLE INSTEAD          ║');
+    console.log('║         (Configure EMAIL_USER & EMAIL_PASS to fix)        ║');
     console.log('╠════════════════════════════════════════════════════════════╣');
     console.log(`║ To: ${email.padEnd(54)}║`);
     console.log(`║ Username: ${username.padEnd(47)}║`);
@@ -389,6 +404,8 @@ This is an automated message, please do not reply to this email.
     console.log('║ This code will expire in 15 minutes.                      ║');
     console.log('║                                                            ║');
     console.log('║ If you did not request this, please ignore this email.    ║');
+    console.log('╠════════════════════════════════════════════════════════════╣');
+    console.log('║  📝 TO FIX: See RENDER_SETUP.md for email configuration   ║');
     console.log('╚════════════════════════════════════════════════════════════╝\n');
 
     return true;
