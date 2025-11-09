@@ -1590,6 +1590,8 @@
         <div class="call-container">
             <!-- CRITICAL: Audio element for voice calls - ALWAYS available, not hidden -->
             <audio id="remoteAudio" autoplay></audio>
+            <!-- Local audio muted to prevent feedback -->
+            <audio id="localAudio" muted style="display:none;"></audio>
 
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
@@ -4573,12 +4575,15 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                // Get user media with echo cancellation enabled
+                // Get user media with aggressive echo cancellation
                 localStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        sampleRate: 48000,
+                        sampleSize: 16,
+                        channelCount: 1
                     },
                     video: video
                 });
@@ -4589,6 +4594,9 @@
                 if (video) {
                     document.getElementById('localVideo').srcObject = localStream;
                     isVideoEnabled = true;
+                } else {
+                    // For voice calls, set local stream to muted audio element
+                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
                 // Create peer connection
@@ -4658,10 +4666,14 @@
                     // CRITICAL FIX: Use appropriate element based on call type
                     if (isVideoCall) {
                         // Video calls: use video element
-                        document.getElementById('remoteVideo').srcObject = remoteStream;
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.volume = 0.8; // Reduce volume to prevent feedback
                     } else {
-                        // Voice calls: use audio element (NOT hidden!)
-                        document.getElementById('remoteAudio').srcObject = remoteStream;
+                        // Voice calls: use audio element with reduced volume
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        remoteAudio.srcObject = remoteStream;
+                        remoteAudio.volume = 0.7; // Reduce volume to prevent feedback
                     }
                 }
 
@@ -4746,12 +4758,15 @@
             try {
                 if (!currentCall) return;
 
-                // Get user media with echo cancellation enabled
+                // Get user media with aggressive echo cancellation
                 localStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        sampleRate: 48000,
+                        sampleSize: 16,
+                        channelCount: 1
                     },
                     video: currentCall.isVideo
                 });
@@ -4759,6 +4774,9 @@
                 if (currentCall.isVideo) {
                     document.getElementById('localVideo').srcObject = localStream;
                     isVideoEnabled = true;
+                } else {
+                    // For voice calls, set local stream to muted audio element
+                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
                 // Add local stream to existing peer connection
@@ -4835,14 +4853,16 @@
                 originalStream = null;
             }
 
-            // FIXED: Clear srcObject from BOTH audio and video elements
+            // FIXED: Clear srcObject from ALL audio and video elements
             const remoteAudio = document.getElementById('remoteAudio');
             const remoteVideo = document.getElementById('remoteVideo');
             const localVideo = document.getElementById('localVideo');
+            const localAudio = document.getElementById('localAudio');
 
             if (remoteAudio) remoteAudio.srcObject = null;
             if (remoteVideo) remoteVideo.srcObject = null;
             if (localVideo) localVideo.srcObject = null;
+            if (localAudio) localAudio.srcObject = null;
 
             // Reset call state
             currentCall = null;
