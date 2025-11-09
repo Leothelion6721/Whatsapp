@@ -4573,9 +4573,13 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                // Get user media
+                // Get user media with echo cancellation enabled
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
                     video: video
                 });
 
@@ -4742,9 +4746,13 @@
             try {
                 if (!currentCall) return;
 
-                // Get user media
+                // Get user media with echo cancellation enabled
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
                     video: currentCall.isVideo
                 });
 
