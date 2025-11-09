@@ -839,10 +839,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send-message', (data) => {
-        const { chatId, text, file, encrypted, ciphertext, encryptedKey, iv } = data;
+        const { chatId, text, file, files, encrypted, ciphertext, encryptedKey, iv } = data;
 
         if (!currentUsername || !chatId) return;
-        if (!text && !file && !ciphertext) return;
+        if (!text && !file && !files && !ciphertext) return;
 
         // Check if it's a group or regular chat
         const group = groups.get(chatId);
@@ -879,6 +879,7 @@ io.on('connection', (socket) => {
             senderUsername: currentUsername,
             text: text || '',
             file: file || null,
+            files: files || null,
             encrypted: encrypted || false,
             ciphertext: ciphertext || null,
             encryptedKey: encryptedKey || null,
@@ -893,7 +894,7 @@ io.on('connection', (socket) => {
         
         // Update last message
         const lastMessageData = {
-            text: text || (file ? '📎 File' : ''),
+            text: text || (files && files.length > 0 ? `📎 ${files.length} file${files.length > 1 ? 's' : ''}` : (file ? '📎 File' : '')),
             time: Date.now()
         };
 
@@ -915,6 +916,7 @@ io.on('connection', (socket) => {
                         id: message.id,
                         text: message.text,
                         file: message.file,
+                        files: message.files,
                         encrypted: message.encrypted,
                         ciphertext: message.ciphertext,
                         encryptedKey: message.encryptedKey,

@@ -1567,7 +1567,7 @@
 
                         <div style="display: flex; gap: 10px; align-items: flex-end;" id="messageInputArea">
                             <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
                             <textarea
                                 class="message-input"
                                 id="messageInput"
@@ -1793,7 +1793,7 @@
         let groups = new Map(); // For group chats
         let typingTimeout = null;
         let isTyping = false;
-        let selectedFile = null;
+        let selectedFiles = [];
         let isLoginMode = true;
 
         // WebRTC Call Variables
@@ -2557,15 +2557,26 @@
             });
 
             socket.on('file-uploaded', (data) => {
-                if (data.chatId === currentChatId && selectedFile) {
-                    socket.emit('send-message', {
-                        chatId: currentChatId,
-                        text: document.getElementById('messageInput').value.trim(),
-                        file: data.file
-                    });
-                    
-                    document.getElementById('messageInput').value = '';
-                    removeAttachment();
+                if (data.chatId === currentChatId && selectedFiles.length > 0) {
+                    // Collect uploaded file
+                    uploadedFilesForMessage.push(data.file);
+
+                    // Check if all files are uploaded
+                    if (uploadedFilesForMessage.length === totalFilesToUpload) {
+                        // Send message with all files
+                        socket.emit('send-message', {
+                            chatId: currentChatId,
+                            text: messageTextForFiles,
+                            files: uploadedFilesForMessage  // Send array of files
+                        });
+
+                        // Clear state
+                        document.getElementById('messageInput').value = '';
+                        removeAttachment();
+                        uploadedFilesForMessage = [];
+                        totalFilesToUpload = 0;
+                        messageTextForFiles = '';
+                    }
                 }
             });
 
@@ -3105,6 +3116,34 @@
                                 <span class="voice-duration">${formatDuration(msg.voiceMessage.duration)}</span>
                             </div>
                         `;
+                    } else if (msg.files && msg.files.length > 0) {
+                        // Handle multiple files
+                        for (const file of msg.files) {
+                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.originalName);
+
+                            if (isImage) {
+                                content += `
+                                    <a href="${file.url}" target="_blank">
+                                        <img src="${file.url}" alt="${file.originalName}" class="message-image">
+                                    </a>
+                                `;
+                            } else {
+                                const icon = getFileIcon(file.mimetype);
+                                content += `
+                                    <div class="message-file">
+                                        <div class="file-info">
+                                            <span class="file-icon">${icon}</span>
+                                            <div>
+                                                <a href="${file.url}" target="_blank" class="file-name" download="${file.originalName}">
+                                                    ${file.originalName}
+                                                </a>
+                                                <div class="file-size">${formatFileSize(file.size)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
                     } else if (msg.file) {
                         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
 
@@ -3183,30 +3222,40 @@
         }
 
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
-                event.target.value = '';
-                return;
+            const files = Array.from(event.target.files);
+            if (!files || files.length === 0) return;
+
+            // Check each file size
+            for (let file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. File size must be less than 10MB`);
+                    event.target.value = '';
+                    return;
+                }
             }
-            
-            selectedFile = file;
-            
+
+            selectedFiles = files;
+
             const preview = document.getElementById('attachmentPreview');
             const previewName = document.getElementById('previewName');
             const previewSize = document.getElementById('previewSize');
-            
-            previewName.textContent = file.name;
-            previewSize.textContent = formatFileSize(file.size);
+
+            // Show multiple files info
+            if (files.length === 1) {
+                previewName.textContent = files[0].name;
+                previewSize.textContent = formatFileSize(files[0].size);
+            } else {
+                previewName.textContent = `${files.length} files selected`;
+                const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+                previewSize.textContent = formatFileSize(totalSize);
+            }
             preview.classList.add('active');
-            
+
             document.getElementById('messageInput').focus();
         }
 
         function removeAttachment() {
-            selectedFile = null;
+            selectedFiles = [];
             document.getElementById('fileInput').value = '';
             document.getElementById('attachmentPreview').classList.remove('active');
         }
@@ -3601,23 +3650,42 @@
             }
         });
 
-        async function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const text = messageInput.value.trim();
+        // Upload multiple files
+        let uploadedFilesForMessage = [];
+        let totalFilesToUpload = 0;
+        let messageTextForFiles = '';
 
-            if (!currentChatId || (!text && !selectedFile)) return;
+        function uploadMultipleFiles(files, text) {
+            uploadedFilesForMessage = [];
+            totalFilesToUpload = files.length;
+            messageTextForFiles = text;
 
-            if (selectedFile) {
+            // Upload each file
+            files.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     socket.emit('upload-file', {
                         chatId: currentChatId,
                         fileData: e.target.result,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
+                        fileName: file.name,
+                        fileType: file.type,
+                        fileIndex: index,
+                        totalFiles: totalFilesToUpload
                     });
                 };
-                reader.readAsDataURL(selectedFile);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const text = messageInput.value.trim();
+
+            if (!currentChatId || (!text && selectedFiles.length === 0)) return;
+
+            if (selectedFiles.length > 0) {
+                // Upload multiple files
+                uploadMultipleFiles(selectedFiles, text);
             } else {
                 // FIXED: Check if it's a group or 1-on-1 chat
                 const group = groups.get(currentChatId);
