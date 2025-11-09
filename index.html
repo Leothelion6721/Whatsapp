@@ -1588,10 +1588,8 @@
     <!-- Call Modal -->
     <div class="call-modal" id="callModal">
         <div class="call-container">
-            <!-- CRITICAL: Audio element for voice calls - ALWAYS available, not hidden -->
+            <!-- Audio element for voice calls -->
             <audio id="remoteAudio" autoplay playsinline></audio>
-            <!-- Local audio muted to prevent feedback -->
-            <audio id="localAudio" muted playsinline style="display:none;"></audio>
 
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
@@ -4575,46 +4573,61 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                // Get user media with aggressive echo cancellation
-                localStream = await navigator.mediaDevices.getUserMedia({
+                console.log('=== INITIATING CALL ===', video ? 'VIDEO' : 'VOICE');
+
+                // Get user media with proper constraints
+                const constraints = {
                     audio: {
-                        echoCancellation: { ideal: true },
-                        noiseSuppression: { ideal: true },
-                        autoGainControl: { ideal: true },
-                        sampleRate: 48000,
-                        sampleSize: 16,
-                        channelCount: 1
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
                     },
-                    video: video
-                });
+                    video: video ? {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } : false
+                };
+
+                console.log('Requesting media with constraints:', constraints);
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('Local stream obtained:', localStream.getTracks().map(t => t.kind));
 
                 // Show call UI
                 showCallUI(chat.name, 'outgoing', video);
 
+                // Display local video/audio
                 if (video) {
-                    document.getElementById('localVideo').srcObject = localStream;
+                    const localVideo = document.getElementById('localVideo');
+                    localVideo.srcObject = localStream;
                     isVideoEnabled = true;
-                } else {
-                    // For voice calls, set local stream to muted audio element
-                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
-                // Create peer connection
+                // Create peer connection BEFORE adding tracks
                 createPeerConnection();
 
-                // Add local stream to peer connection
+                // Add all local tracks to peer connection
+                console.log('Adding local tracks to peer connection');
                 localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
+                    const sender = peerConnection.addTrack(track, localStream);
+                    console.log('Added track:', track.kind, 'label:', track.label);
                 });
 
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
+                // Create offer with proper options
+                console.log('Creating offer...');
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: video
+                });
+
+                console.log('Setting local description...');
                 await peerConnection.setLocalDescription(offer);
+                console.log('Local description set:', peerConnection.localDescription.type);
 
                 // Send call offer via socket
+                console.log('Sending call offer to:', chat.name);
                 socket.emit('call-offer', {
                     to: chat.name,
-                    offer: offer,
+                    offer: peerConnection.localDescription,
                     isVideo: video
                 });
 
@@ -4644,72 +4657,86 @@
         }
 
         function createPeerConnection() {
+            console.log('=== CREATING PEER CONNECTION ===');
             peerConnection = new RTCPeerConnection(iceServers);
 
             // Handle ICE candidates
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate && currentCall) {
+                    console.log('Sending ICE candidate:', event.candidate.type);
                     socket.emit('ice-candidate', {
                         to: currentCall.contactName,
                         candidate: event.candidate
                     });
+                } else if (!event.candidate) {
+                    console.log('All ICE candidates have been sent');
                 }
             };
 
-            // Handle remote stream - FIXED: Properly handle remote audio
+            // Handle remote tracks
             peerConnection.ontrack = (event) => {
-                console.log('Received remote track:', event.track.kind, 'streams:', event.streams.length);
+                console.log('=== RECEIVED REMOTE TRACK ===');
+                console.log('Track kind:', event.track.kind);
+                console.log('Track ID:', event.track.id);
+                console.log('Track enabled:', event.track.enabled);
+                console.log('Track muted:', event.track.muted);
+                console.log('Track ready state:', event.track.readyState);
+                console.log('Streams:', event.streams.length);
 
-                // Use the stream provided by the event (modern approach)
+                // Get the remote stream
                 if (event.streams && event.streams[0]) {
-                    if (!remoteStream) {
-                        remoteStream = event.streams[0];
+                    remoteStream = event.streams[0];
+                    console.log('Remote stream tracks:', remoteStream.getTracks().map(t => t.kind));
 
-                        // CRITICAL FIX: Set up audio/video element immediately
-                        if (isVideoCall) {
-                            // Video calls: use video element
-                            const remoteVideo = document.getElementById('remoteVideo');
-                            remoteVideo.srcObject = remoteStream;
-                            remoteVideo.volume = 0.8;
-
-                            // Ensure video plays
-                            remoteVideo.play().then(() => {
-                                console.log('Remote video playing successfully');
-                            }).catch(err => {
-                                console.error('Error playing remote video:', err);
-                            });
-                        } else {
-                            // Voice calls: use audio element
-                            const remoteAudio = document.getElementById('remoteAudio');
-                            remoteAudio.srcObject = remoteStream;
-                            remoteAudio.volume = 0.7;
-
-                            // Ensure audio plays (handle autoplay restrictions)
-                            remoteAudio.play().then(() => {
-                                console.log('Remote audio playing successfully');
-                            }).catch(err => {
-                                console.error('Error playing remote audio:', err);
-                            });
+                    // Set up the appropriate media element
+                    if (isVideoCall) {
+                        console.log('Setting up remote VIDEO');
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.onloadedmetadata = () => {
+                            console.log('Remote video metadata loaded');
+                            remoteVideo.play().catch(e => console.error('Play error:', e));
+                        };
+                        if (event.track.kind === 'video') {
+                            document.getElementById('videoPlaceholder').style.display = 'none';
                         }
+                    } else {
+                        console.log('Setting up remote AUDIO');
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        remoteAudio.srcObject = remoteStream;
+                        remoteAudio.onloadedmetadata = () => {
+                            console.log('Remote audio metadata loaded');
+                            remoteAudio.play().catch(e => console.error('Play error:', e));
+                        };
                     }
                 }
+            };
 
-                if (isVideoCall && event.track.kind === 'video') {
-                    document.getElementById('videoPlaceholder').style.display = 'none';
-                }
+            // Handle negotiation needed
+            peerConnection.onnegotiationneeded = () => {
+                console.log('Negotiation needed');
+            };
+
+            // Handle ICE connection state changes
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log('ICE connection state:', peerConnection.iceConnectionState);
             };
 
             // Handle connection state
             peerConnection.onconnectionstatechange = () => {
                 console.log('Connection state:', peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') {
+                    console.log('=== PEER CONNECTION ESTABLISHED ===');
                     startCallTimer();
                     document.getElementById('callStatus').textContent = 'Connected';
                 } else if (peerConnection.connectionState === 'disconnected' ||
                            peerConnection.connectionState === 'failed') {
+                    console.log('=== PEER CONNECTION FAILED/DISCONNECTED ===');
                     endCall();
                 }
             };
+
+            console.log('Peer connection created successfully');
         }
 
         function showCallUI(name, type, isVideo) {
@@ -4773,40 +4800,52 @@
             try {
                 if (!currentCall) return;
 
-                // Get user media with aggressive echo cancellation
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: { ideal: true },
-                        noiseSuppression: { ideal: true },
-                        autoGainControl: { ideal: true },
-                        sampleRate: 48000,
-                        sampleSize: 16,
-                        channelCount: 1
-                    },
-                    video: currentCall.isVideo
-                });
+                console.log('=== ACCEPTING CALL ===', currentCall.isVideo ? 'VIDEO' : 'VOICE');
 
+                // Get user media with proper constraints
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: currentCall.isVideo ? {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } : false
+                };
+
+                console.log('Requesting media with constraints:', constraints);
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('Local stream obtained:', localStream.getTracks().map(t => t.kind));
+
+                // Display local video if video call
                 if (currentCall.isVideo) {
-                    document.getElementById('localVideo').srcObject = localStream;
+                    const localVideo = document.getElementById('localVideo');
+                    localVideo.srcObject = localStream;
                     isVideoEnabled = true;
-                } else {
-                    // For voice calls, set local stream to muted audio element
-                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
-                // Add local stream to existing peer connection
+                // Add local tracks to existing peer connection
+                console.log('Adding local tracks to peer connection');
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
+                    console.log('Added track:', track.kind, 'label:', track.label);
                 });
 
                 // Create answer
+                console.log('Creating answer...');
                 const answer = await peerConnection.createAnswer();
+
+                console.log('Setting local description...');
                 await peerConnection.setLocalDescription(answer);
+                console.log('Local description set:', peerConnection.localDescription.type);
 
                 // Send answer
+                console.log('Sending answer to:', currentCall.contactName);
                 socket.emit('call-answer', {
                     to: currentCall.contactName,
-                    answer: answer
+                    answer: peerConnection.localDescription
                 });
 
                 // Update UI
@@ -4868,16 +4907,14 @@
                 originalStream = null;
             }
 
-            // FIXED: Clear srcObject from ALL audio and video elements
+            // Clear srcObject from all audio and video elements
             const remoteAudio = document.getElementById('remoteAudio');
             const remoteVideo = document.getElementById('remoteVideo');
             const localVideo = document.getElementById('localVideo');
-            const localAudio = document.getElementById('localAudio');
 
             if (remoteAudio) remoteAudio.srcObject = null;
             if (remoteVideo) remoteVideo.srcObject = null;
             if (localVideo) localVideo.srcObject = null;
-            if (localAudio) localAudio.srcObject = null;
 
             // Reset call state
             currentCall = null;
