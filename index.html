@@ -1589,9 +1589,9 @@
     <div class="call-modal" id="callModal">
         <div class="call-container">
             <!-- CRITICAL: Audio element for voice calls - ALWAYS available, not hidden -->
-            <audio id="remoteAudio" autoplay></audio>
+            <audio id="remoteAudio" autoplay playsinline></audio>
             <!-- Local audio muted to prevent feedback -->
-            <audio id="localAudio" muted style="display:none;"></audio>
+            <audio id="localAudio" muted playsinline style="display:none;"></audio>
 
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
@@ -4656,28 +4656,43 @@
                 }
             };
 
-            // Handle remote stream - FIXED: Use audio element for voice calls
+            // Handle remote stream - FIXED: Properly handle remote audio
             peerConnection.ontrack = (event) => {
-                console.log('Received remote track:', event.track.kind);
+                console.log('Received remote track:', event.track.kind, 'streams:', event.streams.length);
 
-                if (!remoteStream) {
-                    remoteStream = new MediaStream();
+                // Use the stream provided by the event (modern approach)
+                if (event.streams && event.streams[0]) {
+                    if (!remoteStream) {
+                        remoteStream = event.streams[0];
 
-                    // CRITICAL FIX: Use appropriate element based on call type
-                    if (isVideoCall) {
-                        // Video calls: use video element
-                        const remoteVideo = document.getElementById('remoteVideo');
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.volume = 0.8; // Reduce volume to prevent feedback
-                    } else {
-                        // Voice calls: use audio element with reduced volume
-                        const remoteAudio = document.getElementById('remoteAudio');
-                        remoteAudio.srcObject = remoteStream;
-                        remoteAudio.volume = 0.7; // Reduce volume to prevent feedback
+                        // CRITICAL FIX: Set up audio/video element immediately
+                        if (isVideoCall) {
+                            // Video calls: use video element
+                            const remoteVideo = document.getElementById('remoteVideo');
+                            remoteVideo.srcObject = remoteStream;
+                            remoteVideo.volume = 0.8;
+
+                            // Ensure video plays
+                            remoteVideo.play().then(() => {
+                                console.log('Remote video playing successfully');
+                            }).catch(err => {
+                                console.error('Error playing remote video:', err);
+                            });
+                        } else {
+                            // Voice calls: use audio element
+                            const remoteAudio = document.getElementById('remoteAudio');
+                            remoteAudio.srcObject = remoteStream;
+                            remoteAudio.volume = 0.7;
+
+                            // Ensure audio plays (handle autoplay restrictions)
+                            remoteAudio.play().then(() => {
+                                console.log('Remote audio playing successfully');
+                            }).catch(err => {
+                                console.error('Error playing remote audio:', err);
+                            });
+                        }
                     }
                 }
-
-                remoteStream.addTrack(event.track);
 
                 if (isVideoCall && event.track.kind === 'video') {
                     document.getElementById('videoPlaceholder').style.display = 'none';
