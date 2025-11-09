@@ -1573,51 +1573,21 @@ io.on('connection', (socket) => {
     });
 
     // WebRTC Call Signaling Handlers
-    socket.on('call-offer', (data) => {
-        const { to, offer, isVideo } = data;
-        
+    // SimplePeer signaling - single event for all WebRTC signaling
+    socket.on('call-signal', (data) => {
+        const { to, signal, isVideo } = data;
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
-            // Forward the call offer to the target user
-            io.to(targetUser.socketId).emit('incoming-call', {
+            // Forward the signal to the target user
+            io.to(targetUser.socketId).emit('call-signal', {
                 from: currentUsername,
-                offer: offer,
+                signal: signal,
                 isVideo: isVideo
             });
-            console.log(`Call offer from ${currentUsername} to ${to}`);
-        }
-    });
-
-    socket.on('call-answer', (data) => {
-        const { to, answer } = data;
-        
-        if (!currentUsername) return;
-        
-        const targetUser = users.get(to);
-        if (targetUser && targetUser.online && targetUser.socketId) {
-            // Forward the call answer to the caller
-            io.to(targetUser.socketId).emit('call-answered', {
-                from: currentUsername,
-                answer: answer
-            });
-            console.log(`Call answered from ${currentUsername} to ${to}`);
-        }
-    });
-
-    socket.on('ice-candidate', (data) => {
-        const { to, candidate } = data;
-        
-        if (!currentUsername) return;
-        
-        const targetUser = users.get(to);
-        if (targetUser && targetUser.online && targetUser.socketId) {
-            // Forward ICE candidate
-            io.to(targetUser.socketId).emit('ice-candidate', {
-                from: currentUsername,
-                candidate: candidate
-            });
+            console.log(`Call signal from ${currentUsername} to ${to}`);
         }
     });
 

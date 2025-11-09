@@ -1783,6 +1783,8 @@
 
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
+    <!-- SimplePeer for WebRTC -->
+    <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
     <script>
         let socket = null;
         let authToken = null;
@@ -1796,10 +1798,9 @@
         let selectedFiles = [];
         let isLoginMode = true;
 
-        // WebRTC Call Variables
-        let peerConnection = null;
+        // SimplePeer Call Variables
+        let peer = null;
         let localStream = null;
-        let remoteStream = null;
         let currentCall = null;
         let callTimer = null;
         let callStartTime = null;
@@ -1810,11 +1811,12 @@
         let screenStream = null;
         let originalStream = null;
 
-        // ICE servers for WebRTC
-        const iceServers = {
+        // SimplePeer configuration
+        const peerConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
             ]
         };
 
@@ -2747,47 +2749,35 @@
                 }
             });
 
-            // Call event handlers
-            socket.on('incoming-call', async (data) => {
-                const { from, offer, isVideo } = data;
+            // SimplePeer Call event handlers
+            socket.on('call-signal', async (data) => {
+                const { from, signal, isVideo } = data;
 
-                console.log('Incoming call from:', from, 'isVideo:', isVideo);
+                console.log('Received call signal from:', from);
 
-                // FIXED: Set global isVideoCall variable
-                isVideoCall = isVideo;
+                // If we don't have a peer yet, this is an incoming call
+                if (!peer && !currentCall) {
+                    console.log('Incoming call from:', from, 'isVideo:', isVideo);
 
-                // Create peer connection
-                createPeerConnection();
+                    // Set global isVideoCall variable
+                    isVideoCall = isVideo;
 
-                // Set remote description
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    // Show incoming call UI and store signal for later
+                    currentCall = {
+                        type: 'incoming',
+                        contactName: from,
+                        isVideo: isVideo,
+                        signal: signal  // Store the signal data
+                    };
 
-                // Show incoming call UI
-                currentCall = {
-                    type: 'incoming',
-                    contactName: from,
-                    isVideo: isVideo
-                };
-
-                showCallUI(from, 'incoming', isVideo);
-
-                // Play ringtone (optional)
-                // new Audio('/ringtone.mp3').play();
-            });
-
-            socket.on('call-answered', async (data) => {
-                const { answer } = data;
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                showCallUI(currentCall.contactName, 'active', currentCall.isVideo);
-            });
-
-            socket.on('ice-candidate', async (data) => {
-                const { candidate } = data;
-                if (peerConnection) {
+                    showCallUI(from, 'incoming', isVideo);
+                } else if (peer) {
+                    // We already have a peer, this is signaling data during connection
+                    console.log('Processing signal data...');
                     try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        peer.signal(signal);
                     } catch (error) {
-                        console.error('Error adding ICE candidate:', error);
+                        console.error('Error processing signal:', error);
                     }
                 }
             });
@@ -4573,9 +4563,9 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                console.log('=== INITIATING CALL ===', video ? 'VIDEO' : 'VOICE');
+                console.log('=== INITIATING CALL WITH SIMPLEPEER ===', video ? 'VIDEO' : 'VOICE');
 
-                // Get user media with proper constraints
+                // Get user media
                 const constraints = {
                     audio: {
                         echoCancellation: true,
@@ -4588,47 +4578,72 @@
                     } : false
                 };
 
-                console.log('Requesting media with constraints:', constraints);
+                console.log('Requesting media...');
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 console.log('Local stream obtained:', localStream.getTracks().map(t => t.kind));
 
                 // Show call UI
                 showCallUI(chat.name, 'outgoing', video);
 
-                // Display local video/audio
+                // Display local video
                 if (video) {
                     const localVideo = document.getElementById('localVideo');
                     localVideo.srcObject = localStream;
+                    localVideo.muted = true; // Mute local to prevent echo
                     isVideoEnabled = true;
                 }
 
-                // Create peer connection BEFORE adding tracks
-                createPeerConnection();
-
-                // Add all local tracks to peer connection
-                console.log('Adding local tracks to peer connection');
-                localStream.getTracks().forEach(track => {
-                    const sender = peerConnection.addTrack(track, localStream);
-                    console.log('Added track:', track.kind, 'label:', track.label);
+                // Create SimplePeer instance as initiator
+                console.log('Creating SimplePeer as initiator...');
+                peer = new SimplePeer({
+                    initiator: true,
+                    stream: localStream,
+                    config: peerConfig,
+                    trickle: true
                 });
 
-                // Create offer with proper options
-                console.log('Creating offer...');
-                const offer = await peerConnection.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: video
+                // Handle signaling data (send to other peer)
+                peer.on('signal', data => {
+                    console.log('Sending signal data to:', chat.name);
+                    socket.emit('call-signal', {
+                        to: chat.name,
+                        signal: data,
+                        isVideo: video
+                    });
                 });
 
-                console.log('Setting local description...');
-                await peerConnection.setLocalDescription(offer);
-                console.log('Local description set:', peerConnection.localDescription.type);
+                // Handle incoming stream from remote peer
+                peer.on('stream', stream => {
+                    console.log('=== RECEIVED REMOTE STREAM ===');
+                    console.log('Remote stream tracks:', stream.getTracks().map(t => t.kind));
 
-                // Send call offer via socket
-                console.log('Sending call offer to:', chat.name);
-                socket.emit('call-offer', {
-                    to: chat.name,
-                    offer: peerConnection.localDescription,
-                    isVideo: video
+                    if (isVideoCall) {
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = stream;
+                        remoteVideo.play().catch(e => console.error('Remote video play error:', e));
+                        document.getElementById('videoPlaceholder').style.display = 'none';
+                    } else {
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        remoteAudio.srcObject = stream;
+                        remoteAudio.play().catch(e => console.error('Remote audio play error:', e));
+                    }
+                });
+
+                // Handle connection events
+                peer.on('connect', () => {
+                    console.log('=== PEER CONNECTED ===');
+                    startCallTimer();
+                    document.getElementById('callStatus').textContent = 'Connected';
+                });
+
+                peer.on('error', err => {
+                    console.error('Peer error:', err);
+                    endCall();
+                });
+
+                peer.on('close', () => {
+                    console.log('Peer connection closed');
+                    endCall();
                 });
 
                 currentCall = {
@@ -4656,88 +4671,7 @@
             }
         }
 
-        function createPeerConnection() {
-            console.log('=== CREATING PEER CONNECTION ===');
-            peerConnection = new RTCPeerConnection(iceServers);
-
-            // Handle ICE candidates
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate && currentCall) {
-                    console.log('Sending ICE candidate:', event.candidate.type);
-                    socket.emit('ice-candidate', {
-                        to: currentCall.contactName,
-                        candidate: event.candidate
-                    });
-                } else if (!event.candidate) {
-                    console.log('All ICE candidates have been sent');
-                }
-            };
-
-            // Handle remote tracks
-            peerConnection.ontrack = (event) => {
-                console.log('=== RECEIVED REMOTE TRACK ===');
-                console.log('Track kind:', event.track.kind);
-                console.log('Track ID:', event.track.id);
-                console.log('Track enabled:', event.track.enabled);
-                console.log('Track muted:', event.track.muted);
-                console.log('Track ready state:', event.track.readyState);
-                console.log('Streams:', event.streams.length);
-
-                // Get the remote stream
-                if (event.streams && event.streams[0]) {
-                    remoteStream = event.streams[0];
-                    console.log('Remote stream tracks:', remoteStream.getTracks().map(t => t.kind));
-
-                    // Set up the appropriate media element
-                    if (isVideoCall) {
-                        console.log('Setting up remote VIDEO');
-                        const remoteVideo = document.getElementById('remoteVideo');
-                        remoteVideo.srcObject = remoteStream;
-                        remoteVideo.onloadedmetadata = () => {
-                            console.log('Remote video metadata loaded');
-                            remoteVideo.play().catch(e => console.error('Play error:', e));
-                        };
-                        if (event.track.kind === 'video') {
-                            document.getElementById('videoPlaceholder').style.display = 'none';
-                        }
-                    } else {
-                        console.log('Setting up remote AUDIO');
-                        const remoteAudio = document.getElementById('remoteAudio');
-                        remoteAudio.srcObject = remoteStream;
-                        remoteAudio.onloadedmetadata = () => {
-                            console.log('Remote audio metadata loaded');
-                            remoteAudio.play().catch(e => console.error('Play error:', e));
-                        };
-                    }
-                }
-            };
-
-            // Handle negotiation needed
-            peerConnection.onnegotiationneeded = () => {
-                console.log('Negotiation needed');
-            };
-
-            // Handle ICE connection state changes
-            peerConnection.oniceconnectionstatechange = () => {
-                console.log('ICE connection state:', peerConnection.iceConnectionState);
-            };
-
-            // Handle connection state
-            peerConnection.onconnectionstatechange = () => {
-                console.log('Connection state:', peerConnection.connectionState);
-                if (peerConnection.connectionState === 'connected') {
-                    console.log('=== PEER CONNECTION ESTABLISHED ===');
-                    startCallTimer();
-                    document.getElementById('callStatus').textContent = 'Connected';
-                } else if (peerConnection.connectionState === 'disconnected' ||
-                           peerConnection.connectionState === 'failed') {
-                    console.log('=== PEER CONNECTION FAILED/DISCONNECTED ===');
-                    endCall();
-                }
-            };
-
-            console.log('Peer connection created successfully');
-        }
+        // SimplePeer handles peer connection internally - no manual setup needed!
 
         function showCallUI(name, type, isVideo) {
             const modal = document.getElementById('callModal');
@@ -4798,11 +4732,11 @@
 
         async function acceptCall() {
             try {
-                if (!currentCall) return;
+                if (!currentCall || !currentCall.signal) return;
 
-                console.log('=== ACCEPTING CALL ===', currentCall.isVideo ? 'VIDEO' : 'VOICE');
+                console.log('=== ACCEPTING CALL WITH SIMPLEPEER ===', currentCall.isVideo ? 'VIDEO' : 'VOICE');
 
-                // Get user media with proper constraints
+                // Get user media
                 const constraints = {
                     audio: {
                         echoCancellation: true,
@@ -4815,38 +4749,73 @@
                     } : false
                 };
 
-                console.log('Requesting media with constraints:', constraints);
+                console.log('Requesting media...');
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 console.log('Local stream obtained:', localStream.getTracks().map(t => t.kind));
 
-                // Display local video if video call
+                // Display local video
                 if (currentCall.isVideo) {
                     const localVideo = document.getElementById('localVideo');
                     localVideo.srcObject = localStream;
+                    localVideo.muted = true; // Mute local to prevent echo
                     isVideoEnabled = true;
                 }
 
-                // Add local tracks to existing peer connection
-                console.log('Adding local tracks to peer connection');
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                    console.log('Added track:', track.kind, 'label:', track.label);
+                // Create SimplePeer instance as receiver
+                console.log('Creating SimplePeer as receiver...');
+                peer = new SimplePeer({
+                    initiator: false,
+                    stream: localStream,
+                    config: peerConfig,
+                    trickle: true
                 });
 
-                // Create answer
-                console.log('Creating answer...');
-                const answer = await peerConnection.createAnswer();
-
-                console.log('Setting local description...');
-                await peerConnection.setLocalDescription(answer);
-                console.log('Local description set:', peerConnection.localDescription.type);
-
-                // Send answer
-                console.log('Sending answer to:', currentCall.contactName);
-                socket.emit('call-answer', {
-                    to: currentCall.contactName,
-                    answer: peerConnection.localDescription
+                // Handle signaling data (send back to initiator)
+                peer.on('signal', data => {
+                    console.log('Sending signal data back to:', currentCall.contactName);
+                    socket.emit('call-signal', {
+                        to: currentCall.contactName,
+                        signal: data
+                    });
                 });
+
+                // Handle incoming stream from remote peer
+                peer.on('stream', stream => {
+                    console.log('=== RECEIVED REMOTE STREAM ===');
+                    console.log('Remote stream tracks:', stream.getTracks().map(t => t.kind));
+
+                    if (isVideoCall) {
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = stream;
+                        remoteVideo.play().catch(e => console.error('Remote video play error:', e));
+                        document.getElementById('videoPlaceholder').style.display = 'none';
+                    } else {
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        remoteAudio.srcObject = stream;
+                        remoteAudio.play().catch(e => console.error('Remote audio play error:', e));
+                    }
+                });
+
+                // Handle connection events
+                peer.on('connect', () => {
+                    console.log('=== PEER CONNECTED ===');
+                    startCallTimer();
+                    document.getElementById('callStatus').textContent = 'Connected';
+                });
+
+                peer.on('error', err => {
+                    console.error('Peer error:', err);
+                    endCall();
+                });
+
+                peer.on('close', () => {
+                    console.log('Peer connection closed');
+                    endCall();
+                });
+
+                // Send the signal from the initiator to complete the connection
+                console.log('Signaling with initiator data...');
+                peer.signal(currentCall.signal);
 
                 // Update UI
                 showCallUI(currentCall.contactName, 'active', currentCall.isVideo);
@@ -4880,21 +4849,18 @@
         }
 
         function cleanupCall() {
-            // Close peer connection
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
+            console.log('=== CLEANING UP CALL ===');
+
+            // Destroy SimplePeer connection
+            if (peer) {
+                peer.destroy();
+                peer = null;
             }
 
-            // Stop all media tracks
+            // Stop all local media tracks
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
-            }
-
-            if (remoteStream) {
-                remoteStream.getTracks().forEach(track => track.stop());
-                remoteStream = null;
             }
 
             // Stop screen sharing if active
@@ -4966,7 +4932,7 @@
         }
 
         async function toggleScreenShare() {
-            if (!peerConnection) {
+            if (!peer) {
                 alert('No active call to share screen');
                 return;
             }
@@ -4998,8 +4964,8 @@
                         stopScreenShare();
                     };
 
-                    // Replace or add video track in peer connection
-                    const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    // Replace video track using SimplePeer's internal peer connection
+                    const videoSender = peer._pc.getSenders().find(s => s.track && s.track.kind === 'video');
                     console.log('Video sender found:', !!videoSender);
 
                     if (videoSender) {
@@ -5007,26 +4973,9 @@
                         console.log('Replacing existing video track...');
                         await videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
                     } else {
-                        // No video track, add one (voice call scenario)
-                        console.log('Adding new video track to peer connection...');
-                        const sender = peerConnection.addTrack(screenStream.getVideoTracks()[0], screenStream);
-                        console.log('Track added, sender:', sender);
-
-                        // Renegotiate connection to add new track
-                        console.log('Creating new offer for renegotiation...');
-                        const offer = await peerConnection.createOffer();
-                        await peerConnection.setLocalDescription(offer);
-
-                        // Send renegotiation offer
-                        const chat = chats.get(currentChatId);
-                        if (chat) {
-                            console.log('Sending renegotiation offer...');
-                            socket.emit('call-offer', {
-                                to: chat.name,
-                                offer: offer,
-                                isVideo: true // Now it's a video call
-                            });
-                        }
+                        // No video track in voice call - SimplePeer handles renegotiation automatically
+                        console.log('Adding new screen track...');
+                        peer.addTrack(screenStream.getVideoTracks()[0], screenStream);
                     }
 
                     // Update local video to show screen
