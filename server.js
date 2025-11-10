@@ -674,6 +674,144 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Mark messages as read
+    socket.on('mark-messages-read', (data) => {
+        const { chatId, messageIds } = data;
+
+        if (!currentUsername || !chatId || !messageIds || messageIds.length === 0) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+
+        // Mark messages as read
+        chatMessages.forEach(msg => {
+            if (messageIds.includes(msg.id) && msg.senderUsername !== currentUsername) {
+                msg.read = true;
+            }
+        });
+
+        saveData();
+
+        // Notify the sender that their messages were read
+        const otherParticipant = chat.participants.find(p => p !== currentUsername);
+        const otherUser = users.get(otherParticipant);
+
+        if (otherUser && otherUser.online && otherUser.socketId) {
+            io.to(otherUser.socketId).emit('messages-marked-read', {
+                chatId,
+                messageIds
+            });
+        }
+
+        console.log(`Messages marked as read in chat ${chatId} by ${currentUsername}`);
+    });
+
+    // Edit message
+    socket.on('edit-message', (data) => {
+        const { chatId, messageId, text, encrypted, ciphertext, encryptedKey, iv } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+        const message = chatMessages.find(m => m.id === messageId);
+
+        if (!message || message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot edit this message' });
+            return;
+        }
+
+        // Update message
+        message.text = text || '';
+        message.encrypted = encrypted || false;
+        message.ciphertext = ciphertext || null;
+        message.encryptedKey = encryptedKey || null;
+        message.iv = iv || null;
+        message.edited = true;
+        message.editedAt = Date.now();
+
+        // Update last message if this was the last one
+        const lastMsg = chatMessages[chatMessages.length - 1];
+        if (lastMsg && lastMsg.id === messageId) {
+            chat.lastMessage = {
+                text: text || '',
+                time: message.timestamp
+            };
+        }
+
+        saveData();
+
+        // Broadcast to all participants
+        chat.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('message-edited', {
+                    chatId,
+                    messageId,
+                    text,
+                    encrypted,
+                    ciphertext,
+                    encryptedKey,
+                    iv
+                });
+            }
+        });
+
+        console.log(`Message ${messageId} edited in chat ${chatId} by ${currentUsername}`);
+    });
+
+    // Delete message
+    socket.on('delete-message', (data) => {
+        const { chatId, messageId } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+        const message = chatMessages.find(m => m.id === messageId);
+
+        if (!message || message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot delete this message' });
+            return;
+        }
+
+        // Mark message as deleted
+        message.deleted = true;
+        message.text = '';
+        message.file = null;
+        message.voiceMessage = null;
+
+        // Update last message if this was the last one
+        const lastMsg = chatMessages[chatMessages.length - 1];
+        if (lastMsg && lastMsg.id === messageId) {
+            chat.lastMessage = {
+                text: '🚫 This message was deleted',
+                time: message.timestamp
+            };
+        }
+
+        saveData();
+
+        // Broadcast to all participants
+        chat.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('message-deleted', {
+                    chatId,
+                    messageId
+                });
+            }
+        });
+
+        console.log(`Message ${messageId} deleted in chat ${chatId} by ${currentUsername}`);
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);

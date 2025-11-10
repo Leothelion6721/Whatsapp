@@ -3066,6 +3066,27 @@
                 }
             });
 
+            socket.on('messages-marked-read', (data) => {
+                const { chatId, messageIds } = data;
+                const chat = chats.get(chatId);
+                const group = groups.get(chatId);
+                const currentConversation = group || chat;
+
+                if (currentConversation && currentConversation.messages) {
+                    // Mark messages as read
+                    currentConversation.messages.forEach(msg => {
+                        if (messageIds.includes(msg.id)) {
+                            msg.read = true;
+                        }
+                    });
+
+                    // Re-render if this is the active chat
+                    if (currentChatId === chatId) {
+                        renderMessages();
+                    }
+                }
+            });
+
             // Whiteboard event handlers
             socket.on('whiteboard-update', (data) => {
                 if (whiteboardCtx && data.imageData) {
