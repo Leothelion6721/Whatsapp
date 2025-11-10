@@ -2756,6 +2756,19 @@
                     });
                 }
 
+                // Add Gemini AI as a special chat
+                chats.set('gemini-ai', {
+                    id: 'gemini-ai',
+                    name: '🤖 Gemini AI',
+                    online: true,
+                    messages: [],
+                    isGemini: true,
+                    lastMessage: {
+                        text: 'Hi! I\'m Gemini AI. Ask me anything!',
+                        time: Date.now()
+                    }
+                });
+
                 renderChatList();
                 renderContactsList();
             });
@@ -2983,6 +2996,39 @@
                         statusElement.textContent = chat?.online ? 'online' : 'offline';
                     }
                 }
+            });
+
+            // Gemini AI Socket Listeners
+            socket.on('gemini-response', (data) => {
+                const geminiChat = chats.get('gemini-ai');
+                if (geminiChat) {
+                    // Add Gemini's response to the chat
+                    const geminiMessage = {
+                        id: data.id,
+                        text: data.text,
+                        timestamp: data.timestamp,
+                        sent: false,
+                        senderUsername: 'Gemini AI'
+                    };
+
+                    geminiChat.messages.push(geminiMessage);
+                    geminiChat.lastMessage = {
+                        text: data.text.substring(0, 50) + (data.text.length > 50 ? '...' : ''),
+                        time: data.timestamp
+                    };
+
+                    // Update UI if we're in the Gemini chat
+                    if (currentChatId === 'gemini-ai') {
+                        renderMessages();
+                        scrollToBottom();
+                    }
+
+                    renderChatList();
+                }
+            });
+
+            socket.on('gemini-error', (data) => {
+                alert(data.error || 'Failed to get response from Gemini AI');
             });
 
             socket.on('messages-loaded', (data) => {
@@ -4063,6 +4109,40 @@
 
             if (!currentChatId || (!text && selectedFiles.length === 0)) return;
 
+            // Check if chatting with Gemini AI
+            if (currentChatId === 'gemini-ai') {
+                const geminiChat = chats.get('gemini-ai');
+                if (geminiChat && text) {
+                    // Add user's message to the chat
+                    const userMessage = {
+                        id: generateId(),
+                        text: text,
+                        timestamp: Date.now(),
+                        sent: true
+                    };
+
+                    geminiChat.messages.push(userMessage);
+                    geminiChat.lastMessage = {
+                        text: text,
+                        time: Date.now()
+                    };
+
+                    // Clear input and render
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                    renderMessages();
+                    scrollToBottom();
+                    renderChatList();
+
+                    // Send to Gemini API with conversation history
+                    socket.emit('send-gemini-message', {
+                        text: text,
+                        conversationHistory: geminiChat.messages.slice(-10) // Send last 10 messages for context
+                    });
+                }
+                return;
+            }
+
             if (selectedFiles.length > 0) {
                 // Upload multiple files
                 uploadMultipleFiles(selectedFiles, text);
@@ -4096,6 +4176,10 @@
                 messageInput.value = '';
                 autoResize(messageInput);
             }
+        }
+
+        function generateId() {
+            return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         }
 
         function handleKeyPress(event) {

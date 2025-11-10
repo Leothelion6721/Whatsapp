@@ -6,6 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +22,10 @@ const io = socketIo(server, {
 
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Gemini API Configuration
+const GEMINI_API_KEY = 'AIzaSyCPhyBAf5N1Cs7-wZxXbySubllrZBwibCw';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -478,6 +483,74 @@ io.on('connection', (socket) => {
         } catch (error) {
             console.error('File upload error:', error);
             socket.emit('upload-error', { error: 'Failed to upload file' });
+        }
+    });
+
+    // Gemini AI Chat Handler
+    socket.on('send-gemini-message', async (data) => {
+        const { text, conversationHistory } = data;
+
+        if (!currentUsername || !text) return;
+
+        try {
+            // Prepare the conversation context for Gemini
+            const contents = [];
+
+            // Add conversation history if provided
+            if (conversationHistory && conversationHistory.length > 0) {
+                conversationHistory.forEach(msg => {
+                    contents.push({
+                        role: msg.sent ? 'user' : 'model',
+                        parts: [{ text: msg.text }]
+                    });
+                });
+            }
+
+            // Add the new user message
+            contents.push({
+                role: 'user',
+                parts: [{ text: text }]
+            });
+
+            // Call Gemini API
+            const response = await axios.post(
+                `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+                {
+                    contents: contents
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            // Extract Gemini's response
+            let geminiResponse = 'Sorry, I could not generate a response.';
+
+            if (response.data &&
+                response.data.candidates &&
+                response.data.candidates.length > 0 &&
+                response.data.candidates[0].content &&
+                response.data.candidates[0].content.parts &&
+                response.data.candidates[0].content.parts.length > 0) {
+                geminiResponse = response.data.candidates[0].content.parts[0].text;
+            }
+
+            // Send Gemini's response back to the user
+            socket.emit('gemini-response', {
+                id: generateId(),
+                text: geminiResponse,
+                timestamp: Date.now()
+            });
+
+            console.log(`Gemini response sent to ${currentUsername}`);
+
+        } catch (error) {
+            console.error('Gemini API error:', error.response?.data || error.message);
+            socket.emit('gemini-error', {
+                error: 'Failed to get response from Gemini AI. Please try again.'
+            });
         }
     });
 
