@@ -32,7 +32,85 @@
             align-items: center;
             z-index: 9999;
             animation: splashFadeOut 0.8s ease 3s forwards;
+            overflow: hidden;
         }
+
+        /* Leo Text Background */
+        .leo-text-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 180px;
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: 20px;
+            z-index: 1;
+            opacity: 0;
+            animation: leoFadeIn 0.5s ease 0.3s forwards;
+        }
+
+        @keyframes leoFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Vertical Bars Container */
+        .vertical-bars-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .vertical-bar {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(135deg, #00a884 0%, #008069 50%, #005c4b 100%);
+            animation: barReveal 2s ease-in-out forwards;
+        }
+
+        @keyframes barReveal {
+            0% {
+                transform: translateY(0) scaleY(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(0) scaleY(1.05);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scaleY(0);
+                opacity: 0;
+            }
+        }
+
+        /* Stagger the bars */
+        .vertical-bar:nth-child(1) { animation-delay: 0.1s; }
+        .vertical-bar:nth-child(2) { animation-delay: 0.15s; }
+        .vertical-bar:nth-child(3) { animation-delay: 0.2s; }
+        .vertical-bar:nth-child(4) { animation-delay: 0.25s; }
+        .vertical-bar:nth-child(5) { animation-delay: 0.3s; }
+        .vertical-bar:nth-child(6) { animation-delay: 0.35s; }
+        .vertical-bar:nth-child(7) { animation-delay: 0.4s; }
+        .vertical-bar:nth-child(8) { animation-delay: 0.45s; }
+        .vertical-bar:nth-child(9) { animation-delay: 0.5s; }
+        .vertical-bar:nth-child(10) { animation-delay: 0.55s; }
+        .vertical-bar:nth-child(11) { animation-delay: 0.6s; }
+        .vertical-bar:nth-child(12) { animation-delay: 0.65s; }
+        .vertical-bar:nth-child(13) { animation-delay: 0.7s; }
+        .vertical-bar:nth-child(14) { animation-delay: 0.75s; }
+        .vertical-bar:nth-child(15) { animation-delay: 0.8s; }
+        .vertical-bar:nth-child(16) { animation-delay: 0.85s; }
+        .vertical-bar:nth-child(17) { animation-delay: 0.9s; }
+        .vertical-bar:nth-child(18) { animation-delay: 0.95s; }
+        .vertical-bar:nth-child(19) { animation-delay: 1s; }
+        .vertical-bar:nth-child(20) { animation-delay: 1.05s; }
 
         @keyframes splashFadeOut {
             to {
@@ -44,6 +122,7 @@
         .splash-logo-container {
             position: relative;
             animation: logoEntrance 1s ease-out;
+            z-index: 10;
         }
 
         @keyframes logoEntrance {
@@ -126,6 +205,8 @@
             letter-spacing: 2px;
             text-transform: uppercase;
             animation: textSlideUp 1s ease-out 0.5s both;
+            z-index: 10;
+            position: relative;
         }
 
         @keyframes textSlideUp {
@@ -145,6 +226,8 @@
             font-size: 16px;
             font-weight: 400;
             animation: textSlideUp 1s ease-out 0.8s both;
+            z-index: 10;
+            position: relative;
         }
 
         .loading-dots {
@@ -152,6 +235,8 @@
             gap: 8px;
             margin-top: 30px;
             animation: textSlideUp 1s ease-out 1s both;
+            z-index: 10;
+            position: relative;
         }
 
         .loading-dot {
@@ -187,6 +272,7 @@
             height: 100%;
             overflow: hidden;
             pointer-events: none;
+            z-index: 5;
         }
 
         .particle {
@@ -1572,6 +1658,12 @@
 <body>
     <!-- Splash Screen -->
     <div class="splash-screen" id="splashScreen">
+        <!-- Leo Text Background -->
+        <div class="leo-text-background">LEO</div>
+
+        <!-- Vertical Bars that reveal the text -->
+        <div class="vertical-bars-container" id="verticalBars"></div>
+
         <!-- Animated Particles -->
         <div class="particles" id="particles"></div>
 
@@ -2032,6 +2124,21 @@
                 particle.style.animationDelay = Math.random() * 8 + 's';
                 particle.style.animationDuration = (Math.random() * 4 + 6) + 's';
                 particlesContainer.appendChild(particle);
+            }
+        })();
+
+        // Vertical Bars Animation to reveal "Leo" text
+        (function() {
+            const barsContainer = document.getElementById('verticalBars');
+            const barCount = 20;
+            const barWidth = 100 / barCount; // Divide screen into equal bars
+
+            for (let i = 0; i < barCount; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'vertical-bar';
+                bar.style.left = (i * barWidth) + '%';
+                bar.style.width = barWidth + '%';
+                barsContainer.appendChild(bar);
             }
         })();
     </script>
