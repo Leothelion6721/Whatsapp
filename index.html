@@ -1392,11 +1392,12 @@
             
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
-            
+
             <input type="text" id="usernameInput" placeholder="Username" maxlength="20">
+            <input type="email" id="emailInput" placeholder="Email Address" style="display:none;">
             <input type="password" id="passwordInput" placeholder="Password">
             <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" style="display:none;">
-            
+
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
             
             <p>
@@ -1723,21 +1724,24 @@
             const switchText = document.getElementById('authSwitchText');
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
-            
+            const emailInput = document.getElementById('emailInput');
+
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
                 btn.textContent = 'Sign In';
                 switchText.textContent = "Don't have an account?";
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
+                emailInput.style.display = 'none';
             } else {
                 title.textContent = 'Create a new account';
                 btn.textContent = 'Sign Up';
                 switchText.textContent = 'Already have an account?';
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
+                emailInput.style.display = 'block';
             }
-            
+
             clearMessages();
         }
 
@@ -1760,30 +1764,50 @@
             document.getElementById('errorMessage').style.display = 'none';
         }
 
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
         async function handleAuth() {
             const username = document.getElementById('usernameInput').value.trim();
             const password = document.getElementById('passwordInput').value;
             const confirmPassword = document.getElementById('confirmPasswordInput').value;
-            
+            const email = document.getElementById('emailInput').value.trim();
+
             if (!username || !password) {
                 showError('Please enter username and password');
                 return;
             }
-            
+
+            if (!isLoginMode && !email) {
+                showError('Please enter your email address');
+                return;
+            }
+
+            if (!isLoginMode && !isValidEmail(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
             if (!isLoginMode && password !== confirmPassword) {
                 showError('Passwords do not match');
                 return;
             }
-            
+
             const endpoint = isLoginMode ? '/api/login' : '/api/register';
-            
+
             try {
+                const requestBody = isLoginMode
+                    ? { username, password }
+                    : { username, password, email };
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
