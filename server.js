@@ -6,6 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const Mailjet = require('node-mailjet');
 
 const app = express();
@@ -22,6 +23,10 @@ const io = socketIo(server, {
 
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Gemini API Configuration (Using gemini-2.0-flash model)
+const GEMINI_API_KEY = 'AIzaSyAOXsnaYi6cI3QsH2al8Cf9H-0ZOBvq_Fw';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Mailjet configuration (IMPORTANT: Use environment variables for security)
 const MAILJET_API_KEY = process.env.MAILJET_API_KEY || 'f26fadc590f1fac70bc378ef5e264c98';
@@ -86,6 +91,7 @@ let users = new Map();
 let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
+let passwordResetCodes = new Map(); // Store { email: { code, username, timestamp } }
 let meetings = new Map();
 
 // Load data from files if they exist
@@ -325,8 +331,25 @@ async function sendMeetingInvitationEmail(recipientEmail, recipientName, meeting
 app.post('/api/register', async (req, res) => {
     const { username, password, email } = req.body;
 
-    if (!username || !password || !email) {
-        return res.status(400).json({ error: 'Username, password, and email are required' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if email already exists
+    for (const [, user] of users.entries()) {
+        if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
     }
 
     if (username.length < 3 || username.length > 20) {
@@ -335,11 +358,6 @@ app.post('/api/register', async (req, res) => {
 
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'Invalid email address' });
     }
 
     if (users.has(username)) {
@@ -353,7 +371,7 @@ app.post('/api/register', async (req, res) => {
         userId,
         password: hashedPassword,
         username,
-        email,
+        email: email.toLowerCase(), // Store email in lowercase for consistent lookup
         contacts: [],
         createdAt: Date.now(),
         online: false,
@@ -394,11 +412,154 @@ app.post('/api/login', async (req, res) => {
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
     
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         token,
         userId: user.userId,
         username: user.username
+    });
+});
+
+// Forgot password - Send verification code
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user by email
+    let foundUser = null;
+    for (const [username, user] of users.entries()) {
+        if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+            foundUser = { username, ...user };
+            break;
+        }
+    }
+
+    if (!foundUser) {
+        return res.status(404).json({ error: 'No account found with this email address' });
+    }
+
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store code with 15 minute expiry
+    passwordResetCodes.set(email.toLowerCase(), {
+        code: code,
+        username: foundUser.username,
+        timestamp: Date.now()
+    });
+
+    // Log code to console (in production, send via email)
+    console.log('\n📧 PASSWORD RESET CODE 📧');
+    console.log(`Email: ${email}`);
+    console.log(`Username: ${foundUser.username}`);
+    console.log(`Verification Code: ${code}`);
+    console.log(`Valid for: 15 minutes`);
+    console.log('================================\n');
+
+    res.json({
+        success: true,
+        message: 'Verification code sent. Check server console for the code.'
+    });
+});
+
+// Verify reset code
+app.post('/api/verify-reset-code', async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Verification code is required' });
+    }
+
+    // Find matching code
+    let foundEntry = null;
+    let foundEmail = null;
+
+    for (const [email, resetData] of passwordResetCodes.entries()) {
+        if (resetData.code === code) {
+            // Check if code is still valid (15 minutes)
+            const elapsed = Date.now() - resetData.timestamp;
+            if (elapsed < 15 * 60 * 1000) {
+                foundEntry = resetData;
+                foundEmail = email;
+                break;
+            } else {
+                // Code expired, remove it
+                passwordResetCodes.delete(email);
+                return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+            }
+        }
+    }
+
+    if (!foundEntry) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    res.json({
+        success: true,
+        message: 'Verification code is valid'
+    });
+});
+
+// Reset password
+app.post('/api/reset-password', async (req, res) => {
+    const { code, newPassword } = req.body;
+
+    if (!code || !newPassword) {
+        return res.status(400).json({ error: 'Verification code and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Find matching code
+    let foundEntry = null;
+    let foundEmail = null;
+
+    for (const [email, resetData] of passwordResetCodes.entries()) {
+        if (resetData.code === code) {
+            // Check if code is still valid (15 minutes)
+            const elapsed = Date.now() - resetData.timestamp;
+            if (elapsed < 15 * 60 * 1000) {
+                foundEntry = resetData;
+                foundEmail = email;
+                break;
+            } else {
+                // Code expired, remove it
+                passwordResetCodes.delete(email);
+                return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+            }
+        }
+    }
+
+    if (!foundEntry) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    // Update user's password
+    const user = users.get(foundEntry.username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Remove used code
+    passwordResetCodes.delete(foundEmail);
+
+    // Save data
+    saveData();
+
+    console.log(`✅ Password reset successful for user: ${foundEntry.username}`);
+
+    res.json({
+        success: true,
+        message: 'Password reset successfully!'
     });
 });
 
@@ -660,6 +821,181 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Voice message handler
+    socket.on('send-voice-message', async (data) => {
+        const { chatId, audioData, duration } = data;
+
+        if (!currentUsername || !chatId || !audioData) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        try {
+            // Save audio file
+            const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
+            const filePath = path.join(uploadsDir, uniqueFilename);
+
+            const base64Data = audioData.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            fs.writeFileSync(filePath, buffer);
+
+            const voiceMessage = {
+                url: `/uploads/${uniqueFilename}`,
+                duration: duration || 0
+            };
+
+            // Create message with voice attachment
+            const message = {
+                id: generateId(),
+                chatId,
+                senderUsername: currentUsername,
+                text: '',
+                voiceMessage: voiceMessage,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            const chatMessages = messages.get(chatId) || [];
+            chatMessages.push(message);
+            messages.set(chatId, chatMessages);
+
+            chat.lastMessage = {
+                text: '🎤 Voice message',
+                time: Date.now()
+            };
+
+            saveData();
+
+            // Send to all participants
+            chat.participants.forEach(participantUsername => {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('new-message', {
+                        chatId,
+                        message: {
+                            id: message.id,
+                            text: message.text,
+                            voiceMessage: message.voiceMessage,
+                            senderUsername: message.senderUsername,
+                            timestamp: message.timestamp,
+                            sent: participantUsername === currentUsername
+                        }
+                    });
+                }
+            });
+
+            console.log(`Voice message sent in chat ${chatId} by ${currentUsername}`);
+
+        } catch (error) {
+            console.error('Voice message error:', error);
+            socket.emit('upload-error', { error: 'Failed to send voice message' });
+        }
+    });
+
+    // Gemini AI Chat Handler (Enhanced with better conversation context)
+    socket.on('send-gemini-message', async (data) => {
+        const { text, conversationHistory } = data;
+
+        if (!currentUsername || !text) return;
+
+        try {
+            // Build chat history payload from conversation
+            const contents = [];
+
+            // Process conversation history with proper role detection
+            if (conversationHistory && conversationHistory.length > 0) {
+                conversationHistory.forEach(msg => {
+                    // Determine role based on whether it was sent by user or received from bot
+                    const role = msg.sent ? 'user' : 'model';
+                    const messageText = msg.text || '';
+
+                    // Only add non-empty messages
+                    if (messageText.trim()) {
+                        contents.push({
+                            role: role,
+                            parts: [{ text: messageText }]
+                        });
+                    }
+                });
+            }
+
+            // Add the current user message
+            contents.push({
+                role: 'user',
+                parts: [{ text: text }]
+            });
+
+            // Prepare the request payload
+            const payload = {
+                contents: contents
+            };
+
+            console.log(`Querying Gemini for user ${currentUsername} with ${contents.length} messages in context`);
+
+            // Call Gemini API
+            const response = await axios.post(
+                GEMINI_API_URL,
+                payload,
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000 // 30 second timeout
+                }
+            );
+
+            // Extract Gemini's response with robust error checking
+            let geminiResponse = 'Received an unexpected response from the AI.';
+
+            if (response.data &&
+                response.data.candidates &&
+                response.data.candidates.length > 0) {
+
+                const candidate = response.data.candidates[0];
+
+                if (candidate.content &&
+                    candidate.content.parts &&
+                    candidate.content.parts.length > 0 &&
+                    candidate.content.parts[0].text) {
+
+                    geminiResponse = candidate.content.parts[0].text;
+                } else {
+                    console.log('Unexpected Gemini response structure:', JSON.stringify(response.data));
+                }
+            } else {
+                console.log('No candidates in Gemini response:', JSON.stringify(response.data));
+            }
+
+            // Send Gemini's response back to the user
+            socket.emit('gemini-response', {
+                id: generateId(),
+                text: geminiResponse,
+                timestamp: Date.now()
+            });
+
+            console.log(`Gemini response sent to ${currentUsername}: ${geminiResponse.substring(0, 50)}...`);
+
+        } catch (error) {
+            console.error('Gemini API error:', error.response?.data || error.message);
+
+            // Send more helpful error message
+            let errorMessage = 'Failed to get response from Gemini AI.';
+
+            if (error.response?.data?.error?.message) {
+                errorMessage += ' ' + error.response.data.error.message;
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = 'Request timed out. Please try again.';
+            } else if (error.code === 'ENOTFOUND') {
+                errorMessage = 'Unable to connect to Gemini API. Check your internet connection.';
+            }
+
+            socket.emit('gemini-error', {
+                error: errorMessage
+            });
+        }
+    });
+
     socket.on('add-contact', async (data) => {
         const { contactUsername } = data;
         
@@ -748,15 +1084,25 @@ io.on('connection', (socket) => {
         }
         
         const chatMessages = messages.get(chatId) || [];
-        
+
         socket.emit('messages-loaded', {
             chatId,
             messages: chatMessages.map(msg => ({
                 id: msg.id,
                 text: msg.text,
                 file: msg.file,
+                files: msg.files,
+                voiceMessage: msg.voiceMessage,
+                encrypted: msg.encrypted,
+                ciphertext: msg.ciphertext,
+                encryptedKey: msg.encryptedKey,
+                iv: msg.iv,
                 senderUsername: msg.senderUsername,
                 timestamp: msg.timestamp,
+                read: msg.read,
+                deleted: msg.deleted,
+                edited: msg.edited,
+                editedAt: msg.editedAt,
                 sent: msg.senderUsername === currentUsername
             }))
         });
@@ -851,6 +1197,144 @@ io.on('connection', (socket) => {
             });
             console.log(`Call ended by ${currentUsername}`);
         }
+    });
+
+    // Mark messages as read
+    socket.on('mark-messages-read', (data) => {
+        const { chatId, messageIds } = data;
+
+        if (!currentUsername || !chatId || !messageIds || messageIds.length === 0) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+
+        // Mark messages as read
+        chatMessages.forEach(msg => {
+            if (messageIds.includes(msg.id) && msg.senderUsername !== currentUsername) {
+                msg.read = true;
+            }
+        });
+
+        saveData();
+
+        // Notify the sender that their messages were read
+        const otherParticipant = chat.participants.find(p => p !== currentUsername);
+        const otherUser = users.get(otherParticipant);
+
+        if (otherUser && otherUser.online && otherUser.socketId) {
+            io.to(otherUser.socketId).emit('messages-marked-read', {
+                chatId,
+                messageIds
+            });
+        }
+
+        console.log(`Messages marked as read in chat ${chatId} by ${currentUsername}`);
+    });
+
+    // Edit message
+    socket.on('edit-message', (data) => {
+        const { chatId, messageId, text, encrypted, ciphertext, encryptedKey, iv } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+        const message = chatMessages.find(m => m.id === messageId);
+
+        if (!message || message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot edit this message' });
+            return;
+        }
+
+        // Update message
+        message.text = text || '';
+        message.encrypted = encrypted || false;
+        message.ciphertext = ciphertext || null;
+        message.encryptedKey = encryptedKey || null;
+        message.iv = iv || null;
+        message.edited = true;
+        message.editedAt = Date.now();
+
+        // Update last message if this was the last one
+        const lastMsg = chatMessages[chatMessages.length - 1];
+        if (lastMsg && lastMsg.id === messageId) {
+            chat.lastMessage = {
+                text: text || '',
+                time: message.timestamp
+            };
+        }
+
+        saveData();
+
+        // Broadcast to all participants
+        chat.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('message-edited', {
+                    chatId,
+                    messageId,
+                    text,
+                    encrypted,
+                    ciphertext,
+                    encryptedKey,
+                    iv
+                });
+            }
+        });
+
+        console.log(`Message ${messageId} edited in chat ${chatId} by ${currentUsername}`);
+    });
+
+    // Delete message
+    socket.on('delete-message', (data) => {
+        const { chatId, messageId } = data;
+
+        if (!currentUsername || !chatId || !messageId) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        const chatMessages = messages.get(chatId) || [];
+        const message = chatMessages.find(m => m.id === messageId);
+
+        if (!message || message.senderUsername !== currentUsername) {
+            socket.emit('message-error', { error: 'Cannot delete this message' });
+            return;
+        }
+
+        // Mark message as deleted
+        message.deleted = true;
+        message.text = '';
+        message.file = null;
+        message.voiceMessage = null;
+
+        // Update last message if this was the last one
+        const lastMsg = chatMessages[chatMessages.length - 1];
+        if (lastMsg && lastMsg.id === messageId) {
+            chat.lastMessage = {
+                text: '🚫 This message was deleted',
+                time: message.timestamp
+            };
+        }
+
+        saveData();
+
+        // Broadcast to all participants
+        chat.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('message-deleted', {
+                    chatId,
+                    messageId
+                });
+            }
+        });
+
+        console.log(`Message ${messageId} deleted in chat ${chatId} by ${currentUsername}`);
     });
 
     // Meeting Handlers
