@@ -72,6 +72,7 @@ let users = new Map();
 let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
+let meetings = new Map();
 
 // Load data from files if they exist
 function loadData() {
@@ -79,6 +80,7 @@ function loadData() {
         const usersFile = path.join(dataDir, 'users.json');
         const messagesFile = path.join(dataDir, 'messages.json');
         const chatsFile = path.join(dataDir, 'chats.json');
+        const meetingsFile = path.join(dataDir, 'meetings.json');
 
         if (fs.existsSync(usersFile)) {
             const usersData = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
@@ -92,6 +94,10 @@ function loadData() {
             const chatsData = JSON.parse(fs.readFileSync(chatsFile, 'utf8'));
             chats = new Map(chatsData);
         }
+        if (fs.existsSync(meetingsFile)) {
+            const meetingsData = JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+            meetings = new Map(meetingsData);
+        }
         console.log('📁 Data loaded successfully');
     } catch (error) {
         console.error('Error loading data:', error.message);
@@ -102,16 +108,20 @@ function loadData() {
 function saveData() {
     try {
         fs.writeFileSync(
-            path.join(dataDir, 'users.json'), 
+            path.join(dataDir, 'users.json'),
             JSON.stringify([...users], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'messages.json'), 
+            path.join(dataDir, 'messages.json'),
             JSON.stringify([...messages], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'chats.json'), 
+            path.join(dataDir, 'chats.json'),
             JSON.stringify([...chats], null, 2)
+        );
+        fs.writeFileSync(
+            path.join(dataDir, 'meetings.json'),
+            JSON.stringify([...meetings], null, 2)
         );
     } catch (error) {
         console.error('Error saving data:', error.message);
@@ -662,9 +672,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-ended', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-ended', {
@@ -672,6 +682,121 @@ io.on('connection', (socket) => {
             });
             console.log(`Call ended by ${currentUsername}`);
         }
+    });
+
+    // Meeting Handlers
+    socket.on('create-meeting', (meeting) => {
+        if (!currentUsername) return;
+
+        meetings.set(meeting.id, meeting);
+        saveData();
+
+        // Emit to organizer
+        socket.emit('meeting-created', meeting);
+
+        // Notify all participants
+        meeting.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('meeting-created', meeting);
+            }
+        });
+
+        console.log(`Meeting created: ${meeting.title} by ${currentUsername}`);
+    });
+
+    socket.on('get-meetings', () => {
+        if (!currentUsername) return;
+
+        // Get meetings where user is organizer or participant
+        const userMeetings = Array.from(meetings.values()).filter(meeting =>
+            meeting.organizer === currentUsername || meeting.participants.includes(currentUsername)
+        );
+
+        socket.emit('meetings-list', userMeetings);
+    });
+
+    socket.on('delete-meeting', (meetingId) => {
+        if (!currentUsername) return;
+
+        const meeting = meetings.get(meetingId);
+        if (meeting && meeting.organizer === currentUsername) {
+            meetings.delete(meetingId);
+            saveData();
+
+            // Notify organizer
+            socket.emit('meeting-deleted', meetingId);
+
+            // Notify all participants
+            meeting.participants.forEach(participantUsername => {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('meeting-deleted', meetingId);
+                }
+            });
+
+            console.log(`Meeting deleted: ${meeting.title} by ${currentUsername}`);
+        }
+    });
+
+    socket.on('join-meeting-room', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId } = data;
+        socket.join(`meeting-${meetingId}`);
+        console.log(`${currentUsername} joined meeting room: ${meetingId}`);
+    });
+
+    socket.on('leave-meeting-room', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId } = data;
+        socket.leave(`meeting-${meetingId}`);
+        console.log(`${currentUsername} left meeting room: ${meetingId}`);
+    });
+
+    socket.on('meeting-offer', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, offer } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-offer', {
+            meetingId,
+            offer,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-answer', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, answer } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-answer', {
+            meetingId,
+            answer,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-ice-candidate', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, candidate } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-ice-candidate', {
+            meetingId,
+            candidate,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-chat-message', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, message } = data;
+        io.to(`meeting-${meetingId}`).emit('meeting-chat-message', {
+            meetingId,
+            sender: currentUsername,
+            message
+        });
     });
 
     socket.on('disconnect', () => {
@@ -700,10 +825,11 @@ io.on('connection', (socket) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ 
+    res.json({
         status: 'ok',
         users: users.size,
         chats: chats.size,
+        meetings: meetings.size,
         messages: Array.from(messages.values()).reduce((sum, msgs) => sum + msgs.length, 0),
         authenticated: true
     });
@@ -744,6 +870,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`👥 Contact list feature enabled`);
     console.log(`📎 File upload feature enabled`);
     console.log(`📞 Voice & Video calling enabled (WebRTC)`);
+    console.log(`📅 Meeting scheduler enabled with Zoom-like interface`);
     console.log(`💾 Data persistence enabled`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📂 Data directory: ${dataDir}`);

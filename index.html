@@ -769,6 +769,533 @@
                 right: 10px;
             }
         }
+
+        /* Meetings List Styles */
+        .meetings-list {
+            flex: 1;
+            overflow-y: auto;
+            background: #111b21;
+            display: none;
+        }
+
+        .meetings-list.active {
+            display: block;
+        }
+
+        .add-meeting-section {
+            padding: 16px;
+            background: #202c33;
+            border-bottom: 1px solid #2a3942;
+        }
+
+        .create-meeting-btn {
+            width: 100%;
+            padding: 12px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .create-meeting-btn:hover {
+            background: #06cf9c;
+        }
+
+        .meeting-item {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #202c33;
+        }
+
+        .meeting-item:hover {
+            background: #202c33;
+        }
+
+        .meeting-item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .meeting-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .meeting-title {
+            color: #e9edef;
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .meeting-time {
+            color: #00a884;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .meeting-details {
+            color: #8696a0;
+            font-size: 14px;
+            margin-left: 36px;
+        }
+
+        .meeting-participants {
+            color: #8696a0;
+            font-size: 12px;
+            margin-left: 36px;
+            margin-top: 4px;
+        }
+
+        .meeting-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            margin-left: 36px;
+        }
+
+        .join-meeting-btn, .delete-meeting-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .join-meeting-btn {
+            background: #00a884;
+            color: white;
+        }
+
+        .join-meeting-btn:hover {
+            background: #06cf9c;
+        }
+
+        .delete-meeting-btn {
+            background: #667781;
+            color: white;
+        }
+
+        .delete-meeting-btn:hover {
+            background: #54656f;
+        }
+
+        /* Meeting Modal Styles */
+        .meeting-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .meeting-modal.active {
+            display: flex;
+        }
+
+        .meeting-modal-content {
+            background: #202c33;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .meeting-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #2a3942;
+        }
+
+        .meeting-modal-header h2 {
+            color: #e9edef;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #8696a0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #2a3942;
+        }
+
+        .meeting-modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #8696a0;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .meeting-input, .meeting-textarea {
+            width: 100%;
+            padding: 12px;
+            background: #2a3942;
+            border: 1px solid #374045;
+            border-radius: 8px;
+            color: #e9edef;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .meeting-input:focus, .meeting-textarea:focus {
+            outline: none;
+            border-color: #00a884;
+        }
+
+        .meeting-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .participants-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #2a3942;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .participant-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .participant-checkbox-item:hover {
+            background: #374045;
+        }
+
+        .participant-checkbox-item input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .participant-checkbox-item label {
+            color: #e9edef;
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .schedule-btn {
+            width: 100%;
+            padding: 14px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .schedule-btn:hover {
+            background: #06cf9c;
+        }
+
+        /* Meeting Room Styles (Zoom-like) */
+        .meeting-room-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            z-index: 1002;
+        }
+
+        .meeting-room-modal.active {
+            display: block;
+        }
+
+        .meeting-room-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meeting-room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #232323;
+            border-bottom: 1px solid #333;
+        }
+
+        .meeting-room-title h3 {
+            color: #fff;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .meeting-room-title p {
+            color: #aaa;
+            margin: 4px 0 0 0;
+            font-size: 14px;
+        }
+
+        .leave-meeting-btn {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .leave-meeting-btn:hover {
+            background: #c0392b;
+        }
+
+        .meeting-video-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .meeting-video-tile {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meeting-video-tile video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .meeting-video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .meeting-video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2a3942;
+        }
+
+        .meeting-avatar {
+            font-size: 64px;
+        }
+
+        .meeting-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #232323;
+            border-top: 1px solid #333;
+        }
+
+        .meeting-control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #3c3c3c;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meeting-control-btn:hover {
+            background: #4c4c4c;
+        }
+
+        .meeting-control-btn.active {
+            background: #e74c3c;
+        }
+
+        .meeting-side-panel {
+            position: fixed;
+            right: -350px;
+            top: 0;
+            width: 350px;
+            height: 100%;
+            background: #232323;
+            border-left: 1px solid #333;
+            padding: 20px;
+            transition: right 0.3s;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .meeting-side-panel.active {
+            right: 0;
+        }
+
+        .meeting-side-panel h4 {
+            color: #fff;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+
+        #participantListPanel {
+            color: #ccc;
+        }
+
+        .participant-item {
+            padding: 10px;
+            background: #2a3942;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            color: #e9edef;
+        }
+
+        #meetingChatMessages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            max-height: calc(100vh - 200px);
+        }
+
+        .meeting-chat-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #2a3942;
+            border-radius: 6px;
+        }
+
+        .meeting-chat-sender {
+            color: #00a884;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .meeting-chat-text {
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .meeting-chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .meeting-chat-input input {
+            flex: 1;
+            padding: 10px;
+            background: #2a3942;
+            border: 1px solid #374045;
+            border-radius: 6px;
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .meeting-chat-input button {
+            padding: 10px 20px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .meeting-chat-input button:hover {
+            background: #06cf9c;
+        }
+
+        @media (max-width: 768px) {
+            .meeting-video-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+
+            .meeting-side-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .meeting-controls {
+                gap: 10px;
+                padding: 15px 10px;
+            }
+
+            .meeting-control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -812,6 +1339,7 @@
             <div class="tabs">
                 <button class="tab active" id="chatsTab" onclick="showChats()">Chats</button>
                 <button class="tab" id="contactsTab" onclick="showContacts()">Contacts</button>
+                <button class="tab" id="meetingsTab" onclick="showMeetings()">Meetings</button>
             </div>
             
             <!-- Chats List -->
@@ -829,6 +1357,16 @@
                 </div>
                 <div id="contactsContainer">
                     <div class="loading">No contacts yet. Add someone to start chatting!</div>
+                </div>
+            </div>
+
+            <!-- Meetings List -->
+            <div class="meetings-list" id="meetingsList">
+                <div class="add-meeting-section">
+                    <button class="create-meeting-btn" onclick="showCreateMeetingModal()">📅 Schedule New Meeting</button>
+                </div>
+                <div id="meetingsContainer">
+                    <div class="loading">No meetings scheduled. Create one to get started!</div>
                 </div>
             </div>
         </div>
@@ -934,6 +1472,105 @@
         </div>
     </div>
 
+    <!-- Create Meeting Modal -->
+    <div class="meeting-modal" id="createMeetingModal">
+        <div class="meeting-modal-content">
+            <div class="meeting-modal-header">
+                <h2>Schedule New Meeting</h2>
+                <button class="close-btn" onclick="closeCreateMeetingModal()">✕</button>
+            </div>
+            <div class="meeting-modal-body">
+                <div class="form-group">
+                    <label>Meeting Title</label>
+                    <input type="text" id="meetingTitle" placeholder="Enter meeting title" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <textarea id="meetingDescription" placeholder="Add meeting description" class="meeting-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Select Participants</label>
+                    <div id="participantsList" class="participants-list"></div>
+                </div>
+                <div class="form-group">
+                    <label>Date & Time</label>
+                    <input type="datetime-local" id="meetingDateTime" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes)</label>
+                    <input type="number" id="meetingDuration" placeholder="60" value="60" min="15" max="480" class="meeting-input">
+                </div>
+                <button class="schedule-btn" onclick="scheduleMeeting()">Schedule Meeting</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Room Modal (Zoom-like) -->
+    <div class="meeting-room-modal" id="meetingRoomModal">
+        <div class="meeting-room-container">
+            <div class="meeting-room-header">
+                <div class="meeting-room-title">
+                    <h3 id="meetingRoomTitle">Meeting Room</h3>
+                    <p id="meetingRoomTimer">00:00</p>
+                </div>
+                <button class="leave-meeting-btn" onclick="leaveMeeting()">Leave Meeting</button>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="meeting-video-grid" id="meetingVideoGrid">
+                <div class="meeting-video-tile">
+                    <video id="meetingLocalVideo" autoplay playsinline muted></video>
+                    <div class="meeting-video-label">You</div>
+                    <div class="meeting-video-placeholder" id="meetingLocalPlaceholder">
+                        <div class="meeting-avatar">👤</div>
+                    </div>
+                </div>
+                <div class="meeting-video-tile" id="meetingRemoteTile" style="display: none;">
+                    <video id="meetingRemoteVideo" autoplay playsinline></video>
+                    <div class="meeting-video-label" id="meetingRemoteLabel">Participant</div>
+                    <div class="meeting-video-placeholder" id="meetingRemotePlaceholder">
+                        <div class="meeting-avatar">👤</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meeting Controls -->
+            <div class="meeting-controls">
+                <button class="meeting-control-btn" id="meetingMuteBtn" onclick="toggleMeetingAudio()" title="Mute/Unmute">
+                    <span id="meetingMuteIcon">🎤</span>
+                </button>
+                <button class="meeting-control-btn" id="meetingVideoBtn" onclick="toggleMeetingVideo()" title="Start/Stop Video">
+                    <span id="meetingVideoIcon">📹</span>
+                </button>
+                <button class="meeting-control-btn share-screen-btn" onclick="toggleScreenShare()" title="Share Screen">
+                    🖥️
+                </button>
+                <button class="meeting-control-btn participants-btn" onclick="toggleParticipantsPanel()" title="Participants">
+                    👥
+                </button>
+                <button class="meeting-control-btn chat-btn" onclick="toggleMeetingChat()" title="Chat">
+                    💬
+                </button>
+            </div>
+
+            <!-- Participants Panel -->
+            <div class="meeting-side-panel" id="participantsPanel">
+                <h4>Participants (<span id="participantCount">1</span>)</h4>
+                <div id="participantListPanel"></div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="meeting-side-panel" id="meetingChatPanel">
+                <h4>Meeting Chat</h4>
+                <div id="meetingChatMessages"></div>
+                <div class="meeting-chat-input">
+                    <input type="text" id="meetingChatInput" placeholder="Type a message...">
+                    <button onclick="sendMeetingChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -958,6 +1595,18 @@
         let isMuted = false;
         let isVideoEnabled = false;
         let isVideoCall = false;
+
+        // Meeting Variables
+        let meetings = [];
+        let currentMeeting = null;
+        let meetingPeerConnection = null;
+        let meetingLocalStream = null;
+        let meetingRemoteStream = null;
+        let meetingTimer = null;
+        let meetingStartTime = null;
+        let isMeetingMuted = false;
+        let isMeetingVideoEnabled = false;
+        let isScreenSharing = false;
 
         // ICE servers for WebRTC
         const iceServers = {
@@ -1950,6 +2599,545 @@
                 const seconds = (elapsed % 60).toString().padStart(2, '0');
                 document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
             }, 1000);
+        }
+
+        // ==================== Meeting Functions ====================
+
+        function showMeetings() {
+            document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('contactsTab').classList.remove('active');
+            document.getElementById('meetingsTab').classList.add('active');
+
+            document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('contactsList').classList.remove('active');
+            document.getElementById('meetingsList').classList.add('active');
+
+            loadMeetings();
+        }
+
+        function showChats() {
+            document.getElementById('chatsTab').classList.add('active');
+            document.getElementById('contactsTab').classList.remove('active');
+            document.getElementById('meetingsTab').classList.remove('active');
+
+            document.getElementById('chatList').classList.remove('hidden');
+            document.getElementById('contactsList').classList.remove('active');
+            document.getElementById('meetingsList').classList.remove('active');
+        }
+
+        function showContacts() {
+            document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('contactsTab').classList.add('active');
+            document.getElementById('meetingsTab').classList.remove('active');
+
+            document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('contactsList').classList.add('active');
+            document.getElementById('meetingsList').classList.remove('active');
+        }
+
+        function showCreateMeetingModal() {
+            const modal = document.getElementById('createMeetingModal');
+            modal.classList.add('active');
+
+            // Set minimum datetime to now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('meetingDateTime').min = now.toISOString().slice(0, 16);
+
+            // Load contacts for participant selection
+            loadParticipantsForMeeting();
+        }
+
+        function closeCreateMeetingModal() {
+            const modal = document.getElementById('createMeetingModal');
+            modal.classList.remove('active');
+
+            // Clear form
+            document.getElementById('meetingTitle').value = '';
+            document.getElementById('meetingDescription').value = '';
+            document.getElementById('meetingDateTime').value = '';
+            document.getElementById('meetingDuration').value = '60';
+        }
+
+        function loadParticipantsForMeeting() {
+            const participantsList = document.getElementById('participantsList');
+            participantsList.innerHTML = '';
+
+            if (contacts.length === 0) {
+                participantsList.innerHTML = '<p style="color: #8696a0; text-align: center; padding: 20px;">No contacts available. Add contacts first.</p>';
+                return;
+            }
+
+            contacts.forEach(contact => {
+                const item = document.createElement('div');
+                item.className = 'participant-checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="participant-${contact.username}" value="${contact.username}">
+                    <label for="participant-${contact.username}">${contact.username}</label>
+                `;
+                participantsList.appendChild(item);
+            });
+        }
+
+        function scheduleMeeting() {
+            const title = document.getElementById('meetingTitle').value.trim();
+            const description = document.getElementById('meetingDescription').value.trim();
+            const dateTime = document.getElementById('meetingDateTime').value;
+            const duration = parseInt(document.getElementById('meetingDuration').value);
+
+            if (!title) {
+                alert('Please enter a meeting title');
+                return;
+            }
+
+            if (!dateTime) {
+                alert('Please select a date and time');
+                return;
+            }
+
+            // Get selected participants
+            const selectedParticipants = [];
+            document.querySelectorAll('#participantsList input:checked').forEach(checkbox => {
+                selectedParticipants.push(checkbox.value);
+            });
+
+            if (selectedParticipants.length === 0) {
+                alert('Please select at least one participant');
+                return;
+            }
+
+            const meeting = {
+                id: Date.now().toString(),
+                title,
+                description,
+                dateTime,
+                duration,
+                participants: selectedParticipants,
+                organizer: currentUser.username,
+                status: 'scheduled'
+            };
+
+            // Send to server
+            socket.emit('create-meeting', meeting);
+
+            closeCreateMeetingModal();
+        }
+
+        function loadMeetings() {
+            socket.emit('get-meetings');
+        }
+
+        function renderMeetings() {
+            const container = document.getElementById('meetingsContainer');
+
+            if (meetings.length === 0) {
+                container.innerHTML = '<div class="loading">No meetings scheduled. Create one to get started!</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            // Sort meetings by date
+            const sortedMeetings = [...meetings].sort((a, b) =>
+                new Date(a.dateTime) - new Date(b.dateTime)
+            );
+
+            sortedMeetings.forEach(meeting => {
+                const meetingDate = new Date(meeting.dateTime);
+                const now = new Date();
+                const isPast = meetingDate < now;
+                const isToday = meetingDate.toDateString() === now.toDateString();
+
+                let timeDisplay;
+                if (isToday) {
+                    timeDisplay = 'Today ' + meetingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timeDisplay = meetingDate.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
+                const item = document.createElement('div');
+                item.className = 'meeting-item';
+                item.innerHTML = `
+                    <div class="meeting-item-header">
+                        <span class="meeting-icon">📅</span>
+                        <div class="meeting-title">${meeting.title}</div>
+                        <span class="meeting-time">${timeDisplay}</span>
+                    </div>
+                    ${meeting.description ? `<div class="meeting-details">${meeting.description}</div>` : ''}
+                    <div class="meeting-participants">👥 ${meeting.participants.join(', ')}</div>
+                    <div class="meeting-actions">
+                        ${!isPast ? `<button class="join-meeting-btn" onclick="joinMeeting('${meeting.id}')">Join Meeting</button>` : ''}
+                        <button class="delete-meeting-btn" onclick="deleteMeeting('${meeting.id}')">Delete</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function deleteMeeting(meetingId) {
+            if (confirm('Are you sure you want to delete this meeting?')) {
+                socket.emit('delete-meeting', meetingId);
+            }
+        }
+
+        function joinMeeting(meetingId) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            if (!meeting) {
+                alert('Meeting not found');
+                return;
+            }
+
+            currentMeeting = meeting;
+
+            // Open meeting room
+            document.getElementById('meetingRoomModal').classList.add('active');
+            document.getElementById('meetingRoomTitle').textContent = meeting.title;
+
+            // Initialize meeting media
+            initializeMeetingMedia();
+
+            // Notify other participants
+            socket.emit('join-meeting-room', {
+                meetingId: meeting.id,
+                username: currentUser.username
+            });
+
+            // Start meeting timer
+            startMeetingTimer();
+        }
+
+        async function initializeMeetingMedia() {
+            try {
+                meetingLocalStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                const localVideo = document.getElementById('meetingLocalVideo');
+                localVideo.srcObject = meetingLocalStream;
+                document.getElementById('meetingLocalPlaceholder').style.display = 'none';
+
+                isMeetingVideoEnabled = true;
+                isMeetingMuted = false;
+
+                // Create peer connection
+                createMeetingPeerConnection();
+
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                alert('Could not access camera/microphone. Please check permissions.');
+            }
+        }
+
+        function createMeetingPeerConnection() {
+            meetingPeerConnection = new RTCPeerConnection(iceServers);
+
+            // Add local stream tracks
+            if (meetingLocalStream) {
+                meetingLocalStream.getTracks().forEach(track => {
+                    meetingPeerConnection.addTrack(track, meetingLocalStream);
+                });
+            }
+
+            // Handle remote stream
+            meetingPeerConnection.ontrack = (event) => {
+                if (!meetingRemoteStream) {
+                    meetingRemoteStream = new MediaStream();
+                    const remoteVideo = document.getElementById('meetingRemoteVideo');
+                    remoteVideo.srcObject = meetingRemoteStream;
+                }
+
+                meetingRemoteStream.addTrack(event.track);
+                document.getElementById('meetingRemoteTile').style.display = 'block';
+                document.getElementById('meetingRemotePlaceholder').style.display = 'none';
+            };
+
+            // Handle ICE candidates
+            meetingPeerConnection.onicecandidate = (event) => {
+                if (event.candidate && currentMeeting) {
+                    socket.emit('meeting-ice-candidate', {
+                        meetingId: currentMeeting.id,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Create and send offer
+            meetingPeerConnection.createOffer().then(offer => {
+                return meetingPeerConnection.setLocalDescription(offer);
+            }).then(() => {
+                socket.emit('meeting-offer', {
+                    meetingId: currentMeeting.id,
+                    offer: meetingPeerConnection.localDescription
+                });
+            });
+        }
+
+        function leaveMeeting() {
+            // Stop all tracks
+            if (meetingLocalStream) {
+                meetingLocalStream.getTracks().forEach(track => track.stop());
+                meetingLocalStream = null;
+            }
+
+            // Close peer connection
+            if (meetingPeerConnection) {
+                meetingPeerConnection.close();
+                meetingPeerConnection = null;
+            }
+
+            // Clear timer
+            if (meetingTimer) {
+                clearInterval(meetingTimer);
+                meetingTimer = null;
+            }
+
+            // Notify server
+            if (currentMeeting) {
+                socket.emit('leave-meeting-room', {
+                    meetingId: currentMeeting.id,
+                    username: currentUser.username
+                });
+            }
+
+            // Close UI
+            document.getElementById('meetingRoomModal').classList.remove('active');
+            document.getElementById('meetingRemoteTile').style.display = 'none';
+            document.getElementById('meetingLocalPlaceholder').style.display = 'flex';
+            document.getElementById('participantsPanel').classList.remove('active');
+            document.getElementById('meetingChatPanel').classList.remove('active');
+
+            currentMeeting = null;
+            meetingRemoteStream = null;
+        }
+
+        function toggleMeetingAudio() {
+            if (!meetingLocalStream) return;
+
+            isMeetingMuted = !isMeetingMuted;
+            const audioTrack = meetingLocalStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !isMeetingMuted;
+            }
+
+            const muteBtn = document.getElementById('meetingMuteBtn');
+            const muteIcon = document.getElementById('meetingMuteIcon');
+
+            if (isMeetingMuted) {
+                muteBtn.classList.add('active');
+                muteIcon.textContent = '🔇';
+            } else {
+                muteBtn.classList.remove('active');
+                muteIcon.textContent = '🎤';
+            }
+        }
+
+        function toggleMeetingVideo() {
+            if (!meetingLocalStream) return;
+
+            isMeetingVideoEnabled = !isMeetingVideoEnabled;
+            const videoTrack = meetingLocalStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = isMeetingVideoEnabled;
+            }
+
+            const videoBtn = document.getElementById('meetingVideoBtn');
+            const videoIcon = document.getElementById('meetingVideoIcon');
+
+            if (!isMeetingVideoEnabled) {
+                videoBtn.classList.add('active');
+                videoIcon.textContent = '🚫';
+                document.getElementById('meetingLocalPlaceholder').style.display = 'flex';
+            } else {
+                videoBtn.classList.remove('active');
+                videoIcon.textContent = '📹';
+                document.getElementById('meetingLocalPlaceholder').style.display = 'none';
+            }
+        }
+
+        async function toggleScreenShare() {
+            if (!isScreenSharing) {
+                try {
+                    const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false
+                    });
+
+                    const screenTrack = screenStream.getVideoTracks()[0];
+
+                    if (meetingPeerConnection) {
+                        const sender = meetingPeerConnection.getSenders().find(s =>
+                            s.track && s.track.kind === 'video'
+                        );
+
+                        if (sender) {
+                            sender.replaceTrack(screenTrack);
+                        }
+                    }
+
+                    isScreenSharing = true;
+
+                    screenTrack.onended = () => {
+                        toggleScreenShare(); // Stop sharing when user stops
+                    };
+
+                } catch (error) {
+                    console.error('Error sharing screen:', error);
+                    alert('Could not share screen. Please check permissions.');
+                }
+            } else {
+                // Switch back to camera
+                if (meetingLocalStream && meetingPeerConnection) {
+                    const videoTrack = meetingLocalStream.getVideoTracks()[0];
+                    const sender = meetingPeerConnection.getSenders().find(s =>
+                        s.track && s.track.kind === 'video'
+                    );
+
+                    if (sender) {
+                        sender.replaceTrack(videoTrack);
+                    }
+                }
+
+                isScreenSharing = false;
+            }
+        }
+
+        function toggleParticipantsPanel() {
+            const panel = document.getElementById('participantsPanel');
+            const chatPanel = document.getElementById('meetingChatPanel');
+
+            chatPanel.classList.remove('active');
+            panel.classList.toggle('active');
+
+            // Update participant list
+            if (panel.classList.contains('active')) {
+                updateParticipantsList();
+            }
+        }
+
+        function updateParticipantsList() {
+            const list = document.getElementById('participantListPanel');
+            list.innerHTML = '';
+
+            if (currentMeeting) {
+                // Add organizer
+                const orgItem = document.createElement('div');
+                orgItem.className = 'participant-item';
+                orgItem.textContent = `${currentMeeting.organizer} (Organizer)`;
+                list.appendChild(orgItem);
+
+                // Add participants
+                currentMeeting.participants.forEach(participant => {
+                    const item = document.createElement('div');
+                    item.className = 'participant-item';
+                    item.textContent = participant;
+                    list.appendChild(item);
+                });
+
+                document.getElementById('participantCount').textContent =
+                    currentMeeting.participants.length + 1;
+            }
+        }
+
+        function toggleMeetingChat() {
+            const panel = document.getElementById('meetingChatPanel');
+            const participantsPanel = document.getElementById('participantsPanel');
+
+            participantsPanel.classList.remove('active');
+            panel.classList.toggle('active');
+        }
+
+        function sendMeetingChatMessage() {
+            const input = document.getElementById('meetingChatInput');
+            const message = input.value.trim();
+
+            if (message && currentMeeting) {
+                socket.emit('meeting-chat-message', {
+                    meetingId: currentMeeting.id,
+                    sender: currentUser.username,
+                    message
+                });
+
+                input.value = '';
+            }
+        }
+
+        function addMeetingChatMessage(sender, message) {
+            const chatMessages = document.getElementById('meetingChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'meeting-chat-message';
+            messageDiv.innerHTML = `
+                <div class="meeting-chat-sender">${sender}</div>
+                <div class="meeting-chat-text">${message}</div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function startMeetingTimer() {
+            meetingStartTime = Date.now();
+
+            meetingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - meetingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('meetingRoomTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        // Socket event listeners for meetings
+        if (socket) {
+            socket.on('meetings-list', (meetingsList) => {
+                meetings = meetingsList;
+                renderMeetings();
+            });
+
+            socket.on('meeting-created', (meeting) => {
+                meetings.push(meeting);
+                renderMeetings();
+                alert('Meeting scheduled successfully!');
+            });
+
+            socket.on('meeting-deleted', (meetingId) => {
+                meetings = meetings.filter(m => m.id !== meetingId);
+                renderMeetings();
+            });
+
+            socket.on('meeting-offer', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    await meetingPeerConnection.setRemoteDescription(data.offer);
+                    const answer = await meetingPeerConnection.createAnswer();
+                    await meetingPeerConnection.setLocalDescription(answer);
+
+                    socket.emit('meeting-answer', {
+                        meetingId: data.meetingId,
+                        answer: meetingPeerConnection.localDescription
+                    });
+                }
+            });
+
+            socket.on('meeting-answer', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    await meetingPeerConnection.setRemoteDescription(data.answer);
+                }
+            });
+
+            socket.on('meeting-ice-candidate', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId && meetingPeerConnection) {
+                    await meetingPeerConnection.addIceCandidate(data.candidate);
+                }
+            });
+
+            socket.on('meeting-chat-message', (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    addMeetingChatMessage(data.sender, data.message);
+                }
+            });
         }
     </script>
 </body>
