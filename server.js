@@ -702,6 +702,70 @@ io.on('connection', (socket) => {
             }
         });
 
+        // Send invitation messages if requested
+        if (meeting.sendInvitations) {
+            const meetingDate = new Date(meeting.dateTime);
+            const formattedDate = meetingDate.toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            meeting.participants.forEach(participantUsername => {
+                const chatId = [currentUsername, participantUsername].sort().join('-');
+
+                // Create or get chat
+                if (!chats.has(chatId)) {
+                    chats.set(chatId, {
+                        id: chatId,
+                        participants: [currentUsername, participantUsername],
+                        createdAt: Date.now()
+                    });
+                }
+
+                // Create invitation message
+                const invitationMessage = {
+                    id: Date.now() + '-invitation-' + Math.random(),
+                    chatId,
+                    from: currentUsername,
+                    to: participantUsername,
+                    type: 'meeting-invitation',
+                    meetingId: meeting.id,
+                    meetingTitle: meeting.title,
+                    meetingDescription: meeting.description,
+                    meetingDateTime: meeting.dateTime,
+                    meetingDuration: meeting.duration,
+                    formattedDate: formattedDate,
+                    timestamp: Date.now(),
+                    read: false
+                };
+
+                // Save message
+                if (!messages.has(chatId)) {
+                    messages.set(chatId, []);
+                }
+                messages.get(chatId).push(invitationMessage);
+
+                // Send to participant if online
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('new-message', invitationMessage);
+                    io.to(participant.socketId).emit('meeting-invitation', {
+                        meetingId: meeting.id,
+                        meetingTitle: meeting.title,
+                        organizer: currentUsername
+                    });
+                }
+
+                console.log(`Invitation sent to ${participantUsername} for meeting: ${meeting.title}`);
+            });
+
+            saveData();
+        }
+
         console.log(`Meeting created: ${meeting.title} by ${currentUsername}`);
     });
 

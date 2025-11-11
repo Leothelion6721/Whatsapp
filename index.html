@@ -1274,6 +1274,91 @@
             background: #06cf9c;
         }
 
+        /* Meeting Invitation Message Styles */
+        .meeting-invitation {
+            background: linear-gradient(135deg, #00a884 0%, #005c4b 100%) !important;
+            border-left: 4px solid #00d9ff;
+            padding: 16px !important;
+            border-radius: 12px !important;
+            margin: 12px 0;
+        }
+
+        .meeting-invitation-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 18px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .meeting-invitation-icon {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+
+        .meeting-invitation-details {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            color: white;
+        }
+
+        .meeting-invitation-detail {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .meeting-invitation-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .meeting-invitation-detail strong {
+            min-width: 80px;
+            color: #b3ffed;
+        }
+
+        .meeting-invitation-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .join-meeting-invitation-btn {
+            flex: 1;
+            padding: 10px;
+            background: white;
+            color: #00a884;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .join-meeting-invitation-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .view-meeting-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-meeting-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         @media (max-width: 768px) {
             .meeting-video-grid {
                 grid-template-columns: 1fr;
@@ -1499,6 +1584,12 @@
                 <div class="form-group">
                     <label>Duration (minutes)</label>
                     <input type="number" id="meetingDuration" placeholder="60" value="60" min="15" max="480" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <div class="participant-checkbox-item" style="background: #2a3942; padding: 12px; border-radius: 8px;">
+                        <input type="checkbox" id="sendInvitations" checked>
+                        <label for="sendInvitations" style="font-weight: 600;">Send invitations to participants via chat</label>
+                    </div>
                 </div>
                 <button class="schedule-btn" onclick="scheduleMeeting()">Schedule Meeting</button>
             </div>
@@ -2102,14 +2193,61 @@
             container.innerHTML = '';
             chat.messages.forEach(msg => {
                 const messageDiv = document.createElement('div');
+
+                // Check if this is a meeting invitation
+                if (msg.type === 'meeting-invitation') {
+                    messageDiv.className = 'message meeting-invitation';
+                    const meetingDate = new Date(msg.meetingDateTime);
+                    const isPast = meetingDate < new Date();
+
+                    let content = `
+                        <div class="meeting-invitation-header">
+                            <span class="meeting-invitation-icon">📅</span>
+                            <span>Meeting Invitation</span>
+                        </div>
+                        <div class="meeting-invitation-details">
+                            <div class="meeting-invitation-detail">
+                                <strong>Title:</strong> ${escapeHtml(msg.meetingTitle)}
+                            </div>
+                            ${msg.meetingDescription ? `
+                            <div class="meeting-invitation-detail">
+                                <strong>Details:</strong> ${escapeHtml(msg.meetingDescription)}
+                            </div>
+                            ` : ''}
+                            <div class="meeting-invitation-detail">
+                                <strong>When:</strong> ${msg.formattedDate}
+                            </div>
+                            <div class="meeting-invitation-detail">
+                                <strong>Duration:</strong> ${msg.meetingDuration} minutes
+                            </div>
+                            <div class="meeting-invitation-detail">
+                                <strong>Organizer:</strong> ${msg.from}
+                            </div>
+                        </div>
+                        <div class="meeting-invitation-actions">
+                            ${!isPast ? `
+                                <button class="join-meeting-invitation-btn" onclick="joinMeetingFromInvitation('${msg.meetingId}')">
+                                    Join Meeting
+                                </button>
+                            ` : ''}
+                            <button class="view-meeting-btn" onclick="viewMeetingFromInvitation('${msg.meetingId}')">
+                                View in Meetings
+                            </button>
+                        </div>
+                    `;
+                    messageDiv.innerHTML = content;
+                    container.appendChild(messageDiv);
+                    return;
+                }
+
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
-                
+
                 let content = '';
-                
+
                 if (!msg.sent) {
                     content += `<div class="message-sender">${msg.senderUsername}</div>`;
                 }
-                
+
                 if (msg.text) {
                     content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
                 }
@@ -2684,6 +2822,7 @@
             const description = document.getElementById('meetingDescription').value.trim();
             const dateTime = document.getElementById('meetingDateTime').value;
             const duration = parseInt(document.getElementById('meetingDuration').value);
+            const sendInvitations = document.getElementById('sendInvitations').checked;
 
             if (!title) {
                 alert('Please enter a meeting title');
@@ -2714,7 +2853,8 @@
                 duration,
                 participants: selectedParticipants,
                 organizer: currentUser.username,
-                status: 'scheduled'
+                status: 'scheduled',
+                sendInvitations
             };
 
             // Send to server
@@ -3090,6 +3230,26 @@
             }, 1000);
         }
 
+        function joinMeetingFromInvitation(meetingId) {
+            // First, switch to meetings tab and load meetings
+            showMeetings();
+
+            // Wait a bit for meetings to load, then join
+            setTimeout(() => {
+                const meeting = meetings.find(m => m.id === meetingId);
+                if (meeting) {
+                    joinMeeting(meetingId);
+                } else {
+                    alert('Meeting not found or has been cancelled');
+                }
+            }, 500);
+        }
+
+        function viewMeetingFromInvitation(meetingId) {
+            // Switch to meetings tab
+            showMeetings();
+        }
+
         // Socket event listeners for meetings
         if (socket) {
             socket.on('meetings-list', (meetingsList) => {
@@ -3137,6 +3297,11 @@
                 if (currentMeeting && currentMeeting.id === data.meetingId) {
                     addMeetingChatMessage(data.sender, data.message);
                 }
+            });
+
+            socket.on('meeting-invitation', (invitation) => {
+                // Meeting invitation received - no action needed as it will appear in chat
+                console.log('Meeting invitation received:', invitation.meetingTitle);
             });
         }
     </script>
