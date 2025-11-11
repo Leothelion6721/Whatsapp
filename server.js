@@ -25,7 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 
 // Gemini API Configuration
 const GEMINI_API_KEY = 'AIzaSyCPhyBAf5N1Cs7-wZxXbySubllrZBwibCw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -77,6 +77,7 @@ let users = new Map();
 let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
+let passwordResetCodes = new Map(); // Store { email: { code, username, timestamp } }
 
 // Load data from files if they exist
 function loadData() {
@@ -220,11 +221,154 @@ app.post('/api/login', async (req, res) => {
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
     
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         token,
         userId: user.userId,
         username: user.username
+    });
+});
+
+// Forgot password - Send verification code
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user by email
+    let foundUser = null;
+    for (const [username, user] of users.entries()) {
+        if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+            foundUser = { username, ...user };
+            break;
+        }
+    }
+
+    if (!foundUser) {
+        return res.status(404).json({ error: 'No account found with this email address' });
+    }
+
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store code with 15 minute expiry
+    passwordResetCodes.set(email.toLowerCase(), {
+        code: code,
+        username: foundUser.username,
+        timestamp: Date.now()
+    });
+
+    // Log code to console (in production, send via email)
+    console.log('\n📧 PASSWORD RESET CODE 📧');
+    console.log(`Email: ${email}`);
+    console.log(`Username: ${foundUser.username}`);
+    console.log(`Verification Code: ${code}`);
+    console.log(`Valid for: 15 minutes`);
+    console.log('================================\n');
+
+    res.json({
+        success: true,
+        message: 'Verification code sent. Check server console for the code.'
+    });
+});
+
+// Verify reset code
+app.post('/api/verify-reset-code', async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+        return res.status(400).json({ error: 'Verification code is required' });
+    }
+
+    // Find matching code
+    let foundEntry = null;
+    let foundEmail = null;
+
+    for (const [email, resetData] of passwordResetCodes.entries()) {
+        if (resetData.code === code) {
+            // Check if code is still valid (15 minutes)
+            const elapsed = Date.now() - resetData.timestamp;
+            if (elapsed < 15 * 60 * 1000) {
+                foundEntry = resetData;
+                foundEmail = email;
+                break;
+            } else {
+                // Code expired, remove it
+                passwordResetCodes.delete(email);
+                return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+            }
+        }
+    }
+
+    if (!foundEntry) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    res.json({
+        success: true,
+        message: 'Verification code is valid'
+    });
+});
+
+// Reset password
+app.post('/api/reset-password', async (req, res) => {
+    const { code, newPassword } = req.body;
+
+    if (!code || !newPassword) {
+        return res.status(400).json({ error: 'Verification code and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Find matching code
+    let foundEntry = null;
+    let foundEmail = null;
+
+    for (const [email, resetData] of passwordResetCodes.entries()) {
+        if (resetData.code === code) {
+            // Check if code is still valid (15 minutes)
+            const elapsed = Date.now() - resetData.timestamp;
+            if (elapsed < 15 * 60 * 1000) {
+                foundEntry = resetData;
+                foundEmail = email;
+                break;
+            } else {
+                // Code expired, remove it
+                passwordResetCodes.delete(email);
+                return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+            }
+        }
+    }
+
+    if (!foundEntry) {
+        return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    // Update user's password
+    const user = users.get(foundEntry.username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Remove used code
+    passwordResetCodes.delete(foundEmail);
+
+    // Save data
+    saveData();
+
+    console.log(`✅ Password reset successful for user: ${foundEntry.username}`);
+
+    res.json({
+        success: true,
+        message: 'Password reset successfully!'
     });
 });
 
