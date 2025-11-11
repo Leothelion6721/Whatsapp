@@ -25,7 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 
 // Gemini API Configuration (Using free tier model)
 const GEMINI_API_KEY = 'AIzaSyAOXsnaYi6cI3QsH2al8Cf9H-0ZOBvq_Fw';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
