@@ -911,15 +911,25 @@ io.on('connection', (socket) => {
         }
         
         const chatMessages = messages.get(chatId) || [];
-        
+
         socket.emit('messages-loaded', {
             chatId,
             messages: chatMessages.map(msg => ({
                 id: msg.id,
                 text: msg.text,
                 file: msg.file,
+                files: msg.files,
+                voiceMessage: msg.voiceMessage,
+                encrypted: msg.encrypted,
+                ciphertext: msg.ciphertext,
+                encryptedKey: msg.encryptedKey,
+                iv: msg.iv,
                 senderUsername: msg.senderUsername,
                 timestamp: msg.timestamp,
+                read: msg.read,
+                deleted: msg.deleted,
+                edited: msg.edited,
+                editedAt: msg.editedAt,
                 sent: msg.senderUsername === currentUsername
             }))
         });
