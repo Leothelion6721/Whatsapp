@@ -7,6 +7,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+const Mailjet = require('node-mailjet');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +27,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 // Gemini API Configuration (Using gemini-2.0-flash model)
 const GEMINI_API_KEY = 'AIzaSyAOXsnaYi6cI3QsH2al8Cf9H-0ZOBvq_Fw';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// Mailjet configuration (IMPORTANT: Use environment variables for security)
+const MAILJET_API_KEY = process.env.MAILJET_API_KEY || 'f26fadc590f1fac70bc378ef5e264c98';
+const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY || '7178ef0f05c46a6b34f8a2563c0c2a66';
+
+// Initialize Mailjet client
+let mailjetClient = null;
+if (MAILJET_API_KEY && MAILJET_SECRET_KEY) {
+    mailjetClient = new Mailjet.apiConnect(MAILJET_API_KEY, MAILJET_SECRET_KEY);
+    console.log('📧 Mailjet email service initialized');
+} else {
+    console.warn('⚠️ Mailjet not configured. Email invitations will be disabled. Please set MAILJET_API_KEY and MAILJET_SECRET_KEY environment variables.');
+}
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -78,6 +92,7 @@ let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
 let passwordResetCodes = new Map(); // Store { email: { code, username, timestamp } }
+let meetings = new Map();
 
 // Load data from files if they exist
 function loadData() {
@@ -85,6 +100,7 @@ function loadData() {
         const usersFile = path.join(dataDir, 'users.json');
         const messagesFile = path.join(dataDir, 'messages.json');
         const chatsFile = path.join(dataDir, 'chats.json');
+        const meetingsFile = path.join(dataDir, 'meetings.json');
 
         if (fs.existsSync(usersFile)) {
             const usersData = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
@@ -98,6 +114,10 @@ function loadData() {
             const chatsData = JSON.parse(fs.readFileSync(chatsFile, 'utf8'));
             chats = new Map(chatsData);
         }
+        if (fs.existsSync(meetingsFile)) {
+            const meetingsData = JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+            meetings = new Map(meetingsData);
+        }
         console.log('📁 Data loaded successfully');
     } catch (error) {
         console.error('Error loading data:', error.message);
@@ -108,16 +128,20 @@ function loadData() {
 function saveData() {
     try {
         fs.writeFileSync(
-            path.join(dataDir, 'users.json'), 
+            path.join(dataDir, 'users.json'),
             JSON.stringify([...users], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'messages.json'), 
+            path.join(dataDir, 'messages.json'),
             JSON.stringify([...messages], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'chats.json'), 
+            path.join(dataDir, 'chats.json'),
             JSON.stringify([...chats], null, 2)
+        );
+        fs.writeFileSync(
+            path.join(dataDir, 'meetings.json'),
+            JSON.stringify([...meetings], null, 2)
         );
     } catch (error) {
         console.error('Error saving data:', error.message);
@@ -149,6 +173,155 @@ function verifyToken(token) {
         return decoded.userId;
     } catch (error) {
         return null;
+    }
+}
+
+// Email sending function
+async function sendMeetingInvitationEmail(recipientEmail, recipientName, meeting, organizerName) {
+    if (!mailjetClient) {
+        console.log('📧 Email service not configured. Skipping email to:', recipientEmail);
+        return { success: false, message: 'Email service not configured' };
+    }
+
+    try {
+        const meetingDate = new Date(meeting.dateTime);
+        const formattedDate = meetingDate.toLocaleString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        });
+
+        const htmlTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #00a884 0%, #005c4b 100%); padding: 40px 30px; text-align: center; }
+        .header-icon { font-size: 64px; margin-bottom: 10px; }
+        .header h1 { color: white; margin: 0; font-size: 28px; }
+        .content { padding: 40px 30px; }
+        .meeting-card { background: #f8f9fa; border-left: 4px solid #00a884; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .meeting-detail { margin: 12px 0; display: flex; align-items: start; }
+        .detail-icon { margin-right: 10px; font-size: 20px; }
+        .detail-label { font-weight: 600; color: #333; min-width: 100px; }
+        .detail-value { color: #555; }
+        .cta-button { display: inline-block; background: #00a884; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+        .cta-button:hover { background: #06cf9c; }
+        .footer { background: #f8f9fa; padding: 20px 30px; text-align: center; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">📅</div>
+            <h1>Meeting Invitation</h1>
+        </div>
+
+        <div class="content">
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                Hello <strong>${recipientName}</strong>,
+            </p>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+                You have been invited to a meeting by <strong>${organizerName}</strong>.
+            </p>
+
+            <div class="meeting-card">
+                <h2 style="margin: 0 0 20px 0; color: #00a884; font-size: 22px;">
+                    ${meeting.title}
+                </h2>
+
+                ${meeting.description ? `
+                <div class="meeting-detail">
+                    <span class="detail-icon">📝</span>
+                    <div>
+                        <div class="detail-label">Description:</div>
+                        <div class="detail-value">${meeting.description}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="meeting-detail">
+                    <span class="detail-icon">🕐</span>
+                    <div>
+                        <div class="detail-label">Date & Time:</div>
+                        <div class="detail-value">${formattedDate}</div>
+                    </div>
+                </div>
+
+                <div class="meeting-detail">
+                    <span class="detail-icon">⏱️</span>
+                    <div>
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">${meeting.duration} minutes</div>
+                    </div>
+                </div>
+
+                <div class="meeting-detail">
+                    <span class="detail-icon">👤</span>
+                    <div>
+                        <div class="detail-label">Organizer:</div>
+                        <div class="detail-value">${organizerName}</div>
+                    </div>
+                </div>
+            </div>
+
+            <center>
+                <a href="${process.env.APP_URL || 'http://localhost:3000'}" class="cta-button">
+                    Join Meeting in WhatsApp
+                </a>
+            </center>
+
+            <p style="font-size: 14px; color: #777; margin-top: 30px; line-height: 1.6;">
+                To join this meeting, log in to your WhatsApp account and navigate to the Meetings tab.
+                You can also join directly from the invitation message in your chat.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p style="margin: 0;">This is an automated message from WhatsApp Meeting Scheduler</p>
+            <p style="margin: 10px 0 0 0;">© ${new Date().getFullYear()} WhatsApp Clone. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        const request = mailjetClient
+            .post('send', { version: 'v3.1' })
+            .request({
+                Messages: [
+                    {
+                        From: {
+                            Email: process.env.SENDER_EMAIL || 'noreply@whatsapp-clone.com',
+                            Name: 'WhatsApp Meeting Scheduler'
+                        },
+                        To: [
+                            {
+                                Email: recipientEmail,
+                                Name: recipientName
+                            }
+                        ],
+                        Subject: `Meeting Invitation: ${meeting.title}`,
+                        HTMLPart: htmlTemplate,
+                        TextPart: `You have been invited to a meeting: ${meeting.title}\n\nDate & Time: ${formattedDate}\nDuration: ${meeting.duration} minutes\nOrganizer: ${organizerName}\n\nLog in to WhatsApp to join the meeting.`
+                    }
+                ]
+            });
+
+        const result = await request;
+        console.log(`✅ Email sent successfully to ${recipientEmail}`);
+        return { success: true, result };
+
+    } catch (error) {
+        console.error('❌ Error sending email:', error.message);
+        return { success: false, error: error.message };
     }
 }
 
@@ -1014,9 +1187,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-ended', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-ended', {
@@ -1164,6 +1337,197 @@ io.on('connection', (socket) => {
         console.log(`Message ${messageId} deleted in chat ${chatId} by ${currentUsername}`);
     });
 
+    // Meeting Handlers
+    socket.on('create-meeting', (meeting) => {
+        if (!currentUsername) return;
+
+        meetings.set(meeting.id, meeting);
+        saveData();
+
+        // Emit to organizer
+        socket.emit('meeting-created', meeting);
+
+        // Notify all participants
+        meeting.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('meeting-created', meeting);
+            }
+        });
+
+        // Send invitation messages if requested
+        if (meeting.sendInvitations) {
+            const meetingDate = new Date(meeting.dateTime);
+            const formattedDate = meetingDate.toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            meeting.participants.forEach(participantUsername => {
+                const chatId = [currentUsername, participantUsername].sort().join('-');
+
+                // Create or get chat
+                if (!chats.has(chatId)) {
+                    chats.set(chatId, {
+                        id: chatId,
+                        participants: [currentUsername, participantUsername],
+                        createdAt: Date.now()
+                    });
+                }
+
+                // Create invitation message
+                const invitationMessage = {
+                    id: Date.now() + '-invitation-' + Math.random(),
+                    chatId,
+                    from: currentUsername,
+                    to: participantUsername,
+                    type: 'meeting-invitation',
+                    meetingId: meeting.id,
+                    meetingTitle: meeting.title,
+                    meetingDescription: meeting.description,
+                    meetingDateTime: meeting.dateTime,
+                    meetingDuration: meeting.duration,
+                    formattedDate: formattedDate,
+                    timestamp: Date.now(),
+                    read: false
+                };
+
+                // Save message
+                if (!messages.has(chatId)) {
+                    messages.set(chatId, []);
+                }
+                messages.get(chatId).push(invitationMessage);
+
+                // Send to participant if online
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('new-message', invitationMessage);
+                    io.to(participant.socketId).emit('meeting-invitation', {
+                        meetingId: meeting.id,
+                        meetingTitle: meeting.title,
+                        organizer: currentUsername
+                    });
+                }
+
+                // Send email invitation
+                if (participant && participant.email) {
+                    sendMeetingInvitationEmail(
+                        participant.email,
+                        participantUsername,
+                        meeting,
+                        currentUsername
+                    ).catch(err => {
+                        console.error(`Failed to send email to ${participant.email}:`, err.message);
+                    });
+                }
+
+                console.log(`Invitation sent to ${participantUsername} for meeting: ${meeting.title}`);
+            });
+
+            saveData();
+        }
+
+        console.log(`Meeting created: ${meeting.title} by ${currentUsername}`);
+    });
+
+    socket.on('get-meetings', () => {
+        if (!currentUsername) return;
+
+        // Get meetings where user is organizer or participant
+        const userMeetings = Array.from(meetings.values()).filter(meeting =>
+            meeting.organizer === currentUsername || meeting.participants.includes(currentUsername)
+        );
+
+        socket.emit('meetings-list', userMeetings);
+    });
+
+    socket.on('delete-meeting', (meetingId) => {
+        if (!currentUsername) return;
+
+        const meeting = meetings.get(meetingId);
+        if (meeting && meeting.organizer === currentUsername) {
+            meetings.delete(meetingId);
+            saveData();
+
+            // Notify organizer
+            socket.emit('meeting-deleted', meetingId);
+
+            // Notify all participants
+            meeting.participants.forEach(participantUsername => {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('meeting-deleted', meetingId);
+                }
+            });
+
+            console.log(`Meeting deleted: ${meeting.title} by ${currentUsername}`);
+        }
+    });
+
+    socket.on('join-meeting-room', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId } = data;
+        socket.join(`meeting-${meetingId}`);
+        console.log(`${currentUsername} joined meeting room: ${meetingId}`);
+    });
+
+    socket.on('leave-meeting-room', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId } = data;
+        socket.leave(`meeting-${meetingId}`);
+        console.log(`${currentUsername} left meeting room: ${meetingId}`);
+    });
+
+    socket.on('meeting-offer', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, offer } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-offer', {
+            meetingId,
+            offer,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-answer', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, answer } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-answer', {
+            meetingId,
+            answer,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-ice-candidate', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, candidate } = data;
+        socket.to(`meeting-${meetingId}`).emit('meeting-ice-candidate', {
+            meetingId,
+            candidate,
+            from: currentUsername
+        });
+    });
+
+    socket.on('meeting-chat-message', (data) => {
+        if (!currentUsername) return;
+
+        const { meetingId, message } = data;
+        io.to(`meeting-${meetingId}`).emit('meeting-chat-message', {
+            meetingId,
+            sender: currentUsername,
+            message
+        });
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);
@@ -1190,10 +1554,11 @@ io.on('connection', (socket) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ 
+    res.json({
         status: 'ok',
         users: users.size,
         chats: chats.size,
+        meetings: meetings.size,
         messages: Array.from(messages.values()).reduce((sum, msgs) => sum + msgs.length, 0),
         authenticated: true
     });
@@ -1234,6 +1599,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`👥 Contact list feature enabled`);
     console.log(`📎 File upload feature enabled`);
     console.log(`📞 Voice & Video calling enabled (WebRTC)`);
+    console.log(`📅 Meeting scheduler enabled with Zoom-like interface`);
     console.log(`💾 Data persistence enabled`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📂 Data directory: ${dataDir}`);

@@ -18,6 +18,7 @@
             overflow: hidden;
         }
 
+
         /* Splash Screen Styles */
         .splash-screen {
             position: fixed;
@@ -337,6 +338,7 @@
             background: #475e6d;
         }
 
+
         /* Auth Screen */
         .auth-screen {
             display: flex;
@@ -444,8 +446,6 @@
             border-right: 1px solid #2a3942;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
         }
 
         .sidebar-header {
@@ -455,43 +455,6 @@
             align-items: center;
             justify-content: space-between;
             height: 60px;
-            position: relative;
-        }
-
-        .header-menu {
-            position: relative;
-        }
-
-        .header-menu-dropdown {
-            display: none;
-            position: absolute;
-            top: 45px;
-            right: 0;
-            background: #233138;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            min-width: 180px;
-            z-index: 1000;
-            overflow: hidden;
-        }
-
-        .header-menu-dropdown.active {
-            display: block;
-        }
-
-        .header-menu-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            color: #e9edef;
-            font-size: 14px;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-menu-item:hover {
-            background: #2a3942;
         }
 
         .user-info {
@@ -572,9 +535,8 @@
 
         .chat-list, .contacts-list {
             flex: 1;
-            overflow-y: scroll !important;
+            overflow-y: auto;
             background: #111b21;
-            min-height: 0;
         }
 
         .contacts-list {
@@ -717,8 +679,6 @@
             display: flex;
             flex-direction: column;
             background: #0b141a;
-            height: 100vh;
-            overflow: hidden;
         }
 
         .chat-header {
@@ -762,13 +722,11 @@
         /* Messages Area */
         .messages-container {
             flex: 1;
-            overflow-y: scroll !important;
-            overflow-x: hidden;
+            overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            min-height: 0;
             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Crect width='100' height='100' fill='%230b141a'/%3E%3Cpath d='M 50 0 L 50 100' stroke='%23151f27' stroke-width='0.5' opacity='0.5'/%3E%3Cpath d='M 0 50 L 100 50' stroke='%23151f27' stroke-width='0.5' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E");
         }
 
@@ -860,343 +818,6 @@
             margin-top: 2px;
         }
 
-        .message-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            margin-left: 4px;
-        }
-
-        .checkmark {
-            font-size: 14px;
-            color: #8696a0;
-        }
-
-        .checkmark.read {
-            color: #53bdeb;
-        }
-
-        /* Message Options */
-        .message-options-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: rgba(0, 0, 0, 0.3);
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            color: #8696a0;
-            font-size: 14px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .message.sent:hover .message-options-btn {
-            display: flex;
-        }
-
-        .message-options-btn:hover {
-            background: rgba(0, 0, 0, 0.5);
-            color: #e9edef;
-        }
-
-        .message-options-menu {
-            position: absolute;
-            top: 30px;
-            right: 5px;
-            background: #233138;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            min-width: 120px;
-            z-index: 1000;
-            overflow: hidden;
-        }
-
-        .message-option {
-            padding: 10px 16px;
-            cursor: pointer;
-            color: #e9edef;
-            font-size: 14px;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .message-option:hover {
-            background: #2a3942;
-        }
-
-        .message-option.delete {
-            color: #f44336;
-        }
-
-        .message-edited {
-            font-size: 11px;
-            color: #8696a0;
-            font-style: italic;
-            margin-left: 5px;
-        }
-
-        .message-deleted {
-            opacity: 0.6;
-            font-style: italic;
-            color: #8696a0;
-        }
-
-        .message-edit-input {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid #00a884;
-            border-radius: 6px;
-            padding: 8px;
-            color: #e9edef;
-            font-size: 14px;
-            width: 100%;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 40px;
-        }
-
-        .message-edit-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            justify-content: flex-end;
-        }
-
-        .message-edit-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-
-        .message-edit-btn.save {
-            background: #00a884;
-            color: white;
-        }
-
-        .message-edit-btn.save:hover {
-            background: #008f6c;
-        }
-
-        .message-edit-btn.cancel {
-            background: #374248;
-            color: #e9edef;
-        }
-
-        .message-edit-btn.cancel:hover {
-            background: #4a5860;
-        }
-
-        /* Whiteboard */
-        .whiteboard-container {
-            display: none;
-            flex-direction: column;
-            width: 100%;
-            height: 100vh;
-            background: #0b141a;
-        }
-
-        .whiteboard-container.active {
-            display: flex;
-        }
-
-        .whiteboard-header {
-            background: #202c33;
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 60px;
-            border-bottom: 1px solid #2a3942;
-        }
-
-        .whiteboard-title {
-            color: #e9edef;
-            font-size: 18px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .whiteboard-toolbar {
-            background: #202c33;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid #2a3942;
-            flex-wrap: wrap;
-        }
-
-        .toolbar-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding-right: 12px;
-            border-right: 1px solid #2a3942;
-        }
-
-        .toolbar-group:last-child {
-            border-right: none;
-        }
-
-        .toolbar-btn {
-            background: #2a3942;
-            border: none;
-            color: #8696a0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .toolbar-btn:hover {
-            background: #374248;
-            color: #e9edef;
-        }
-
-        .toolbar-btn.active {
-            background: #00a884;
-            color: white;
-        }
-
-        .toolbar-btn span {
-            font-size: 12px;
-        }
-
-        .color-picker {
-            width: 32px;
-            height: 32px;
-            border: 2px solid #2a3942;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-
-        .color-picker:hover {
-            border-color: #00a884;
-        }
-
-        .stroke-width-slider {
-            width: 100px;
-            height: 6px;
-            background: #2a3942;
-            border-radius: 3px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .toolbar-select {
-            background: #2a3942;
-            border: none;
-            color: #e9edef;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            outline: none;
-        }
-
-        .toolbar-select:hover {
-            background: #374248;
-        }
-
-        .toolbar-select option {
-            background: #202c33;
-        }
-
-        .whiteboard-canvas-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: white;
-        }
-
-        #whiteboardCanvas {
-            display: block;
-            cursor: crosshair;
-            touch-action: none;
-        }
-
-        #whiteboardCanvas.pan-mode {
-            cursor: grab;
-        }
-
-        #whiteboardCanvas.pan-mode:active {
-            cursor: grabbing;
-        }
-
-        #whiteboardCanvas.eraser-mode {
-            cursor: none;
-        }
-
-        #whiteboardCanvas.select-mode {
-            cursor: default;
-        }
-
-        /* Eraser cursor preview */
-        .eraser-cursor {
-            position: absolute;
-            border: 2px solid #f44336;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1000;
-            display: none;
-            background: rgba(244, 67, 54, 0.1);
-        }
-
-        .eraser-cursor.active {
-            display: block;
-        }
-
-        .zoom-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: #202c33;
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .zoom-btn {
-            background: transparent;
-            border: none;
-            color: #e9edef;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .zoom-btn:hover {
-            background: #2a3942;
-        }
-
-        .zoom-level {
-            color: #8696a0;
-            font-size: 12px;
-            text-align: center;
-            padding: 4px;
-        }
-
         /* Message Input */
         .message-input-container {
             background: #202c33;
@@ -1252,117 +873,6 @@
             justify-content: center;
             cursor: pointer;
             font-size: 20px;
-        }
-
-        /* Voice Message Recording */
-        .voice-btn {
-            background: #00a884;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.3s;
-        }
-
-        .voice-btn.recording {
-            background: #f44336;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.1);
-                opacity: 0.8;
-            }
-        }
-
-        .recording-indicator {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            background: #202c33;
-            padding: 10px 15px;
-            border-radius: 20px;
-            color: #fff;
-        }
-
-        .recording-indicator.active {
-            display: flex;
-        }
-
-        .recording-dot {
-            width: 10px;
-            height: 10px;
-            background: #f44336;
-            border-radius: 50%;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .recording-time {
-            font-size: 14px;
-            color: #00a884;
-            font-weight: 500;
-        }
-
-        /* Voice Message Player */
-        .voice-message {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 5px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            max-width: 300px;
-        }
-
-        .voice-play-btn {
-            background: #00a884;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .voice-wave {
-            flex: 1;
-            height: 30px;
-            background: repeating-linear-gradient(
-                90deg,
-                #00a884 0px,
-                #00a884 2px,
-                transparent 2px,
-                transparent 6px
-            );
-            border-radius: 4px;
-            opacity: 0.5;
-        }
-
-        .voice-duration {
-            font-size: 12px;
-            color: #8696a0;
-            white-space: nowrap;
         }
 
         /* Empty State */
@@ -1520,32 +1030,6 @@
             background: #f15c6d;
         }
 
-        .call-btn.screen {
-            background: #374955;
-            color: white;
-        }
-
-        .call-btn.screen.active {
-            background: #00a884;
-        }
-
-        .screen-share-indicator {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 168, 132, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            z-index: 10;
-            display: none;
-        }
-
-        .screen-share-indicator.active {
-            display: block;
-        }
-
         /* Video Call Styles */
         .video-container {
             position: relative;
@@ -1607,51 +1091,616 @@
             }
         }
 
-        /* Scroll to Bottom Button */
-        .scroll-to-bottom {
-            position: absolute;
-            bottom: 90px;
-            right: 30px;
-            width: 42px;
-            height: 42px;
-            background: #202c33;
-            border: none;
-            border-radius: 50%;
-            color: #8696a0;
-            font-size: 20px;
-            cursor: pointer;
+        /* Meetings List Styles */
+        .meetings-list {
+            flex: 1;
+            overflow-y: auto;
+            background: #111b21;
             display: none;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            transition: all 0.3s ease;
-            z-index: 10;
         }
 
-        .scroll-to-bottom.visible {
+        .meetings-list.active {
+            display: block;
+        }
+
+        .add-meeting-section {
+            padding: 16px;
+            background: #202c33;
+            border-bottom: 1px solid #2a3942;
+        }
+
+        .create-meeting-btn {
+            width: 100%;
+            padding: 12px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .create-meeting-btn:hover {
+            background: #06cf9c;
+        }
+
+        .meeting-item {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #202c33;
+        }
+
+        .meeting-item:hover {
+            background: #202c33;
+        }
+
+        .meeting-item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .meeting-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .meeting-title {
+            color: #e9edef;
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .meeting-time {
+            color: #00a884;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .meeting-details {
+            color: #8696a0;
+            font-size: 14px;
+            margin-left: 36px;
+        }
+
+        .meeting-participants {
+            color: #8696a0;
+            font-size: 12px;
+            margin-left: 36px;
+            margin-top: 4px;
+        }
+
+        .meeting-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            margin-left: 36px;
+        }
+
+        .join-meeting-btn, .delete-meeting-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .join-meeting-btn {
+            background: #00a884;
+            color: white;
+        }
+
+        .join-meeting-btn:hover {
+            background: #06cf9c;
+        }
+
+        .delete-meeting-btn {
+            background: #667781;
+            color: white;
+        }
+
+        .delete-meeting-btn:hover {
+            background: #54656f;
+        }
+
+        /* Meeting Modal Styles */
+        .meeting-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .meeting-modal.active {
             display: flex;
         }
 
-        .scroll-to-bottom:hover {
+        .meeting-modal-content {
+            background: #202c33;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .meeting-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #2a3942;
+        }
+
+        .meeting-modal-header h2 {
+            color: #e9edef;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #8696a0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
             background: #2a3942;
-            transform: scale(1.1);
         }
 
-        .scroll-to-bottom:active {
-            transform: scale(0.95);
+        .meeting-modal-body {
+            padding: 20px;
         }
 
-        /* Fix for activeChat container */
-        #activeChat {
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #8696a0;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .meeting-input, .meeting-textarea {
+            width: 100%;
+            padding: 12px;
+            background: #2a3942;
+            border: 1px solid #374045;
+            border-radius: 8px;
+            color: #e9edef;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .meeting-input:focus, .meeting-textarea:focus {
+            outline: none;
+            border-color: #00a884;
+        }
+
+        .meeting-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .participants-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #2a3942;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .participant-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .participant-checkbox-item:hover {
+            background: #374045;
+        }
+
+        .participant-checkbox-item input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .participant-checkbox-item label {
+            color: #e9edef;
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .schedule-btn {
+            width: 100%;
+            padding: 14px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .schedule-btn:hover {
+            background: #06cf9c;
+        }
+
+        /* Meeting Room Styles (Zoom-like) */
+        .meeting-room-modal {
             display: none;
-            flex: 1;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            z-index: 1002;
         }
 
-        #activeChat.active {
-            display: flex !important;
+        .meeting-room-modal.active {
+            display: block;
+        }
+
+        .meeting-room-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meeting-room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #232323;
+            border-bottom: 1px solid #333;
+        }
+
+        .meeting-room-title h3 {
+            color: #fff;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .meeting-room-title p {
+            color: #aaa;
+            margin: 4px 0 0 0;
+            font-size: 14px;
+        }
+
+        .leave-meeting-btn {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .leave-meeting-btn:hover {
+            background: #c0392b;
+        }
+
+        .meeting-video-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .meeting-video-tile {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meeting-video-tile video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .meeting-video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .meeting-video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2a3942;
+        }
+
+        .meeting-avatar {
+            font-size: 64px;
+        }
+
+        .meeting-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #232323;
+            border-top: 1px solid #333;
+        }
+
+        .meeting-control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #3c3c3c;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meeting-control-btn:hover {
+            background: #4c4c4c;
+        }
+
+        .meeting-control-btn.active {
+            background: #e74c3c;
+        }
+
+        .meeting-side-panel {
+            position: fixed;
+            right: -350px;
+            top: 0;
+            width: 350px;
+            height: 100%;
+            background: #232323;
+            border-left: 1px solid #333;
+            padding: 20px;
+            transition: right 0.3s;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .meeting-side-panel.active {
+            right: 0;
+        }
+
+        .meeting-side-panel h4 {
+            color: #fff;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+
+        #participantListPanel {
+            color: #ccc;
+        }
+
+        .participant-item {
+            padding: 10px;
+            background: #2a3942;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            color: #e9edef;
+        }
+
+        #meetingChatMessages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            max-height: calc(100vh - 200px);
+        }
+
+        .meeting-chat-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #2a3942;
+            border-radius: 6px;
+        }
+
+        .meeting-chat-sender {
+            color: #00a884;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .meeting-chat-text {
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .meeting-chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .meeting-chat-input input {
+            flex: 1;
+            padding: 10px;
+            background: #2a3942;
+            border: 1px solid #374045;
+            border-radius: 6px;
+            color: #e9edef;
+            font-size: 14px;
+        }
+
+        .meeting-chat-input button {
+            padding: 10px 20px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .meeting-chat-input button:hover {
+            background: #06cf9c;
+        }
+
+        /* Meeting Invitation Message Styles */
+        .meeting-invitation {
+            background: linear-gradient(135deg, #00a884 0%, #005c4b 100%) !important;
+            border-left: 4px solid #00d9ff;
+            padding: 16px !important;
+            border-radius: 12px !important;
+            margin: 12px 0;
+        }
+
+        .meeting-invitation-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 18px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .meeting-invitation-icon {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+
+        .meeting-invitation-details {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            color: white;
+        }
+
+        .meeting-invitation-detail {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .meeting-invitation-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .meeting-invitation-detail strong {
+            min-width: 80px;
+            color: #b3ffed;
+        }
+
+        .meeting-invitation-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .join-meeting-invitation-btn {
+            flex: 1;
+            padding: 10px;
+            background: white;
+            color: #00a884;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .join-meeting-invitation-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .view-meeting-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-meeting-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .meeting-video-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+
+            .meeting-side-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .meeting-controls {
+                gap: 10px;
+                padding: 15px 10px;
+            }
+
+            .meeting-control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -1683,101 +1732,25 @@
         </div>
     </div>
 
-    <!-- App Content -->
-    <div class="app-content">
-        <!-- Auth Screen -->
-        <div class="auth-screen" id="authScreen">
+    <!-- Auth Screen -->
+    <div class="auth-screen" id="authScreen">
         <div class="auth-box">
             <h1>🔐 Secure WhatsApp</h1>
             <p id="authTitle">Sign in to your account</p>
-
+            
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
 
             <input type="text" id="usernameInput" placeholder="Username" maxlength="20">
-            <input type="email" id="emailInput" placeholder="Email" style="display:none;">
+            <input type="email" id="emailInput" placeholder="Email Address" style="display:none;">
             <input type="password" id="passwordInput" placeholder="Password">
             <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" style="display:none;">
 
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
-
-            <p id="forgotPasswordLink" style="margin-top: 10px;">
-                <span class="auth-switch" onclick="showForgotPassword()">Forgot Password?</span>
-            </p>
-
+            
             <p>
                 <span id="authSwitchText">Don't have an account?</span>
                 <span class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Sign Up</span>
-            </p>
-        </div>
-    </div>
-
-    <!-- Forgot Password Screen (Step 1: Enter Email) -->
-    <div class="auth-screen" id="forgotPasswordScreen" style="display: none;">
-        <div class="auth-box">
-            <h1>🔐 Secure WhatsApp</h1>
-            <p id="forgotTitle">Reset Your Password</p>
-            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
-                Enter your email address and we'll send you a verification code.
-            </p>
-
-            <div class="error-message" id="forgotErrorMessage"></div>
-            <div class="success-message" id="forgotSuccessMessage"></div>
-
-            <input type="email" id="forgotEmailInput" placeholder="Email">
-
-            <button id="forgotBtn" onclick="handleForgotPassword()">Send Verification Code</button>
-
-            <p style="margin-top: 15px;">
-                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
-            </p>
-        </div>
-    </div>
-
-    <!-- Verify Code Screen (Step 2: Enter Code) -->
-    <div class="auth-screen" id="verifyCodeScreen" style="display: none;">
-        <div class="auth-box">
-            <h1>🔐 Secure WhatsApp</h1>
-            <p id="verifyTitle">Enter Verification Code</p>
-            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
-                We sent a 6-digit code to your email. Check the server console in development mode.
-            </p>
-
-            <div class="error-message" id="verifyErrorMessage"></div>
-            <div class="success-message" id="verifySuccessMessage"></div>
-
-            <input type="text" id="verificationCodeInput" placeholder="Enter 6-digit code" maxlength="6"
-                   style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: bold;">
-
-            <button id="verifyBtn" onclick="handleVerifyCode()">Verify Code</button>
-
-            <p style="margin-top: 15px;">
-                <span class="auth-switch" onclick="backToForgotPassword()">Resend Code</span>
-                <span style="margin: 0 8px; color: #8696a0;">|</span>
-                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
-            </p>
-        </div>
-    </div>
-
-    <!-- Reset Password Screen (Step 3: Enter New Password) -->
-    <div class="auth-screen" id="resetPasswordScreen" style="display: none;">
-        <div class="auth-box">
-            <h1>🔐 Secure WhatsApp</h1>
-            <p id="resetTitle">Create New Password</p>
-            <p style="font-size: 14px; color: #8696a0; margin-bottom: 20px;">
-                Enter your new password below.
-            </p>
-
-            <div class="error-message" id="resetErrorMessage"></div>
-            <div class="success-message" id="resetSuccessMessage"></div>
-
-            <input type="password" id="newPasswordInput" placeholder="New Password">
-            <input type="password" id="confirmNewPasswordInput" placeholder="Confirm New Password">
-
-            <button id="resetBtn" onclick="handleResetPassword()">Reset Password</button>
-
-            <p style="margin-top: 15px;">
-                <span class="auth-switch" onclick="backToLogin()">Back to Login</span>
             </p>
         </div>
     </div>
@@ -1792,20 +1765,7 @@
                     <div class="user-name" id="userName">User</div>
                 </div>
                 <div class="header-actions">
-                    <div class="header-menu">
-                        <button class="icon-btn" title="Menu" onclick="toggleHeaderMenu()">☰</button>
-                        <div class="header-menu-dropdown" id="headerMenuDropdown">
-                            <div class="header-menu-item" onclick="openWhiteboard()">
-                                📝 Whiteboard
-                            </div>
-                            <div class="header-menu-item" onclick="createGroup()">
-                                👥 Create Group
-                            </div>
-                            <div class="header-menu-item" onclick="logout()">
-                                🚪 Logout
-                            </div>
-                        </div>
-                    </div>
+                    <button class="icon-btn" title="Logout" onclick="logout()">🚪</button>
                 </div>
             </div>
             
@@ -1813,6 +1773,7 @@
             <div class="tabs">
                 <button class="tab active" id="chatsTab" onclick="showChats()">Chats</button>
                 <button class="tab" id="contactsTab" onclick="showContacts()">Contacts</button>
+                <button class="tab" id="meetingsTab" onclick="showMeetings()">Meetings</button>
             </div>
             
             <!-- Chats List -->
@@ -1832,6 +1793,16 @@
                     <div class="loading">No contacts yet. Add someone to start chatting!</div>
                 </div>
             </div>
+
+            <!-- Meetings List -->
+            <div class="meetings-list" id="meetingsList">
+                <div class="add-meeting-section">
+                    <button class="create-meeting-btn" onclick="showCreateMeetingModal()">📅 Schedule New Meeting</button>
+                </div>
+                <div id="meetingsContainer">
+                    <div class="loading">No meetings scheduled. Create one to get started!</div>
+                </div>
+            </div>
         </div>
 
         <!-- Main Chat Area -->
@@ -1844,7 +1815,7 @@
             </div>
 
             <!-- Active Chat -->
-            <div id="activeChat">
+            <div id="activeChat" style="display: none; flex: 1; flex-direction: column;">
                 <div class="chat-header">
                     <div class="chat-header-info">
                         <button class="icon-btn" onclick="toggleSidebar()">☰</button>
@@ -1853,24 +1824,17 @@
                         </div>
                         <div class="chat-header-details">
                             <div class="chat-header-name" id="chatName">Select a chat</div>
-                            <div class="chat-header-status">
-                                <span id="chatStatus">offline</span>
-                                <span id="encryptionIndicator" style="margin-left: 8px; color: #00a884; display: none;">🔒 Encrypted</span>
-                            </div>
+                            <div class="chat-header-status" id="chatStatus">offline</div>
                         </div>
                     </div>
                     <div class="header-actions">
-                        <button class="icon-btn" id="voiceCallBtn" onclick="startVoiceCall()" title="Voice Call">📞</button>
-                        <button class="icon-btn" id="videoCallBtn" onclick="startVideoCall()" title="Video Call">📹</button>
+                        <button class="icon-btn" onclick="startVoiceCall()" title="Voice Call">📞</button>
+                        <button class="icon-btn" onclick="startVideoCall()" title="Video Call">📹</button>
                     </div>
                 </div>
                 
                 <div class="messages-container" id="messagesContainer"></div>
-
-                <button class="scroll-to-bottom" id="scrollToBottomBtn" onclick="scrollToBottom(true)" title="Scroll to bottom">
-                    ⬇️
-                </button>
-
+                
                 <div class="message-input-container">
                     <div style="flex: 1;">
                         <div class="attachment-preview" id="attachmentPreview">
@@ -1880,27 +1844,17 @@
                             </div>
                             <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
                         </div>
-
-                        <!-- Voice Recording Indicator -->
-                        <div class="recording-indicator" id="recordingIndicator">
-                            <div class="recording-dot"></div>
-                            <span class="recording-time" id="recordingTime">0:00</span>
-                            <button class="contact-btn remove" onclick="stopVoiceRecording()">Stop & Send</button>
-                            <button class="contact-btn" onclick="cancelVoiceRecording()" style="background: #666;">Cancel</button>
-                        </div>
-
-                        <div style="display: flex; gap: 10px; align-items: flex-end;" id="messageInputArea">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
-                            <textarea
-                                class="message-input"
-                                id="messageInput"
-                                placeholder="Type a message"
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
+                            <textarea 
+                                class="message-input" 
+                                id="messageInput" 
+                                placeholder="Type a message" 
                                 rows="1"
                                 onkeypress="handleKeyPress(event)"
                                 oninput="handleTyping(); autoResize(this)"
                             ></textarea>
-                            <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Voice message">🎤</button>
                             <button class="send-btn" onclick="sendMessage()">➤</button>
                         </div>
                     </div>
@@ -1912,16 +1866,8 @@
     <!-- Call Modal -->
     <div class="call-modal" id="callModal">
         <div class="call-container">
-            <!-- CRITICAL: Audio element for voice calls - ALWAYS available, not hidden -->
-            <audio id="remoteAudio" autoplay playsinline></audio>
-            <!-- Local audio muted to prevent feedback -->
-            <audio id="localAudio" muted playsinline style="display:none;"></audio>
-
             <!-- Video Container (hidden for voice calls) -->
             <div class="video-container" id="videoContainer" style="display: none;">
-                <div class="screen-share-indicator" id="screenShareIndicator">
-                    🖥️ Screen Sharing
-                </div>
                 <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
                 <video id="localVideo" class="local-video" autoplay playsinline muted></video>
                 <div class="video-placeholder" id="videoPlaceholder">
@@ -1949,7 +1895,6 @@
                 <div id="activeCallActions" style="display: none;">
                     <button class="call-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">🎤</button>
                     <button class="call-btn video" id="videoBtn" onclick="toggleVideo()" title="Video" style="display: none;">📹</button>
-                    <button class="call-btn screen" id="screenShareBtn" onclick="toggleScreenShare()" title="Share Screen">🖥️</button>
                     <button class="call-btn decline" onclick="endCall()" title="End Call">📵</button>
                 </div>
 
@@ -1961,153 +1906,110 @@
         </div>
     </div>
 
-    <!-- Whiteboard -->
-    <div class="whiteboard-container" id="whiteboardContainer">
-        <div class="whiteboard-header">
-            <div class="whiteboard-title">
-                <button class="icon-btn" onclick="closeWhiteboard()">←</button>
-                📝 Collaborative Whiteboard
+    <!-- Create Meeting Modal -->
+    <div class="meeting-modal" id="createMeetingModal">
+        <div class="meeting-modal-content">
+            <div class="meeting-modal-header">
+                <h2>Schedule New Meeting</h2>
+                <button class="close-btn" onclick="closeCreateMeetingModal()">✕</button>
             </div>
-            <div>
-                <span style="color: #8696a0; font-size: 13px; margin-right: 12px;">Connected: <span id="whiteboardUsers">1</span></span>
-            </div>
-        </div>
-
-        <div class="whiteboard-toolbar">
-            <div class="toolbar-group">
-                <button class="toolbar-btn" id="toolSelect" onclick="selectTool('select')" title="Select & Move">
-                    ⬚
-                </button>
-                <button class="toolbar-btn active" id="toolPen" onclick="selectTool('pen')" title="Pen">
-                    ✏️
-                </button>
-                <button class="toolbar-btn" id="toolHighlighter" onclick="selectTool('highlighter')" title="Highlighter">
-                    🖍️
-                </button>
-                <button class="toolbar-btn" id="toolEraser" onclick="selectTool('eraser')" title="Eraser">
-                    🧹
-                </button>
-            </div>
-
-            <div class="toolbar-group">
-                <button class="toolbar-btn" id="toolLine" onclick="selectTool('line')" title="Line">
-                    ─
-                </button>
-                <button class="toolbar-btn" id="toolRectangle" onclick="selectTool('rectangle')" title="Rectangle">
-                    ▢
-                </button>
-                <button class="toolbar-btn" id="toolCircle" onclick="selectTool('circle')" title="Circle">
-                    ○
-                </button>
-                <button class="toolbar-btn" id="toolTriangle" onclick="selectTool('triangle')" title="Triangle">
-                    △
-                </button>
-                <button class="toolbar-btn" id="toolArrow" onclick="selectTool('arrow')" title="Arrow">
-                    →
-                </button>
-                <button class="toolbar-btn" id="toolStar" onclick="selectTool('star')" title="Star">
-                    ★
-                </button>
-            </div>
-
-            <div class="toolbar-group">
-                <button class="toolbar-btn" id="toolText" onclick="selectTool('text')" title="Text">
-                    T
-                </button>
-                <button class="toolbar-btn" id="toolSticky" onclick="addStickyNote()" title="Sticky Note">
-                    📌
-                </button>
-                <button class="toolbar-btn" onclick="document.getElementById('imageUpload').click()" title="Upload Image">
-                    🖼️
-                </button>
-                <input type="file" id="imageUpload" accept="image/*" style="display:none;" onchange="uploadImage(event)">
-            </div>
-
-            <div class="toolbar-group">
-                <label style="color: #8696a0; font-size: 11px; margin-right: 5px;">Stroke:</label>
-                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Stroke Color">
-                <label style="color: #8696a0; font-size: 11px; margin: 0 5px;">Fill:</label>
-                <input type="color" id="fillColorPicker" class="color-picker" value="#ffffff" title="Fill Color">
-                <label style="color: #8696a0; font-size: 11px; margin-left: 10px;">
-                    <input type="checkbox" id="fillShapes" onchange="updateFillOption()"> Fill
-                </label>
-            </div>
-
-            <div class="toolbar-group">
-                <select id="lineStyle" class="toolbar-select" title="Line Style" onchange="updateLineStyle()">
-                    <option value="solid">─ Solid</option>
-                    <option value="dashed">┄ Dashed</option>
-                    <option value="dotted">··· Dotted</option>
-                </select>
-                <input type="range" id="strokeWidth" class="stroke-width-slider" min="1" max="30" value="3" title="Stroke Width">
-                <span id="strokeWidthLabel" style="color: #8696a0; font-size: 12px; min-width: 35px;">3px</span>
-            </div>
-
-            <div class="toolbar-group">
-                <select id="fontSize" class="toolbar-select" title="Font Size" onchange="updateFontSize()">
-                    <option value="16">Small</option>
-                    <option value="24" selected>Medium</option>
-                    <option value="32">Large</option>
-                    <option value="48">XLarge</option>
-                </select>
-                <button class="toolbar-btn" id="fontBold" onclick="toggleBold()" title="Bold">
-                    <strong>B</strong>
-                </button>
-                <button class="toolbar-btn" id="fontItalic" onclick="toggleItalic()" title="Italic">
-                    <em>I</em>
-                </button>
-            </div>
-
-            <div class="toolbar-group">
-                <button class="toolbar-btn" onclick="addStamp('😊')" title="Happy">😊</button>
-                <button class="toolbar-btn" onclick="addStamp('👍')" title="Thumbs Up">👍</button>
-                <button class="toolbar-btn" onclick="addStamp('❤️')" title="Heart">❤️</button>
-                <button class="toolbar-btn" onclick="addStamp('⭐')" title="Star">⭐</button>
-                <button class="toolbar-btn" onclick="addStamp('✓')" title="Checkmark">✓</button>
-                <button class="toolbar-btn" onclick="addStamp('✗')" title="X Mark">✗</button>
-            </div>
-
-            <div class="toolbar-group">
-                <select id="backgroundTemplate" class="toolbar-select" onchange="changeBackground()">
-                    <option value="blank">⬜ Blank</option>
-                    <option value="grid">▦ Grid</option>
-                    <option value="lines">☰ Lined</option>
-                    <option value="dots">⠿ Dots</option>
-                </select>
-            </div>
-
-            <div class="toolbar-group">
-                <button class="toolbar-btn" id="toolPan" onclick="selectTool('pan')" title="Pan">
-                    ✋
-                </button>
-                <button class="toolbar-btn" onclick="undoWhiteboard()" title="Undo">
-                    ↶
-                </button>
-                <button class="toolbar-btn" onclick="redoWhiteboard()" title="Redo">
-                    ↷
-                </button>
-                <button class="toolbar-btn" onclick="clearWhiteboard()" title="Clear All">
-                    🗑️
-                </button>
-                <button class="toolbar-btn" onclick="exportWhiteboard()" title="Export as PNG">
-                    💾
-                </button>
-            </div>
-        </div>
-
-        <div class="whiteboard-canvas-container">
-            <canvas id="whiteboardCanvas"></canvas>
-            <div class="eraser-cursor" id="eraserCursor"></div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
-                <div class="zoom-level" id="zoomLevel">100%</div>
-                <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</button>
-                <button class="zoom-btn" onclick="resetZoom()" title="Reset Zoom">⊙</button>
+            <div class="meeting-modal-body">
+                <div class="form-group">
+                    <label>Meeting Title</label>
+                    <input type="text" id="meetingTitle" placeholder="Enter meeting title" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <textarea id="meetingDescription" placeholder="Add meeting description" class="meeting-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Select Participants</label>
+                    <div id="participantsList" class="participants-list"></div>
+                </div>
+                <div class="form-group">
+                    <label>Date & Time</label>
+                    <input type="datetime-local" id="meetingDateTime" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes)</label>
+                    <input type="number" id="meetingDuration" placeholder="60" value="60" min="15" max="480" class="meeting-input">
+                </div>
+                <div class="form-group">
+                    <div class="participant-checkbox-item" style="background: #2a3942; padding: 12px; border-radius: 8px;">
+                        <input type="checkbox" id="sendInvitations" checked>
+                        <label for="sendInvitations" style="font-weight: 600;">Send invitations to participants via chat</label>
+                    </div>
+                </div>
+                <button class="schedule-btn" onclick="scheduleMeeting()">Schedule Meeting</button>
             </div>
         </div>
     </div>
 
-    </div> <!-- End App Content -->
+    <!-- Meeting Room Modal (Zoom-like) -->
+    <div class="meeting-room-modal" id="meetingRoomModal">
+        <div class="meeting-room-container">
+            <div class="meeting-room-header">
+                <div class="meeting-room-title">
+                    <h3 id="meetingRoomTitle">Meeting Room</h3>
+                    <p id="meetingRoomTimer">00:00</p>
+                </div>
+                <button class="leave-meeting-btn" onclick="leaveMeeting()">Leave Meeting</button>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="meeting-video-grid" id="meetingVideoGrid">
+                <div class="meeting-video-tile">
+                    <video id="meetingLocalVideo" autoplay playsinline muted></video>
+                    <div class="meeting-video-label">You</div>
+                    <div class="meeting-video-placeholder" id="meetingLocalPlaceholder">
+                        <div class="meeting-avatar">👤</div>
+                    </div>
+                </div>
+                <div class="meeting-video-tile" id="meetingRemoteTile" style="display: none;">
+                    <video id="meetingRemoteVideo" autoplay playsinline></video>
+                    <div class="meeting-video-label" id="meetingRemoteLabel">Participant</div>
+                    <div class="meeting-video-placeholder" id="meetingRemotePlaceholder">
+                        <div class="meeting-avatar">👤</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meeting Controls -->
+            <div class="meeting-controls">
+                <button class="meeting-control-btn" id="meetingMuteBtn" onclick="toggleMeetingAudio()" title="Mute/Unmute">
+                    <span id="meetingMuteIcon">🎤</span>
+                </button>
+                <button class="meeting-control-btn" id="meetingVideoBtn" onclick="toggleMeetingVideo()" title="Start/Stop Video">
+                    <span id="meetingVideoIcon">📹</span>
+                </button>
+                <button class="meeting-control-btn share-screen-btn" onclick="toggleScreenShare()" title="Share Screen">
+                    🖥️
+                </button>
+                <button class="meeting-control-btn participants-btn" onclick="toggleParticipantsPanel()" title="Participants">
+                    👥
+                </button>
+                <button class="meeting-control-btn chat-btn" onclick="toggleMeetingChat()" title="Chat">
+                    💬
+                </button>
+            </div>
+
+            <!-- Participants Panel -->
+            <div class="meeting-side-panel" id="participantsPanel">
+                <h4>Participants (<span id="participantCount">1</span>)</h4>
+                <div id="participantListPanel"></div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="meeting-side-panel" id="meetingChatPanel">
+                <h4>Meeting Chat</h4>
+                <div id="meetingChatMessages"></div>
+                <div class="meeting-chat-input">
+                    <input type="text" id="meetingChatInput" placeholder="Type a message...">
+                    <button onclick="sendMeetingChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
@@ -2149,10 +2051,9 @@
         let currentChatId = null;
         let chats = new Map();
         let contacts = [];
-        let groups = new Map(); // For group chats
         let typingTimeout = null;
         let isTyping = false;
-        let selectedFiles = [];
+        let selectedFile = null;
         let isLoginMode = true;
 
         // WebRTC Call Variables
@@ -2165,9 +2066,18 @@
         let isMuted = false;
         let isVideoEnabled = false;
         let isVideoCall = false;
+
+        // Meeting Variables
+        let meetings = [];
+        let currentMeeting = null;
+        let meetingPeerConnection = null;
+        let meetingLocalStream = null;
+        let meetingRemoteStream = null;
+        let meetingTimer = null;
+        let meetingStartTime = null;
+        let isMeetingMuted = false;
+        let isMeetingVideoEnabled = false;
         let isScreenSharing = false;
-        let screenStream = null;
-        let originalStream = null;
 
         // ICE servers for WebRTC
         const iceServers = {
@@ -2177,206 +2087,6 @@
             ]
         };
 
-        // ========== END-TO-END ENCRYPTION ==========
-        // E2E Encryption Variables
-        let myKeyPair = null;
-        let myPublicKeyExported = null;
-        let contactPublicKeys = new Map(); // Map of username -> public key
-
-        // ========== WHITEBOARD ==========
-        // Whiteboard Variables
-        let whiteboardCanvas = null;
-        let whiteboardCtx = null;
-        let isDrawing = false;
-        let currentTool = 'pen';
-        let currentColor = '#000000';
-        let currentFillColor = '#ffffff';
-        let fillShapes = false;
-        let currentStrokeWidth = 3;
-        let currentLineStyle = 'solid';
-        let currentFontSize = 24;
-        let isBold = false;
-        let isItalic = false;
-        let currentBackground = 'blank';
-        let drawingHistory = [];
-        let historyStep = -1;
-        let startX = 0;
-        let startY = 0;
-        let panX = 0;
-        let panY = 0;
-        let isPanning = false;
-        let zoomLevel = 1;
-        let minZoom = 0.25;
-        let maxZoom = 4;
-        let eraserCursor = null;
-
-        // Generate RSA key pair for current user
-        async function generateKeyPair() {
-            try {
-                const keyPair = await window.crypto.subtle.generateKey(
-                    {
-                        name: "RSA-OAEP",
-                        modulusLength: 2048,
-                        publicExponent: new Uint8Array([1, 0, 1]),
-                        hash: "SHA-256"
-                    },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-
-                myKeyPair = keyPair;
-
-                // Export public key to send to server
-                const exportedPublicKey = await window.crypto.subtle.exportKey(
-                    "spki",
-                    keyPair.publicKey
-                );
-
-                myPublicKeyExported = arrayBufferToBase64(exportedPublicKey);
-                console.log('🔐 Key pair generated successfully');
-                return myPublicKeyExported;
-            } catch (error) {
-                console.error('Error generating key pair:', error);
-                return null;
-            }
-        }
-
-        // Import a public key from base64
-        async function importPublicKey(base64Key) {
-            try {
-                const binaryKey = base64ToArrayBuffer(base64Key);
-                const publicKey = await window.crypto.subtle.importKey(
-                    "spki",
-                    binaryKey,
-                    {
-                        name: "RSA-OAEP",
-                        hash: "SHA-256"
-                    },
-                    true,
-                    ["encrypt"]
-                );
-                return publicKey;
-            } catch (error) {
-                console.error('Error importing public key:', error);
-                return null;
-            }
-        }
-
-        // Encrypt message with AES-GCM
-        async function encryptMessage(message, recipientUsername) {
-            try {
-                const recipientPublicKeyBase64 = contactPublicKeys.get(recipientUsername);
-                if (!recipientPublicKeyBase64) {
-                    console.warn('No public key for recipient, sending unencrypted');
-                    return { text: message, encrypted: false };
-                }
-
-                const recipientPublicKey = await importPublicKey(recipientPublicKeyBase64);
-                if (!recipientPublicKey) {
-                    return { text: message, encrypted: false };
-                }
-
-                // Generate random AES key
-                const aesKey = await window.crypto.subtle.generateKey(
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-
-                // Encrypt message with AES
-                const encoder = new TextEncoder();
-                const messageData = encoder.encode(message);
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-
-                const encryptedMessage = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
-                    aesKey,
-                    messageData
-                );
-
-                // Export AES key
-                const exportedAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-
-                // Encrypt AES key with recipient's RSA public key
-                const encryptedAesKey = await window.crypto.subtle.encrypt(
-                    { name: "RSA-OAEP" },
-                    recipientPublicKey,
-                    exportedAesKey
-                );
-
-                return {
-                    encrypted: true,
-                    ciphertext: arrayBufferToBase64(encryptedMessage),
-                    encryptedKey: arrayBufferToBase64(encryptedAesKey),
-                    iv: arrayBufferToBase64(iv)
-                };
-            } catch (error) {
-                console.error('Encryption error:', error);
-                return { text: message, encrypted: false };
-            }
-        }
-
-        // Decrypt message with AES-GCM
-        async function decryptMessage(encryptedData) {
-            try {
-                if (!encryptedData.encrypted || !myKeyPair) {
-                    return encryptedData.text || '[Encrypted message]';
-                }
-
-                // Decrypt AES key with our RSA private key
-                const encryptedAesKey = base64ToArrayBuffer(encryptedData.encryptedKey);
-                const aesKeyData = await window.crypto.subtle.decrypt(
-                    { name: "RSA-OAEP" },
-                    myKeyPair.privateKey,
-                    encryptedAesKey
-                );
-
-                // Import AES key
-                const aesKey = await window.crypto.subtle.importKey(
-                    "raw",
-                    aesKeyData,
-                    { name: "AES-GCM" },
-                    false,
-                    ["decrypt"]
-                );
-
-                // Decrypt message
-                const iv = base64ToArrayBuffer(encryptedData.iv);
-                const ciphertext = base64ToArrayBuffer(encryptedData.ciphertext);
-
-                const decryptedMessage = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    aesKey,
-                    ciphertext
-                );
-
-                const decoder = new TextDecoder();
-                return decoder.decode(decryptedMessage);
-            } catch (error) {
-                console.error('Decryption error:', error);
-                return '[Failed to decrypt message]';
-            }
-        }
-
-        // Helper functions for base64 conversion
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return window.btoa(binary);
-        }
-
-        function base64ToArrayBuffer(base64) {
-            const binary = window.atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
         // Check for saved token (using sessionStorage so each tab is independent)
         window.addEventListener('load', () => {
             const savedToken = sessionStorage.getItem('authToken');
@@ -2384,8 +2094,6 @@
                 authToken = savedToken;
                 initSocket();
             }
-            // Initialize scroll handling
-            initScrollHandling();
         });
 
         function toggleAuthMode() {
@@ -2396,7 +2104,6 @@
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
             const emailInput = document.getElementById('emailInput');
-            const forgotLink = document.getElementById('forgotPasswordLink');
 
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
@@ -2405,7 +2112,6 @@
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
                 emailInput.style.display = 'none';
-                forgotLink.style.display = 'block';
             } else {
                 title.textContent = 'Create a new account';
                 btn.textContent = 'Sign Up';
@@ -2413,36 +2119,8 @@
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
                 emailInput.style.display = 'block';
-                forgotLink.style.display = 'none';
             }
 
-            clearMessages();
-        }
-
-        // Store verification code temporarily
-        let verificationCode = '';
-
-        function showForgotPassword() {
-            document.getElementById('authScreen').style.display = 'none';
-            document.getElementById('forgotPasswordScreen').style.display = 'flex';
-            document.getElementById('verifyCodeScreen').style.display = 'none';
-            document.getElementById('resetPasswordScreen').style.display = 'none';
-            document.getElementById('forgotEmailInput').value = '';
-            clearForgotMessages();
-        }
-
-        function backToForgotPassword() {
-            document.getElementById('verifyCodeScreen').style.display = 'none';
-            document.getElementById('forgotPasswordScreen').style.display = 'flex';
-            clearForgotMessages();
-        }
-
-        function backToLogin() {
-            document.getElementById('authScreen').style.display = 'flex';
-            document.getElementById('forgotPasswordScreen').style.display = 'none';
-            document.getElementById('verifyCodeScreen').style.display = 'none';
-            document.getElementById('resetPasswordScreen').style.display = 'none';
-            verificationCode = '';
             clearMessages();
         }
 
@@ -2451,59 +2129,23 @@
             document.getElementById('successMessage').style.display = 'none';
         }
 
-        function clearForgotMessages() {
-            document.getElementById('forgotErrorMessage').style.display = 'none';
-            document.getElementById('forgotSuccessMessage').style.display = 'none';
-        }
-
-        function clearVerifyMessages() {
-            document.getElementById('verifyErrorMessage').style.display = 'none';
-            document.getElementById('verifySuccessMessage').style.display = 'none';
-        }
-
-        function clearResetMessages() {
-            document.getElementById('resetErrorMessage').style.display = 'none';
-            document.getElementById('resetSuccessMessage').style.display = 'none';
-        }
-
-        function showError(message, target = 'auth') {
-            let errorDiv, successDiv;
-            if (target === 'forgot') {
-                errorDiv = document.getElementById('forgotErrorMessage');
-                successDiv = document.getElementById('forgotSuccessMessage');
-            } else if (target === 'verify') {
-                errorDiv = document.getElementById('verifyErrorMessage');
-                successDiv = document.getElementById('verifySuccessMessage');
-            } else if (target === 'reset') {
-                errorDiv = document.getElementById('resetErrorMessage');
-                successDiv = document.getElementById('resetSuccessMessage');
-            } else {
-                errorDiv = document.getElementById('errorMessage');
-                successDiv = document.getElementById('successMessage');
-            }
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            successDiv.style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
         }
 
-        function showSuccess(message, target = 'auth') {
-            let errorDiv, successDiv;
-            if (target === 'forgot') {
-                errorDiv = document.getElementById('forgotErrorMessage');
-                successDiv = document.getElementById('forgotSuccessMessage');
-            } else if (target === 'verify') {
-                errorDiv = document.getElementById('verifyErrorMessage');
-                successDiv = document.getElementById('verifySuccessMessage');
-            } else if (target === 'reset') {
-                errorDiv = document.getElementById('resetErrorMessage');
-                successDiv = document.getElementById('resetSuccessMessage');
-            } else {
-                errorDiv = document.getElementById('errorMessage');
-                successDiv = document.getElementById('successMessage');
-            }
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
             successDiv.textContent = message;
             successDiv.style.display = 'block';
-            errorDiv.style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
         }
 
         async function handleAuth() {
@@ -2517,35 +2159,42 @@
                 return;
             }
 
-            if (!isLoginMode) {
-                if (!email) {
-                    showError('Please enter your email address');
-                    return;
-                }
-                if (password !== confirmPassword) {
-                    showError('Passwords do not match');
-                    return;
-                }
+            if (!isLoginMode && !email) {
+                showError('Please enter your email address');
+                return;
+            }
+
+            if (!isLoginMode && !isValidEmail(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            if (!isLoginMode && password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
             }
 
             const endpoint = isLoginMode ? '/api/login' : '/api/register';
-            const body = isLoginMode ? { username, password } : { username, password, email };
 
             try {
+                const requestBody = isLoginMode
+                    ? { username, password }
+                    : { username, password, email };
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(requestBody)
                 });
-
+                
                 const data = await response.json();
-
+                
                 if (response.ok) {
                     authToken = data.token;
                     sessionStorage.setItem('authToken', authToken);
-
+                    
                     if (!isLoginMode) {
                         showSuccess('Account created successfully! Logging you in...');
                         setTimeout(() => {
@@ -2562,150 +2211,6 @@
             }
         }
 
-        async function handleForgotPassword() {
-            const email = document.getElementById('forgotEmailInput').value.trim();
-
-            if (!email) {
-                showError('Please enter your email address', 'forgot');
-                return;
-            }
-
-            const btn = document.getElementById('forgotBtn');
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-
-            try {
-                const response = await fetch('/api/forgot-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Show verify code screen
-                    document.getElementById('forgotPasswordScreen').style.display = 'none';
-                    document.getElementById('verifyCodeScreen').style.display = 'flex';
-                    document.getElementById('verificationCodeInput').value = '';
-                    clearVerifyMessages();
-                    showSuccess('Check the server console for your 6-digit verification code!', 'verify');
-                } else {
-                    showError(data.error || 'Failed to send verification code', 'forgot');
-                }
-            } catch (error) {
-                showError('Network error. Please try again.', 'forgot');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Send Verification Code';
-            }
-        }
-
-        async function handleVerifyCode() {
-            const code = document.getElementById('verificationCodeInput').value.trim();
-
-            if (!code) {
-                showError('Please enter the verification code', 'verify');
-                return;
-            }
-
-            if (code.length !== 6 || !/^\d+$/.test(code)) {
-                showError('Verification code must be 6 digits', 'verify');
-                return;
-            }
-
-            const btn = document.getElementById('verifyBtn');
-            btn.disabled = true;
-            btn.textContent = 'Verifying...';
-
-            try {
-                const response = await fetch('/api/verify-reset-code', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Store code and move to reset password screen
-                    verificationCode = code;
-                    document.getElementById('verifyCodeScreen').style.display = 'none';
-                    document.getElementById('resetPasswordScreen').style.display = 'flex';
-                    document.getElementById('newPasswordInput').value = '';
-                    document.getElementById('confirmNewPasswordInput').value = '';
-                    clearResetMessages();
-                } else {
-                    showError(data.error || 'Invalid verification code', 'verify');
-                }
-            } catch (error) {
-                showError('Network error. Please try again.', 'verify');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Verify Code';
-            }
-        }
-
-        async function handleResetPassword() {
-            const newPassword = document.getElementById('newPasswordInput').value;
-            const confirmNewPassword = document.getElementById('confirmNewPasswordInput').value;
-
-            if (!verificationCode) {
-                showError('No verification code found. Please start over.', 'reset');
-                setTimeout(() => backToLogin(), 2000);
-                return;
-            }
-
-            if (!newPassword || !confirmNewPassword) {
-                showError('Please enter and confirm your new password', 'reset');
-                return;
-            }
-
-            if (newPassword !== confirmNewPassword) {
-                showError('Passwords do not match', 'reset');
-                return;
-            }
-
-            if (newPassword.length < 6) {
-                showError('Password must be at least 6 characters', 'reset');
-                return;
-            }
-
-            const btn = document.getElementById('resetBtn');
-            btn.disabled = true;
-            btn.textContent = 'Resetting...';
-
-            try {
-                const response = await fetch('/api/reset-password', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code: verificationCode, newPassword })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showSuccess(data.message + ' Redirecting to login...', 'reset');
-                    setTimeout(() => {
-                        backToLogin();
-                    }, 2000);
-                } else {
-                    showError(data.error || 'Failed to reset password', 'reset');
-                }
-            } catch (error) {
-                showError('Network error. Please try again.', 'reset');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Reset Password';
-            }
-        }
-
         function initSocket() {
             socket = io({
                 transports: ['websocket', 'polling'],
@@ -2717,36 +2222,22 @@
                 socket.emit('authenticate', { token: authToken });
             });
 
-            socket.on('authenticated', async (data) => {
+            socket.on('authenticated', (data) => {
                 currentUser = data;
                 document.getElementById('authScreen').style.display = 'none';
                 document.getElementById('chatScreen').classList.add('active');
-
+                
                 const initials = data.username.substring(0, 2).toUpperCase();
                 document.getElementById('userAvatar').textContent = initials;
                 document.getElementById('userName').textContent = data.username;
-
+                
                 contacts = data.contacts || [];
-
-                // Generate encryption keys
-                await generateKeyPair();
-
-                // Send public key to server
-                if (myPublicKeyExported) {
-                    socket.emit('public-key', { publicKey: myPublicKeyExported });
-                }
-
-                // Store contact public keys if available
-                if (data.contactKeys) {
-                    data.contactKeys.forEach(contact => {
-                        contactPublicKeys.set(contact.username, contact.publicKey);
-                    });
-                }
-
+                
                 if (data.chats && data.chats.length > 0) {
                     data.chats.forEach(chat => {
                         chats.set(chat.id, chat);
                     });
+                    renderChatList();
                 }
 
                 // Load groups
@@ -2784,13 +2275,6 @@
                 showSuccess(`${contact.username} added to contacts!`);
             });
 
-            // Receive public keys from contacts
-            socket.on('public-key-received', (data) => {
-                const { username, publicKey } = data;
-                contactPublicKeys.set(username, publicKey);
-                console.log(`🔐 Received public key from ${username}`);
-            });
-
             socket.on('contact-removed', (data) => {
                 contacts = contacts.filter(c => c.username !== data.username);
                 renderContactsList();
@@ -2798,74 +2282,6 @@
 
             socket.on('contact-error', (data) => {
                 alert(data.error);
-            });
-
-            // ========== GROUP EVENT LISTENERS ==========
-
-            socket.on('group-created', (data) => {
-                groups.set(data.id, {
-                    id: data.id,
-                    name: data.name,
-                    members: data.members,
-                    admin: data.admin,
-                    isGroup: true,
-                    messages: [],
-                    lastMessage: null
-                });
-                renderChatList();
-                alert(`Group "${data.name}" created successfully!`);
-            });
-
-            socket.on('group-error', (data) => {
-                alert(data.error);
-            });
-
-            socket.on('group-member-added', (data) => {
-                const group = groups.get(data.groupId);
-                if (group) {
-                    group.members = data.members;
-                    renderChatList();
-                }
-            });
-
-            socket.on('group-member-removed', (data) => {
-                const group = groups.get(data.groupId);
-                if (group) {
-                    group.members = data.members;
-                    renderChatList();
-                }
-            });
-
-            socket.on('removed-from-group', (data) => {
-                groups.delete(data.groupId);
-                if (currentChatId === data.groupId) {
-                    currentChatId = null;
-                    document.getElementById('activeChat').classList.remove('active');
-                    document.getElementById('emptyChat').style.display = 'flex';
-                }
-                renderChatList();
-                alert('You have been removed from the group');
-            });
-
-            socket.on('group-member-left', (data) => {
-                const group = groups.get(data.groupId);
-                if (group) {
-                    group.members = data.members;
-                    if (data.newAdmin) {
-                        group.admin = data.newAdmin;
-                    }
-                    renderChatList();
-                }
-            });
-
-            socket.on('left-group', (data) => {
-                groups.delete(data.groupId);
-                if (currentChatId === data.groupId) {
-                    currentChatId = null;
-                    document.getElementById('activeChat').classList.remove('active');
-                    document.getElementById('emptyChat').style.display = 'flex';
-                }
-                renderChatList();
             });
 
             socket.on('chat-created', (data) => {
@@ -2897,30 +2313,17 @@
 
             socket.on('new-message', (data) => {
                 const chat = chats.get(data.chatId);
-                const group = groups.get(data.chatId);
-                const currentConversation = group || chat;
-
-                if (currentConversation) {
-                    if (!currentConversation.messages) currentConversation.messages = [];
-                    currentConversation.messages.push(data.message);
-
-                    // Determine last message text based on message type
-                    let lastMessageText = data.message.text;
-                    if (data.message.voiceMessage) {
-                        lastMessageText = '🎤 Voice message';
-                    } else if (data.message.file) {
-                        lastMessageText = '📎 File';
-                    } else if (!lastMessageText) {
-                        lastMessageText = '';
-                    }
-
-                    currentConversation.lastMessage = {
-                        text: lastMessageText,
+                if (chat) {
+                    if (!chat.messages) chat.messages = [];
+                    chat.messages.push(data.message);
+                    
+                    chat.lastMessage = {
+                        text: data.message.text || '📎 File',
                         time: data.message.timestamp
                     };
-
+                    
                     renderChatList();
-
+                    
                     if (currentChatId === data.chatId) {
                         renderMessages();
                         scrollToBottom();
@@ -2929,26 +2332,15 @@
             });
 
             socket.on('file-uploaded', (data) => {
-                if (data.chatId === currentChatId && selectedFiles.length > 0) {
-                    // Collect uploaded file
-                    uploadedFilesForMessage.push(data.file);
-
-                    // Check if all files are uploaded
-                    if (uploadedFilesForMessage.length === totalFilesToUpload) {
-                        // Send message with all files
-                        socket.emit('send-message', {
-                            chatId: currentChatId,
-                            text: messageTextForFiles,
-                            files: uploadedFilesForMessage  // Send array of files
-                        });
-
-                        // Clear state
-                        document.getElementById('messageInput').value = '';
-                        removeAttachment();
-                        uploadedFilesForMessage = [];
-                        totalFilesToUpload = 0;
-                        messageTextForFiles = '';
-                    }
+                if (data.chatId === currentChatId && selectedFile) {
+                    socket.emit('send-message', {
+                        chatId: currentChatId,
+                        text: document.getElementById('messageInput').value.trim(),
+                        file: data.file
+                    });
+                    
+                    document.getElementById('messageInput').value = '';
+                    removeAttachment();
                 }
             });
 
@@ -3033,8 +2425,6 @@
 
             socket.on('messages-loaded', (data) => {
                 const chat = chats.get(data.chatId);
-                const group = groups.get(data.chatId);
-
                 if (chat) {
                     chat.messages = data.messages;
                     if (currentChatId === data.chatId) {
@@ -3176,27 +2566,22 @@
             // Call event handlers
             socket.on('incoming-call', async (data) => {
                 const { from, offer, isVideo } = data;
-
-                console.log('Incoming call from:', from, 'isVideo:', isVideo);
-
-                // FIXED: Set global isVideoCall variable
-                isVideoCall = isVideo;
-
+                
                 // Create peer connection
                 createPeerConnection();
-
+                
                 // Set remote description
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-
+                
                 // Show incoming call UI
                 currentCall = {
                     type: 'incoming',
                     contactName: from,
                     isVideo: isVideo
                 };
-
+                
                 showCallUI(from, 'incoming', isVideo);
-
+                
                 // Play ringtone (optional)
                 // new Audio('/ringtone.mp3').play();
             });
@@ -3246,41 +2631,6 @@
                 }
                 location.reload();
             }
-        }
-
-        function createGroup() {
-            if (contacts.length === 0) {
-                alert('You need to add contacts first before creating a group!');
-                return;
-            }
-
-            const groupName = prompt('Enter group name:');
-            if (!groupName || groupName.trim() === '') return;
-
-            // Show contact selection
-            let selectedContacts = [];
-            let contactList = 'Select members (enter numbers separated by commas):\n\n';
-            contacts.forEach((contact, index) => {
-                contactList += `${index + 1}. ${contact.username}\n`;
-            });
-
-            const selection = prompt(contactList);
-            if (!selection) return;
-
-            const indices = selection.split(',').map(s => parseInt(s.trim()) - 1);
-            selectedContacts = indices
-                .filter(i => i >= 0 && i < contacts.length)
-                .map(i => contacts[i].username);
-
-            if (selectedContacts.length === 0) {
-                alert('No valid contacts selected!');
-                return;
-            }
-
-            socket.emit('create-group', {
-                groupName: groupName.trim(),
-                memberUsernames: selectedContacts
-            });
         }
 
         function showChats() {
@@ -3362,49 +2712,22 @@
 
         function renderChatList() {
             const chatList = document.getElementById('chatList');
-
-            if (chats.size === 0 && groups.size === 0) {
-                chatList.innerHTML = '<div class="loading">No chats yet. Add contacts or create a group!</div>';
+            
+            if (chats.size === 0) {
+                chatList.innerHTML = '<div class="loading">No chats yet. Add contacts to start chatting!</div>';
                 return;
             }
 
             chatList.innerHTML = '';
-
-            // Render groups first (with group icon)
-            groups.forEach((group, groupId) => {
-                const chatItem = document.createElement('div');
-                chatItem.className = 'chat-item' + (groupId === currentChatId ? ' active' : '');
-                chatItem.onclick = () => selectChat(groupId);
-
-                const initials = group.name.substring(0, 2).toUpperCase();
-                const lastMessageText = group.lastMessage?.text || 'No messages yet';
-                const time = group.lastMessage?.time ? formatTime(group.lastMessage.time) : '';
-
-                chatItem.innerHTML = `
-                    <div class="chat-avatar" style="background: #128C7E;">
-                        ${initials}
-                        <span style="position: absolute; bottom: -2px; right: -2px; font-size: 14px;">👥</span>
-                    </div>
-                    <div class="chat-details">
-                        <div class="chat-name">${group.name} <span style="font-size: 11px; color: #8696a0;">(${group.members.length})</span></div>
-                        <div class="chat-last-message">${lastMessageText}</div>
-                    </div>
-                    ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
-                `;
-
-                chatList.appendChild(chatItem);
-            });
-
-            // Render 1-on-1 chats
             chats.forEach((chat, chatId) => {
                 const chatItem = document.createElement('div');
                 chatItem.className = 'chat-item' + (chatId === currentChatId ? ' active' : '');
                 chatItem.onclick = () => selectChat(chatId);
-
+                
                 const initials = chat.name.substring(0, 2).toUpperCase();
                 const lastMessageText = chat.lastMessage?.text || 'Start a conversation';
                 const time = chat.lastMessage?.time ? formatTime(chat.lastMessage.time) : '';
-
+                
                 chatItem.innerHTML = `
                     <div class="chat-avatar">
                         ${initials}
@@ -3416,7 +2739,7 @@
                     </div>
                     ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
                 `;
-
+                
                 chatList.appendChild(chatItem);
             });
         }
@@ -3424,679 +2747,181 @@
         function selectChat(chatId) {
             currentChatId = chatId;
             const chat = chats.get(chatId);
-            const group = groups.get(chatId);
-
-            if (!chat && !group) return;
-
+            
+            if (!chat) return;
+            
             document.getElementById('emptyChat').style.display = 'none';
-            document.getElementById('activeChat').classList.add('active');
-
-            const encryptionIndicator = document.getElementById('encryptionIndicator');
-            const voiceCallBtn = document.getElementById('voiceCallBtn');
-            const videoCallBtn = document.getElementById('videoCallBtn');
-
-            if (group) {
-                // Handle group chat
-                const initials = group.name.substring(0, 2).toUpperCase();
-                document.getElementById('chatAvatarText').textContent = initials;
-                document.getElementById('chatName').textContent = group.name + ' 👥';
-                document.getElementById('chatStatus').textContent = `${group.members.length} members`;
-                encryptionIndicator.style.display = 'none'; // Groups don't show encryption indicator
-
-                // Hide call buttons for groups (calls only work 1-on-1)
-                if (voiceCallBtn) voiceCallBtn.style.display = 'none';
-                if (videoCallBtn) videoCallBtn.style.display = 'none';
-
-                if (!group.messages || group.messages.length === 0) {
-                    socket.emit('get-group-messages', { groupId: chatId });
-                } else {
-                    renderMessages();
-                }
+            document.getElementById('activeChat').style.display = 'flex';
+            
+            const initials = chat.name.substring(0, 2).toUpperCase();
+            document.getElementById('chatAvatarText').textContent = initials;
+            document.getElementById('chatName').textContent = chat.name;
+            document.getElementById('chatStatus').textContent = chat.online ? 'online' : 'offline';
+            
+            if (!chat.messages || chat.messages.length === 0) {
+                socket.emit('get-messages', { chatId });
             } else {
-                // Handle 1-on-1 chat
-                const initials = chat.name.substring(0, 2).toUpperCase();
-                document.getElementById('chatAvatarText').textContent = initials;
-                document.getElementById('chatName').textContent = chat.name;
-                document.getElementById('chatStatus').textContent = chat.online ? 'online' : 'offline';
-
-                // Show encryption indicator if we have the contact's public key
-                if (contactPublicKeys.has(chat.name)) {
-                    encryptionIndicator.style.display = 'inline';
-                } else {
-                    encryptionIndicator.style.display = 'none';
-                }
-
-                // Show call buttons for 1-on-1 chats
-                if (voiceCallBtn) voiceCallBtn.style.display = 'inline-block';
-                if (videoCallBtn) videoCallBtn.style.display = 'inline-block';
-
-                if (!chat.messages || chat.messages.length === 0) {
-                    socket.emit('get-messages', { chatId });
-                } else {
-                    renderMessages();
-                }
+                renderMessages();
             }
-
+            
             renderChatList();
             document.getElementById('messageInput').focus();
         }
 
-        async function renderMessages() {
+        function renderMessages() {
             const container = document.getElementById('messagesContainer');
             const chat = chats.get(currentChatId);
-            const group = groups.get(currentChatId);
-
-            const currentConversation = group || chat;
-            if (!currentConversation || !currentConversation.messages || currentConversation.messages.length === 0) {
+            
+            if (!chat || !chat.messages || chat.messages.length === 0) {
                 container.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
                 return;
             }
-
+            
             container.innerHTML = '';
-
-            // Decrypt and render messages
-            for (const msg of currentConversation.messages) {
+            chat.messages.forEach(msg => {
                 const messageDiv = document.createElement('div');
+
+                // Check if this is a meeting invitation
+                if (msg.type === 'meeting-invitation') {
+                    messageDiv.className = 'message meeting-invitation';
+                    const meetingDate = new Date(msg.meetingDateTime);
+                    const isPast = meetingDate < new Date();
+
+                    let content = `
+                        <div class="meeting-invitation-header">
+                            <span class="meeting-invitation-icon">📅</span>
+                            <span>Meeting Invitation</span>
+                        </div>
+                        <div class="meeting-invitation-details">
+                            <div class="meeting-invitation-detail">
+                                <strong>Title:</strong> ${escapeHtml(msg.meetingTitle)}
+                            </div>
+                            ${msg.meetingDescription ? `
+                            <div class="meeting-invitation-detail">
+                                <strong>Details:</strong> ${escapeHtml(msg.meetingDescription)}
+                            </div>
+                            ` : ''}
+                            <div class="meeting-invitation-detail">
+                                <strong>When:</strong> ${msg.formattedDate}
+                            </div>
+                            <div class="meeting-invitation-detail">
+                                <strong>Duration:</strong> ${msg.meetingDuration} minutes
+                            </div>
+                            <div class="meeting-invitation-detail">
+                                <strong>Organizer:</strong> ${msg.from}
+                            </div>
+                        </div>
+                        <div class="meeting-invitation-actions">
+                            ${!isPast ? `
+                                <button class="join-meeting-invitation-btn" onclick="joinMeetingFromInvitation('${msg.meetingId}')">
+                                    Join Meeting
+                                </button>
+                            ` : ''}
+                            <button class="view-meeting-btn" onclick="viewMeetingFromInvitation('${msg.meetingId}')">
+                                View in Meetings
+                            </button>
+                        </div>
+                    `;
+                    messageDiv.innerHTML = content;
+                    container.appendChild(messageDiv);
+                    return;
+                }
+
                 messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
-                messageDiv.setAttribute('data-message-id', msg.id);
 
                 let content = '';
-
-                // Add options button for sent messages (only if not deleted)
-                if (msg.sent && !msg.deleted) {
-                    content += `
-                        <button class="message-options-btn" onclick="toggleMessageOptions(event, '${msg.id}')">
-                            ⋮
-                        </button>
-                    `;
-                }
 
                 if (!msg.sent) {
                     content += `<div class="message-sender">${msg.senderUsername}</div>`;
                 }
 
-                // Handle deleted messages
-                if (msg.deleted) {
-                    content += `<div class="message-text message-deleted">🚫 This message was deleted</div>`;
-                } else {
-                    // Decrypt message if encrypted
-                    let messageText = msg.text || '';
-                    if (msg.encrypted) {
-                        messageText = await decryptMessage(msg);
-                        // Add encryption indicator
-                        content += `<div style="font-size: 10px; color: #8696a0; margin-bottom: 4px;">🔒 End-to-end encrypted</div>`;
-                    }
-
-                    if (messageText) {
-                        content += `<div class="message-text">${escapeHtml(messageText)}</div>`;
-                    }
-
-                    if (msg.voiceMessage) {
-                        const voiceId = `voice-${msg.timestamp}`;
+                if (msg.text) {
+                    content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
+                }
+                
+                if (msg.file) {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
+                    
+                    if (isImage) {
                         content += `
-                            <div class="voice-message">
-                                <button class="voice-play-btn" id="${voiceId}" onclick="playVoiceMessage('${msg.voiceMessage.url}', '${voiceId}')">
-                                    ▶
-                                </button>
-                                <div class="voice-wave"></div>
-                                <span class="voice-duration">${formatDuration(msg.voiceMessage.duration)}</span>
-                            </div>
+                            <a href="${msg.file.url}" target="_blank">
+                                <img src="${msg.file.url}" alt="${msg.file.originalName}" class="message-image">
+                            </a>
                         `;
-                    } else if (msg.files && msg.files.length > 0) {
-                        // Handle multiple files
-                        for (const file of msg.files) {
-                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.originalName);
-
-                            if (isImage) {
-                                content += `
-                                    <a href="${file.url}" target="_blank">
-                                        <img src="${file.url}" alt="${file.originalName}" class="message-image">
-                                    </a>
-                                `;
-                            } else {
-                                const icon = getFileIcon(file.mimetype);
-                                content += `
-                                    <div class="message-file">
-                                        <div class="file-info">
-                                            <span class="file-icon">${icon}</span>
-                                            <div>
-                                                <a href="${file.url}" target="_blank" class="file-name" download="${file.originalName}">
-                                                    ${file.originalName}
-                                                </a>
-                                                <div class="file-size">${formatFileSize(file.size)}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        }
-                    } else if (msg.file) {
-                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
-
-                        if (isImage) {
-                            content += `
-                                <a href="${msg.file.url}" target="_blank">
-                                    <img src="${msg.file.url}" alt="${msg.file.originalName}" class="message-image">
-                                </a>
-                            `;
-                        } else {
-                            const icon = getFileIcon(msg.file.mimetype);
-                            content += `
-                                <div class="message-file">
-                                    <div class="file-info">
-                                        <span class="file-icon">${icon}</span>
-                                        <div>
-                                            <a href="${msg.file.url}" target="_blank" class="file-name" download="${msg.file.originalName}">
-                                                ${msg.file.originalName}
-                                            </a>
-                                            <div class="file-size">${formatFileSize(msg.file.size)}</div>
-                                        </div>
+                    } else {
+                        const icon = getFileIcon(msg.file.mimetype);
+                        content += `
+                            <div class="message-file">
+                                <div class="file-info">
+                                    <span class="file-icon">${icon}</span>
+                                    <div>
+                                        <a href="${msg.file.url}" target="_blank" class="file-name" download="${msg.file.originalName}">
+                                            ${msg.file.originalName}
+                                        </a>
+                                        <div class="file-size">${formatFileSize(msg.file.size)}</div>
                                     </div>
                                 </div>
-                            `;
-                        }
+                            </div>
+                        `;
                     }
                 }
-
+                
                 content += `
                     <div class="message-meta">
                         <span>${formatTime(msg.timestamp)}</span>
-                        ${msg.edited ? '<span class="message-edited">(edited)</span>' : ''}
-                        ${msg.sent ? getMessageStatusIcon(msg) : ''}
                     </div>
                 `;
-
+                
                 messageDiv.innerHTML = content;
                 container.appendChild(messageDiv);
-            }
-
+            });
+            
             scrollToBottom();
-            checkScrollPosition();
-
-            // Mark unread messages as read
-            markMessagesAsRead();
-        }
-
-        function markMessagesAsRead() {
-            if (!currentChatId) return;
-
-            const chat = chats.get(currentChatId);
-            const group = groups.get(currentChatId);
-            const currentConversation = group || chat;
-
-            if (!currentConversation || !currentConversation.messages) return;
-
-            // Find unread messages that were sent by others
-            const unreadMessageIds = currentConversation.messages
-                .filter(msg => !msg.sent && !msg.read)
-                .map(msg => msg.id);
-
-            if (unreadMessageIds.length > 0) {
-                // Emit to server to mark as read
-                socket.emit('mark-messages-read', {
-                    chatId: currentChatId,
-                    messageIds: unreadMessageIds
-                });
-
-                // Update local state
-                currentConversation.messages.forEach(msg => {
-                    if (unreadMessageIds.includes(msg.id)) {
-                        msg.read = true;
-                    }
-                });
-            }
         }
 
         function handleFileSelect(event) {
-            const files = Array.from(event.target.files);
-            if (!files || files.length === 0) return;
-
-            // Check each file size
-            for (let file of files) {
-                if (file.size > 10 * 1024 * 1024) {
-                    alert(`File "${file.name}" is too large. File size must be less than 10MB`);
-                    event.target.value = '';
-                    return;
-                }
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                event.target.value = '';
+                return;
             }
-
-            selectedFiles = files;
-
+            
+            selectedFile = file;
+            
             const preview = document.getElementById('attachmentPreview');
             const previewName = document.getElementById('previewName');
             const previewSize = document.getElementById('previewSize');
-
-            // Show multiple files info
-            if (files.length === 1) {
-                previewName.textContent = files[0].name;
-                previewSize.textContent = formatFileSize(files[0].size);
-            } else {
-                previewName.textContent = `${files.length} files selected`;
-                const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-                previewSize.textContent = formatFileSize(totalSize);
-            }
+            
+            previewName.textContent = file.name;
+            previewSize.textContent = formatFileSize(file.size);
             preview.classList.add('active');
-
+            
             document.getElementById('messageInput').focus();
         }
 
         function removeAttachment() {
-            selectedFiles = [];
+            selectedFile = null;
             document.getElementById('fileInput').value = '';
             document.getElementById('attachmentPreview').classList.remove('active');
         }
 
-        // Voice Recording Variables
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let recordingStartTime = null;
-        let recordingTimer = null;
-        let audioStream = null;
-
-        async function toggleVoiceRecording() {
-            if (!currentChatId) {
-                alert('Please select a chat first');
-                return;
-            }
-
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                stopVoiceRecording();
-            } else {
-                startVoiceRecording();
-            }
-        }
-
-        async function startVoiceRecording() {
-            try {
-                // Request microphone access
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                // Create MediaRecorder
-                mediaRecorder = new MediaRecorder(audioStream);
-                audioChunks = [];
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        audioChunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = async () => {
-                    // Create audio blob from chunks
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-                    // Send voice message
-                    await sendVoiceMessage(audioBlob);
-
-                    // Cleanup
-                    cleanupRecording();
-                };
-
-                // Start recording
-                mediaRecorder.start();
-                recordingStartTime = Date.now();
-
-                // Update UI
-                document.getElementById('voiceBtn').classList.add('recording');
-                document.getElementById('recordingIndicator').classList.add('active');
-                document.getElementById('messageInputArea').style.display = 'none';
-
-                // Start timer
-                updateRecordingTime();
-                recordingTimer = setInterval(updateRecordingTime, 1000);
-
-                console.log('🎤 Voice recording started');
-            } catch (error) {
-                console.error('Error starting voice recording:', error);
-                alert('Could not access microphone. Please grant permission.');
-                cleanupRecording();
-            }
-        }
-
-        function stopVoiceRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                console.log('🎤 Voice recording stopped');
-            }
-        }
-
-        function cancelVoiceRecording() {
-            if (mediaRecorder) {
-                mediaRecorder.ondataavailable = null;
-                mediaRecorder.onstop = null;
-                if (mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
-                }
-            }
-            cleanupRecording();
-            console.log('🎤 Voice recording cancelled');
-        }
-
-        function cleanupRecording() {
-            // Stop all audio tracks
-            if (audioStream) {
-                audioStream.getTracks().forEach(track => track.stop());
-                audioStream = null;
-            }
-
-            // Clear timer
-            if (recordingTimer) {
-                clearInterval(recordingTimer);
-                recordingTimer = null;
-            }
-
-            // Reset UI
-            document.getElementById('voiceBtn').classList.remove('recording');
-            document.getElementById('recordingIndicator').classList.remove('active');
-            document.getElementById('messageInputArea').style.display = 'flex';
-            document.getElementById('recordingTime').textContent = '0:00';
-
-            // Reset variables
-            mediaRecorder = null;
-            audioChunks = [];
-            recordingStartTime = null;
-        }
-
-        function updateRecordingTime() {
-            if (!recordingStartTime) return;
-
-            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-
-            document.getElementById('recordingTime').textContent =
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        async function sendVoiceMessage(audioBlob) {
-            if (!currentChatId) return;
-
-            try {
-                // Convert blob to base64
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Data = e.target.result;
-
-                    // Send voice message to server
-                    socket.emit('send-voice-message', {
-                        chatId: currentChatId,
-                        audioData: base64Data,
-                        duration: Math.floor((Date.now() - recordingStartTime) / 1000)
-                    });
-
-                    console.log('🎤 Voice message sent');
-                };
-                reader.readAsDataURL(audioBlob);
-            } catch (error) {
-                console.error('Error sending voice message:', error);
-                alert('Failed to send voice message');
-            }
-        }
-
-        // Voice message audio players (one per message)
-        let audioPlayers = new Map();
-
-        function playVoiceMessage(audioUrl, playBtnId) {
-            console.log('playVoiceMessage called with URL:', audioUrl, 'Button ID:', playBtnId);
-
-            const playBtn = document.getElementById(playBtnId);
-            if (!playBtn) {
-                console.error('Play button not found:', playBtnId);
-                return;
-            }
-
-            // Check if we already have an audio player for this message
-            let audio = audioPlayers.get(playBtnId);
-
-            if (!audio) {
-                console.log('Creating new audio player for:', playBtnId);
-                // Create new audio element
-                audio = new Audio();
-                audio.preload = 'metadata';
-
-                audio.onloadedmetadata = () => {
-                    console.log('Audio loaded, duration:', audio.duration);
-                };
-
-                audio.onended = () => {
-                    console.log('Audio playback ended');
-                    playBtn.textContent = '▶';
-                };
-
-                audio.onerror = (e) => {
-                    console.error('Audio error event:', e);
-                    console.error('Audio element error:', audio.error);
-                    console.error('Audio URL:', audioUrl);
-                    console.error('Audio readyState:', audio.readyState);
-                    console.error('Audio networkState:', audio.networkState);
-
-                    let errorMsg = 'Cannot play voice message. ';
-                    if (audio.error) {
-                        switch(audio.error.code) {
-                            case audio.error.MEDIA_ERR_ABORTED:
-                                errorMsg += 'Playback aborted.';
-                                break;
-                            case audio.error.MEDIA_ERR_NETWORK:
-                                errorMsg += 'Network error loading audio file.';
-                                break;
-                            case audio.error.MEDIA_ERR_DECODE:
-                                errorMsg += 'Audio file is corrupted or in unsupported format.';
-                                break;
-                            case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                                errorMsg += 'Audio format not supported or file not found.';
-                                break;
-                        }
-                    }
-                    alert(errorMsg);
-                    playBtn.textContent = '▶';
-                };
-
-                // Set the source
-                audio.src = audioUrl;
-                console.log('Audio src set to:', audio.src);
-
-                audioPlayers.set(playBtnId, audio);
-            }
-
-            // Toggle play/pause
-            if (audio.paused) {
-                console.log('Starting playback');
-
-                // Stop all other playing audio
-                audioPlayers.forEach((otherAudio, otherId) => {
-                    if (otherId !== playBtnId && !otherAudio.paused) {
-                        console.log('Stopping other audio:', otherId);
-                        otherAudio.pause();
-                        otherAudio.currentTime = 0;
-                        const otherBtn = document.getElementById(otherId);
-                        if (otherBtn) otherBtn.textContent = '▶';
-                    }
-                });
-
-                playBtn.textContent = '⏸';
-                audio.play().then(() => {
-                    console.log('Playback started successfully');
-                }).catch(error => {
-                    console.error('Play() promise rejected:', error);
-                    alert('Failed to play voice message: ' + error.message);
-                    playBtn.textContent = '▶';
-                });
-            } else {
-                console.log('Pausing playback');
-                audio.pause();
-                audio.currentTime = 0;
-                playBtn.textContent = '▶';
-            }
-        }
-
-        // Message Edit/Delete Functions
-        let currentOptionsMessageId = null;
-
-        function toggleMessageOptions(event, messageId) {
-            event.stopPropagation();
-
-            // Close any existing menu
-            const existingMenu = document.querySelector('.message-options-menu');
-            if (existingMenu) {
-                existingMenu.remove();
-            }
-
-            // If clicking the same message, just close
-            if (currentOptionsMessageId === messageId) {
-                currentOptionsMessageId = null;
-                return;
-            }
-
-            currentOptionsMessageId = messageId;
-
-            // Create options menu
-            const menu = document.createElement('div');
-            menu.className = 'message-options-menu';
-            menu.innerHTML = `
-                <div class="message-option" onclick="startEditMessage('${messageId}')">
-                    ✏️ Edit
-                </div>
-                <div class="message-option delete" onclick="confirmDeleteMessage('${messageId}')">
-                    🗑️ Delete
-                </div>
-            `;
-
-            // Add menu to message
-            const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (messageDiv) {
-                messageDiv.appendChild(menu);
-            }
-        }
-
-        function startEditMessage(messageId) {
-            // Close options menu
-            const menu = document.querySelector('.message-options-menu');
-            if (menu) menu.remove();
-            currentOptionsMessageId = null;
-
-            const chat = chats.get(currentChatId);
-            const group = groups.get(currentChatId);
-            const currentConversation = group || chat;
-
-            if (!currentConversation) return;
-
-            const message = currentConversation.messages.find(m => m.id === messageId);
-            if (!message || message.deleted || message.voiceMessage || message.file) {
-                alert('Cannot edit this message');
-                return;
-            }
-
-            const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (!messageDiv) return;
-
-            const messageTextDiv = messageDiv.querySelector('.message-text');
-            if (!messageTextDiv) return;
-
-            const currentText = messageTextDiv.textContent;
-
-            // Replace text with input
-            messageTextDiv.innerHTML = `
-                <textarea class="message-edit-input" id="edit-input-${messageId}">${escapeHtml(currentText)}</textarea>
-                <div class="message-edit-actions">
-                    <button class="message-edit-btn cancel" onclick="cancelEditMessage('${messageId}')">Cancel</button>
-                    <button class="message-edit-btn save" onclick="saveEditMessage('${messageId}')">Save</button>
-                </div>
-            `;
-
-            // Focus input
-            const input = document.getElementById(`edit-input-${messageId}`);
-            if (input) {
-                input.focus();
-                input.setSelectionRange(input.value.length, input.value.length);
-            }
-        }
-
-        function cancelEditMessage(messageId) {
-            renderMessages();
-        }
-
-        async function saveEditMessage(messageId) {
-            const input = document.getElementById(`edit-input-${messageId}`);
-            if (!input) return;
-
-            const newText = input.value.trim();
-            if (!newText) {
-                alert('Message cannot be empty');
-                return;
-            }
-
-            const chat = chats.get(currentChatId);
-            const group = groups.get(currentChatId);
-            const currentConversation = group || chat;
-
-            if (!currentConversation) return;
-
-            const message = currentConversation.messages.find(m => m.id === messageId);
-            if (!message) return;
-
-            // Check if message needs encryption
-            let messageData = { text: newText };
-
-            if (!group && chat) {
-                // 1-on-1 chat: encrypt if we have recipient's public key
-                const recipientUsername = chat.name;
-                if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
-                    messageData = await encryptMessage(newText, recipientUsername);
-                }
-            }
-
-            // Emit edit event to server
-            socket.emit('edit-message', {
-                chatId: currentChatId,
-                messageId: messageId,
-                ...messageData
-            });
-        }
-
-        function confirmDeleteMessage(messageId) {
-            // Close options menu
-            const menu = document.querySelector('.message-options-menu');
-            if (menu) menu.remove();
-            currentOptionsMessageId = null;
-
-            if (confirm('Are you sure you want to delete this message?')) {
-                socket.emit('delete-message', {
-                    chatId: currentChatId,
-                    messageId: messageId
-                });
-            }
-        }
-
-        // Close options menu when clicking outside
-        document.addEventListener('click', () => {
-            const menu = document.querySelector('.message-options-menu');
-            if (menu) {
-                menu.remove();
-                currentOptionsMessageId = null;
-            }
-        });
-
-        // Upload multiple files
-        let uploadedFilesForMessage = [];
-        let totalFilesToUpload = 0;
-        let messageTextForFiles = '';
-
-        function uploadMultipleFiles(files, text) {
-            uploadedFilesForMessage = [];
-            totalFilesToUpload = files.length;
-            messageTextForFiles = text;
-
-            // Upload each file
-            files.forEach((file, index) => {
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const text = messageInput.value.trim();
+            
+            if (!currentChatId || (!text && !selectedFile)) return;
+            
+            if (selectedFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     socket.emit('upload-file', {
                         chatId: currentChatId,
                         fileData: e.target.result,
-                        fileName: file.name,
-                        fileType: file.type,
-                        fileIndex: index,
-                        totalFiles: totalFilesToUpload
+                        fileName: selectedFile.name,
+                        fileType: selectedFile.type
                     });
                 };
                 reader.readAsDataURL(file);
@@ -4147,31 +2972,9 @@
                 // Upload multiple files
                 uploadMultipleFiles(selectedFiles, text);
             } else {
-                // FIXED: Check if it's a group or 1-on-1 chat
-                const group = groups.get(currentChatId);
-                const chat = chats.get(currentChatId);
-
-                let messageData;
-
-                if (group) {
-                    // Groups: No encryption (multi-recipient encryption not implemented)
-                    messageData = { text: text, encrypted: false };
-                } else if (chat) {
-                    // 1-on-1 chat: Encrypt if we have recipient's public key
-                    const recipientUsername = chat.name;
-                    if (recipientUsername && contactPublicKeys.has(recipientUsername)) {
-                        messageData = await encryptMessage(text, recipientUsername);
-                    } else {
-                        messageData = { text: text, encrypted: false };
-                    }
-                } else {
-                    // Shouldn't happen, but fallback
-                    messageData = { text: text, encrypted: false };
-                }
-
                 socket.emit('send-message', {
                     chatId: currentChatId,
-                    ...messageData
+                    text: text
                 });
                 messageInput.value = '';
                 autoResize(messageInput);
@@ -4209,37 +3012,11 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
         }
 
-        function scrollToBottom(immediate = false) {
+        function scrollToBottom() {
             const container = document.getElementById('messagesContainer');
-            if (immediate) {
+            setTimeout(() => {
                 container.scrollTop = container.scrollHeight;
-            } else {
-                setTimeout(() => {
-                    container.scrollTop = container.scrollHeight;
-                }, 100);
-            }
-        }
-
-        function checkScrollPosition() {
-            const container = document.getElementById('messagesContainer');
-            const scrollBtn = document.getElementById('scrollToBottomBtn');
-
-            if (!container || !scrollBtn) return;
-
-            const isScrolledUp = container.scrollHeight - container.scrollTop - container.clientHeight > 100;
-
-            if (isScrolledUp) {
-                scrollBtn.classList.add('visible');
-            } else {
-                scrollBtn.classList.remove('visible');
-            }
-        }
-
-        function initScrollHandling() {
-            const container = document.getElementById('messagesContainer');
-            if (container) {
-                container.addEventListener('scroll', checkScrollPosition);
-            }
+            }, 100);
         }
 
         function toggleSidebar() {
@@ -4262,28 +3039,6 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
-
-        function formatDuration(seconds) {
-            if (!seconds) return '0:00';
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function getMessageStatusIcon(msg) {
-            // Only show status for sent messages (not received)
-            if (!msg.sent) return '';
-
-            const isRead = msg.read || false;
-
-            if (isRead) {
-                // Double checkmark (read) - blue color
-                return '<span class="message-status"><span class="checkmark read">✓</span><span class="checkmark read">✓</span></span>';
-            } else {
-                // Single checkmark (sent but not read) - gray color
-                return '<span class="message-status"><span class="checkmark">✓</span></span>';
-            }
         }
 
         function getFileIcon(mimetype) {
@@ -4322,712 +3077,16 @@
             if (e.key === 'Enter') addContact();
         });
 
-        // ========== HEADER MENU ==========
-
-        function toggleHeaderMenu() {
-            const dropdown = document.getElementById('headerMenuDropdown');
-            dropdown.classList.toggle('active');
-        }
-
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('headerMenuDropdown');
-            const menuBtn = e.target.closest('.header-menu');
-            if (!menuBtn && menu && menu.classList.contains('active')) {
-                menu.classList.remove('active');
-            }
-        });
-
-        // ========== WHITEBOARD FUNCTIONALITY ==========
-
-        function openWhiteboard() {
-            const chatScreen = document.getElementById('chatScreen');
-            const whiteboardContainer = document.getElementById('whiteboardContainer');
-
-            chatScreen.style.display = 'none';
-            whiteboardContainer.classList.add('active');
-
-            // Initialize canvas if not already done
-            if (!whiteboardCanvas) {
-                initWhiteboard();
-            }
-
-            // Close header menu
-            document.getElementById('headerMenuDropdown').classList.remove('active');
-
-            console.log('Whiteboard opened');
-        }
-
-        function closeWhiteboard() {
-            const chatScreen = document.getElementById('chatScreen');
-            const whiteboardContainer = document.getElementById('whiteboardContainer');
-
-            whiteboardContainer.classList.remove('active');
-            chatScreen.style.display = 'flex';
-
-            console.log('Whiteboard closed');
-        }
-
-        function initWhiteboard() {
-            whiteboardCanvas = document.getElementById('whiteboardCanvas');
-            whiteboardCtx = whiteboardCanvas.getContext('2d');
-            eraserCursor = document.getElementById('eraserCursor');
-
-            // Set canvas size to fill container
-            resizeWhiteboardCanvas();
-            window.addEventListener('resize', resizeWhiteboardCanvas);
-
-            // Event listeners
-            whiteboardCanvas.addEventListener('mousedown', startDrawing);
-            whiteboardCanvas.addEventListener('mousemove', draw);
-            whiteboardCanvas.addEventListener('mouseup', stopDrawing);
-            whiteboardCanvas.addEventListener('mouseleave', stopDrawing);
-
-            // Touch support
-            whiteboardCanvas.addEventListener('touchstart', handleTouchStart);
-            whiteboardCanvas.addEventListener('touchmove', handleTouchMove);
-            whiteboardCanvas.addEventListener('touchend', stopDrawing);
-
-            // Eraser cursor tracking
-            whiteboardCanvas.addEventListener('mousemove', updateEraserCursor);
-            whiteboardCanvas.addEventListener('mouseleave', () => {
-                if (eraserCursor) eraserCursor.classList.remove('active');
-            });
-
-            // Color and stroke listeners
-            document.getElementById('colorPicker').addEventListener('change', (e) => {
-                currentColor = e.target.value;
-            });
-
-            document.getElementById('fillColorPicker').addEventListener('change', (e) => {
-                currentFillColor = e.target.value;
-            });
-
-            document.getElementById('strokeWidth').addEventListener('input', (e) => {
-                currentStrokeWidth = parseInt(e.target.value);
-                document.getElementById('strokeWidthLabel').textContent = currentStrokeWidth + 'px';
-                if (currentTool === 'eraser') {
-                    updateEraserCursorSize();
-                }
-            });
-
-            // Draw initial background
-            drawBackground();
-
-            // Save initial state
-            saveState();
-
-            console.log('Whiteboard initialized');
-        }
-
-        function updateEraserCursor(e) {
-            if (currentTool === 'eraser' && eraserCursor) {
-                eraserCursor.classList.add('active');
-                const rect = whiteboardCanvas.getBoundingClientRect();
-                const size = currentStrokeWidth * 4;
-                eraserCursor.style.width = size + 'px';
-                eraserCursor.style.height = size + 'px';
-                eraserCursor.style.left = (e.clientX - size / 2) + 'px';
-                eraserCursor.style.top = (e.clientY - size / 2) + 'px';
-            } else {
-                if (eraserCursor) eraserCursor.classList.remove('active');
-            }
-        }
-
-        function updateEraserCursorSize() {
-            if (eraserCursor && currentTool === 'eraser') {
-                const size = currentStrokeWidth * 4;
-                eraserCursor.style.width = size + 'px';
-                eraserCursor.style.height = size + 'px';
-            }
-        }
-
-        function resizeWhiteboardCanvas() {
-            if (!whiteboardCanvas) return;
-
-            const container = whiteboardCanvas.parentElement;
-            whiteboardCanvas.width = container.clientWidth;
-            whiteboardCanvas.height = container.clientHeight;
-
-            // Redraw content after resize
-            redrawCanvas();
-        }
-
-        function selectTool(tool) {
-            currentTool = tool;
-
-            // Update active button
-            document.querySelectorAll('.toolbar-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            const toolBtn = document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1));
-            if (toolBtn) toolBtn.classList.add('active');
-
-            // Remove all cursor mode classes
-            whiteboardCanvas.classList.remove('pan-mode', 'eraser-mode', 'select-mode');
-
-            // Update cursor based on tool
-            if (tool === 'pan') {
-                whiteboardCanvas.classList.add('pan-mode');
-            } else if (tool === 'eraser') {
-                whiteboardCanvas.classList.add('eraser-mode');
-            } else if (tool === 'select') {
-                whiteboardCanvas.classList.add('select-mode');
-            } else {
-                whiteboardCanvas.style.cursor = 'crosshair';
-            }
-        }
-
-        function getMousePos(e) {
-            const rect = whiteboardCanvas.getBoundingClientRect();
-            return {
-                x: (e.clientX - rect.left - panX) / zoomLevel,
-                y: (e.clientY - rect.top - panY) / zoomLevel
-            };
-        }
-
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            whiteboardCanvas.dispatchEvent(mouseEvent);
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            whiteboardCanvas.dispatchEvent(mouseEvent);
-        }
-
-        function startDrawing(e) {
-            isDrawing = true;
-            const pos = getMousePos(e);
-            startX = pos.x;
-            startY = pos.y;
-
-            if (currentTool === 'pan') {
-                isPanning = true;
-                whiteboardCanvas.style.cursor = 'grabbing';
-                return;
-            }
-
-            if (currentTool === 'text') {
-                addTextBox(pos.x, pos.y);
-                return;
-            }
-
-            whiteboardCtx.beginPath();
-            whiteboardCtx.moveTo(startX, startY);
-        }
-
-        function draw(e) {
-            if (!isDrawing) return;
-
-            const pos = getMousePos(e);
-
-            if (currentTool === 'pan' && isPanning) {
-                panX += e.movementX;
-                panY += e.movementY;
-                redrawCanvas();
-                return;
-            }
-
-            if (currentTool === 'pen' || currentTool === 'highlighter') {
-                drawFreehand(pos.x, pos.y);
-            } else if (currentTool === 'eraser') {
-                erase(pos.x, pos.y);
-            } else {
-                // For shapes, show preview
-                redrawCanvas();
-                drawShape(startX, startY, pos.x, pos.y, true);
-            }
-        }
-
-        function stopDrawing(e) {
-            if (!isDrawing) return;
-
-            isDrawing = false;
-
-            if (currentTool === 'pan') {
-                isPanning = false;
-                whiteboardCanvas.style.cursor = 'grab';
-                return;
-            }
-
-            if (currentTool !== 'pen' && currentTool !== 'highlighter' && currentTool !== 'eraser' && currentTool !== 'text') {
-                const pos = getMousePos(e);
-                drawShape(startX, startY, pos.x, pos.y, false);
-            }
-
-            saveState();
-            broadcastDraw();
-        }
-
-        function drawFreehand(x, y) {
-            whiteboardCtx.save();
-            whiteboardCtx.scale(zoomLevel, zoomLevel);
-            whiteboardCtx.translate(panX / zoomLevel, panY / zoomLevel);
-
-            whiteboardCtx.strokeStyle = currentColor;
-            whiteboardCtx.lineWidth = currentStrokeWidth;
-            whiteboardCtx.lineCap = 'round';
-            whiteboardCtx.lineJoin = 'round';
-
-            if (currentTool === 'highlighter') {
-                whiteboardCtx.globalAlpha = 0.4;
-                whiteboardCtx.lineWidth = currentStrokeWidth * 3;
-            }
-
-            whiteboardCtx.lineTo(x, y);
-            whiteboardCtx.stroke();
-
-            whiteboardCtx.restore();
-        }
-
-        function erase(x, y) {
-            whiteboardCtx.save();
-            whiteboardCtx.scale(zoomLevel, zoomLevel);
-            whiteboardCtx.translate(panX / zoomLevel, panY / zoomLevel);
-
-            whiteboardCtx.clearRect(x - currentStrokeWidth * 2, y - currentStrokeWidth * 2,
-                                     currentStrokeWidth * 4, currentStrokeWidth * 4);
-
-            whiteboardCtx.restore();
-        }
-
-        function drawShape(x1, y1, x2, y2, isPreview) {
-            whiteboardCtx.save();
-            whiteboardCtx.scale(zoomLevel, zoomLevel);
-            whiteboardCtx.translate(panX / zoomLevel, panY / zoomLevel);
-
-            whiteboardCtx.strokeStyle = currentColor;
-            whiteboardCtx.lineWidth = currentStrokeWidth;
-            whiteboardCtx.lineCap = 'round';
-
-            // Apply line style
-            if (currentLineStyle === 'dashed') {
-                whiteboardCtx.setLineDash([10, 5]);
-            } else if (currentLineStyle === 'dotted') {
-                whiteboardCtx.setLineDash([2, 5]);
-            } else {
-                whiteboardCtx.setLineDash([]);
-            }
-
-            whiteboardCtx.beginPath();
-
-            if (currentTool === 'line') {
-                whiteboardCtx.moveTo(x1, y1);
-                whiteboardCtx.lineTo(x2, y2);
-            } else if (currentTool === 'rectangle') {
-                whiteboardCtx.rect(x1, y1, x2 - x1, y2 - y1);
-                if (fillShapes) {
-                    whiteboardCtx.fillStyle = currentFillColor;
-                    whiteboardCtx.fill();
-                }
-            } else if (currentTool === 'circle') {
-                const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-                whiteboardCtx.arc(x1, y1, radius, 0, Math.PI * 2);
-                if (fillShapes) {
-                    whiteboardCtx.fillStyle = currentFillColor;
-                    whiteboardCtx.fill();
-                }
-            } else if (currentTool === 'triangle') {
-                const height = y2 - y1;
-                const width = x2 - x1;
-                whiteboardCtx.moveTo(x1 + width / 2, y1);  // top
-                whiteboardCtx.lineTo(x2, y2);  // bottom right
-                whiteboardCtx.lineTo(x1, y2);  // bottom left
-                whiteboardCtx.closePath();
-                if (fillShapes) {
-                    whiteboardCtx.fillStyle = currentFillColor;
-                    whiteboardCtx.fill();
-                }
-            } else if (currentTool === 'star') {
-                drawStar(x1, y1, x2, y2);
-                if (fillShapes) {
-                    whiteboardCtx.fillStyle = currentFillColor;
-                    whiteboardCtx.fill();
-                }
-            } else if (currentTool === 'arrow') {
-                drawArrow(x1, y1, x2, y2);
-            }
-
-            whiteboardCtx.stroke();
-            whiteboardCtx.restore();
-        }
-
-        function drawStar(x1, y1, x2, y2) {
-            const cx = (x1 + x2) / 2;
-            const cy = (y1 + y2) / 2;
-            const outerRadius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2;
-            const innerRadius = outerRadius / 2.5;
-            const spikes = 5;
-
-            let rot = Math.PI / 2 * 3;
-            let x = cx;
-            let y = cy;
-            const step = Math.PI / spikes;
-
-            whiteboardCtx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < spikes; i++) {
-                x = cx + Math.cos(rot) * outerRadius;
-                y = cy + Math.sin(rot) * outerRadius;
-                whiteboardCtx.lineTo(x, y);
-                rot += step;
-
-                x = cx + Math.cos(rot) * innerRadius;
-                y = cy + Math.sin(rot) * innerRadius;
-                whiteboardCtx.lineTo(x, y);
-                rot += step;
-            }
-            whiteboardCtx.lineTo(cx, cy - outerRadius);
-            whiteboardCtx.closePath();
-        }
-
-        function drawArrow(x1, y1, x2, y2) {
-            const headlen = 15;
-            const angle = Math.atan2(y2 - y1, x2 - x1);
-
-            whiteboardCtx.moveTo(x1, y1);
-            whiteboardCtx.lineTo(x2, y2);
-            whiteboardCtx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6),
-                                y2 - headlen * Math.sin(angle - Math.PI / 6));
-            whiteboardCtx.moveTo(x2, y2);
-            whiteboardCtx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6),
-                                y2 - headlen * Math.sin(angle + Math.PI / 6));
-        }
-
-        function addTextBox(x, y) {
-            const text = prompt('Enter text:');
-            if (!text) return;
-
-            whiteboardCtx.save();
-            whiteboardCtx.scale(zoomLevel, zoomLevel);
-            whiteboardCtx.translate(panX / zoomLevel, panY / zoomLevel);
-
-            whiteboardCtx.fillStyle = currentColor;
-
-            // Build font string
-            let fontStyle = '';
-            if (isItalic) fontStyle += 'italic ';
-            if (isBold) fontStyle += 'bold ';
-            fontStyle += `${currentFontSize}px Arial`;
-
-            whiteboardCtx.font = fontStyle;
-            whiteboardCtx.fillText(text, x, y);
-
-            whiteboardCtx.restore();
-
-            saveState();
-            broadcastDraw();
-        }
-
-        function addStickyNote() {
-            const text = prompt('Enter sticky note text:');
-            if (!text) return;
-
-            const x = 100;
-            const y = 100;
-            const width = 200;
-            const height = 150;
-
-            whiteboardCtx.save();
-
-            // Draw sticky note background
-            whiteboardCtx.fillStyle = '#ffeb3b';
-            whiteboardCtx.fillRect(x, y, width, height);
-            whiteboardCtx.strokeStyle = '#f9a825';
-            whiteboardCtx.lineWidth = 2;
-            whiteboardCtx.strokeRect(x, y, width, height);
-
-            // Draw text
-            whiteboardCtx.fillStyle = '#000000';
-            whiteboardCtx.font = '14px Arial';
-
-            const words = text.split(' ');
-            let line = '';
-            let lineY = y + 30;
-
-            words.forEach(word => {
-                const testLine = line + word + ' ';
-                const metrics = whiteboardCtx.measureText(testLine);
-
-                if (metrics.width > width - 20 && line !== '') {
-                    whiteboardCtx.fillText(line, x + 10, lineY);
-                    line = word + ' ';
-                    lineY += 20;
-                } else {
-                    line = testLine;
-                }
-            });
-            whiteboardCtx.fillText(line, x + 10, lineY);
-
-            whiteboardCtx.restore();
-
-            saveState();
-            broadcastDraw();
-        }
-
-        function saveState() {
-            historyStep++;
-            if (historyStep < drawingHistory.length) {
-                drawingHistory.length = historyStep;
-            }
-            drawingHistory.push(whiteboardCanvas.toDataURL());
-        }
-
-        function undoWhiteboard() {
-            if (historyStep > 0) {
-                historyStep--;
-                restoreState(drawingHistory[historyStep]);
-            }
-        }
-
-        function redoWhiteboard() {
-            if (historyStep < drawingHistory.length - 1) {
-                historyStep++;
-                restoreState(drawingHistory[historyStep]);
-            }
-        }
-
-        function restoreState(dataURL) {
-            const img = new Image();
-            img.onload = () => {
-                whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
-                whiteboardCtx.drawImage(img, 0, 0);
-            };
-            img.src = dataURL;
-        }
-
-        function redrawCanvas() {
-            if (historyStep >= 0 && drawingHistory[historyStep]) {
-                restoreState(drawingHistory[historyStep]);
-            }
-        }
-
-        function clearWhiteboard() {
-            if (confirm('Clear entire whiteboard? This cannot be undone.')) {
-                whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
-                saveState();
-                broadcastDraw();
-            }
-        }
-
-        function zoomIn() {
-            if (zoomLevel < maxZoom) {
-                zoomLevel += 0.25;
-                updateZoom();
-            }
-        }
-
-        function zoomOut() {
-            if (zoomLevel > minZoom) {
-                zoomLevel -= 0.25;
-                updateZoom();
-            }
-        }
-
-        function resetZoom() {
-            zoomLevel = 1;
-            panX = 0;
-            panY = 0;
-            updateZoom();
-        }
-
-        function updateZoom() {
-            document.getElementById('zoomLevel').textContent = Math.round(zoomLevel * 100) + '%';
-            redrawCanvas();
-        }
-
-        function broadcastDraw() {
-            if (socket && whiteboardCanvas) {
-                const imageData = whiteboardCanvas.toDataURL();
-                socket.emit('whiteboard-draw', { imageData });
-            }
-        }
-
-        // Additional Whiteboard Functions
-
-        function updateFillOption() {
-            fillShapes = document.getElementById('fillShapes').checked;
-            currentFillColor = document.getElementById('fillColorPicker').value;
-        }
-
-        function updateLineStyle() {
-            currentLineStyle = document.getElementById('lineStyle').value;
-        }
-
-        function updateFontSize() {
-            currentFontSize = parseInt(document.getElementById('fontSize').value);
-        }
-
-        function toggleBold() {
-            isBold = !isBold;
-            document.getElementById('fontBold').classList.toggle('active');
-        }
-
-        function toggleItalic() {
-            isItalic = !isItalic;
-            document.getElementById('fontItalic').classList.toggle('active');
-        }
-
-        function addStamp(emoji) {
-            const x = whiteboardCanvas.width / 2;
-            const y = whiteboardCanvas.height / 2;
-
-            whiteboardCtx.save();
-            whiteboardCtx.font = '48px Arial';
-            whiteboardCtx.fillText(emoji, x, y);
-            whiteboardCtx.restore();
-
-            saveState();
-            broadcastDraw();
-        }
-
-        function uploadImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const maxWidth = 400;
-                    const maxHeight = 400;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > maxWidth || height > maxHeight) {
-                        const ratio = Math.min(maxWidth / width, maxHeight / height);
-                        width *= ratio;
-                        height *= ratio;
-                    }
-
-                    const x = 100;
-                    const y = 100;
-
-                    whiteboardCtx.save();
-                    whiteboardCtx.drawImage(img, x, y, width, height);
-                    whiteboardCtx.restore();
-
-                    saveState();
-                    broadcastDraw();
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function changeBackground() {
-            currentBackground = document.getElementById('backgroundTemplate').value;
-            drawBackground();
-            redrawCanvas();
-        }
-
-        function drawBackground() {
-            const canvas = whiteboardCanvas;
-            const ctx = whiteboardCtx;
-
-            // Clear and set white background
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (currentBackground === 'grid') {
-                ctx.strokeStyle = '#e0e0e0';
-                ctx.lineWidth = 1;
-                const gridSize = 30;
-
-                for (let x = 0; x < canvas.width; x += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, canvas.height);
-                    ctx.stroke();
-                }
-
-                for (let y = 0; y < canvas.height; y += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(canvas.width, y);
-                    ctx.stroke();
-                }
-            } else if (currentBackground === 'lines') {
-                ctx.strokeStyle = '#e0e0e0';
-                ctx.lineWidth = 1;
-                const lineSpacing = 40;
-
-                for (let y = lineSpacing; y < canvas.height; y += lineSpacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(canvas.width, y);
-                    ctx.stroke();
-                }
-            } else if (currentBackground === 'dots') {
-                ctx.fillStyle = '#d0d0d0';
-                const dotSpacing = 20;
-                const dotRadius = 1.5;
-
-                for (let x = dotSpacing; x < canvas.width; x += dotSpacing) {
-                    for (let y = dotSpacing; y < canvas.height; y += dotSpacing) {
-                        ctx.beginPath();
-                        ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
-        }
-
-        function exportWhiteboard() {
-            const link = document.createElement('a');
-            link.download = 'whiteboard-' + Date.now() + '.png';
-            link.href = whiteboardCanvas.toDataURL();
-            link.click();
-        }
-
         // ========== CALL FUNCTIONALITY ==========
 
         async function startVoiceCall() {
             if (!currentChatId) return;
-
-            // Check if it's a group (calls only work for 1-on-1)
-            const group = groups.get(currentChatId);
-            if (group) {
-                alert('Voice calls are only available for 1-on-1 chats, not groups.');
-                return;
-            }
-
-            const chat = chats.get(currentChatId);
-            if (!chat) {
-                alert('Please select a contact to call.');
-                return;
-            }
-
             isVideoCall = false;
             await initiateCall(false);
         }
 
         async function startVideoCall() {
             if (!currentChatId) return;
-
-            // Check if it's a group (calls only work for 1-on-1)
-            const group = groups.get(currentChatId);
-            if (group) {
-                alert('Video calls are only available for 1-on-1 chats, not groups.');
-                return;
-            }
-
-            const chat = chats.get(currentChatId);
-            if (!chat) {
-                alert('Please select a contact to call.');
-                return;
-            }
-
             isVideoCall = true;
             await initiateCall(true);
         }
@@ -5037,16 +3096,9 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                // Get user media with aggressive echo cancellation
+                // Get user media
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: { ideal: true },
-                        noiseSuppression: { ideal: true },
-                        autoGainControl: { ideal: true },
-                        sampleRate: 48000,
-                        sampleSize: 16,
-                        channelCount: 1
-                    },
+                    audio: true,
                     video: video
                 });
 
@@ -5056,9 +3108,6 @@
                 if (video) {
                     document.getElementById('localVideo').srcObject = localStream;
                     isVideoEnabled = true;
-                } else {
-                    // For voice calls, set local stream to muted audio element
-                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
                 // Create peer connection
@@ -5088,19 +3137,7 @@
 
             } catch (error) {
                 console.error('Error starting call:', error);
-
-                let errorMessage = 'Could not start call. ';
-                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                    errorMessage += 'Please allow access to your camera and microphone.';
-                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-                    errorMessage += 'No camera or microphone found.';
-                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-                    errorMessage += 'Camera/microphone is already in use by another application.';
-                } else {
-                    errorMessage += error.message || 'Unknown error occurred.';
-                }
-
-                alert(errorMessage);
+                alert('Could not access camera/microphone. Please check permissions.');
                 closeCallUI();
             }
         }
@@ -5118,56 +3155,25 @@
                 }
             };
 
-            // Handle remote stream - FIXED: Properly handle remote audio
+            // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('Received remote track:', event.track.kind, 'streams:', event.streams.length);
-
-                // Use the stream provided by the event (modern approach)
-                if (event.streams && event.streams[0]) {
-                    if (!remoteStream) {
-                        remoteStream = event.streams[0];
-
-                        // CRITICAL FIX: Set up audio/video element immediately
-                        if (isVideoCall) {
-                            // Video calls: use video element
-                            const remoteVideo = document.getElementById('remoteVideo');
-                            remoteVideo.srcObject = remoteStream;
-                            remoteVideo.volume = 0.8;
-
-                            // Ensure video plays
-                            remoteVideo.play().then(() => {
-                                console.log('Remote video playing successfully');
-                            }).catch(err => {
-                                console.error('Error playing remote video:', err);
-                            });
-                        } else {
-                            // Voice calls: use audio element
-                            const remoteAudio = document.getElementById('remoteAudio');
-                            remoteAudio.srcObject = remoteStream;
-                            remoteAudio.volume = 0.7;
-
-                            // Ensure audio plays (handle autoplay restrictions)
-                            remoteAudio.play().then(() => {
-                                console.log('Remote audio playing successfully');
-                            }).catch(err => {
-                                console.error('Error playing remote audio:', err);
-                            });
-                        }
-                    }
+                if (!remoteStream) {
+                    remoteStream = new MediaStream();
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
                 }
-
-                if (isVideoCall && event.track.kind === 'video') {
+                remoteStream.addTrack(event.track);
+                
+                if (isVideoCall) {
                     document.getElementById('videoPlaceholder').style.display = 'none';
                 }
             };
 
             // Handle connection state
             peerConnection.onconnectionstatechange = () => {
-                console.log('Connection state:', peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') {
                     startCallTimer();
                     document.getElementById('callStatus').textContent = 'Connected';
-                } else if (peerConnection.connectionState === 'disconnected' ||
+                } else if (peerConnection.connectionState === 'disconnected' || 
                            peerConnection.connectionState === 'failed') {
                     endCall();
                 }
@@ -5235,25 +3241,15 @@
             try {
                 if (!currentCall) return;
 
-                // Get user media with aggressive echo cancellation
+                // Get user media
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: { ideal: true },
-                        noiseSuppression: { ideal: true },
-                        autoGainControl: { ideal: true },
-                        sampleRate: 48000,
-                        sampleSize: 16,
-                        channelCount: 1
-                    },
+                    audio: true,
                     video: currentCall.isVideo
                 });
 
                 if (currentCall.isVideo) {
                     document.getElementById('localVideo').srcObject = localStream;
                     isVideoEnabled = true;
-                } else {
-                    // For voice calls, set local stream to muted audio element
-                    document.getElementById('localAudio').srcObject = localStream;
                 }
 
                 // Add local stream to existing peer connection
@@ -5320,32 +3316,10 @@
                 remoteStream = null;
             }
 
-            // Stop screen sharing if active
-            if (screenStream) {
-                screenStream.getTracks().forEach(track => track.stop());
-                screenStream = null;
-            }
-
-            if (originalStream) {
-                originalStream = null;
-            }
-
-            // FIXED: Clear srcObject from ALL audio and video elements
-            const remoteAudio = document.getElementById('remoteAudio');
-            const remoteVideo = document.getElementById('remoteVideo');
-            const localVideo = document.getElementById('localVideo');
-            const localAudio = document.getElementById('localAudio');
-
-            if (remoteAudio) remoteAudio.srcObject = null;
-            if (remoteVideo) remoteVideo.srcObject = null;
-            if (localVideo) localVideo.srcObject = null;
-            if (localAudio) localAudio.srcObject = null;
-
             // Reset call state
             currentCall = null;
             isMuted = false;
             isVideoEnabled = false;
-            isScreenSharing = false;
             callStartTime = null;
 
             // Close UI
@@ -5390,197 +3364,6 @@
             }
         }
 
-        async function toggleScreenShare() {
-            if (!peerConnection) {
-                alert('No active call to share screen');
-                return;
-            }
-
-            const screenShareBtn = document.getElementById('screenShareBtn');
-            const screenShareIndicator = document.getElementById('screenShareIndicator');
-
-            try {
-                if (!isScreenSharing) {
-                    // Start screen sharing
-                    console.log('Starting screen share...', 'isVideoCall:', isVideoCall);
-
-                    // Save original stream
-                    originalStream = localStream;
-
-                    // Get screen stream
-                    console.log('Requesting display media...');
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: {
-                            cursor: 'always'
-                        },
-                        audio: false
-                    });
-                    console.log('Screen stream obtained:', screenStream);
-
-                    // Handle when user stops sharing via browser UI
-                    screenStream.getVideoTracks()[0].onended = () => {
-                        console.log('Screen share stopped via browser UI');
-                        stopScreenShare();
-                    };
-
-                    // Replace or add video track in peer connection
-                    const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                    console.log('Video sender found:', !!videoSender);
-
-                    if (videoSender) {
-                        // Video track exists, replace it
-                        console.log('Replacing existing video track...');
-                        await videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
-                    } else {
-                        // No video track, add one (voice call scenario)
-                        console.log('Adding new video track to peer connection...');
-                        const sender = peerConnection.addTrack(screenStream.getVideoTracks()[0], screenStream);
-                        console.log('Track added, sender:', sender);
-
-                        // Renegotiate connection to add new track
-                        console.log('Creating new offer for renegotiation...');
-                        const offer = await peerConnection.createOffer();
-                        await peerConnection.setLocalDescription(offer);
-
-                        // Send renegotiation offer
-                        const chat = chats.get(currentChatId);
-                        if (chat) {
-                            console.log('Sending renegotiation offer...');
-                            socket.emit('call-offer', {
-                                to: chat.name,
-                                offer: offer,
-                                isVideo: true // Now it's a video call
-                            });
-                        }
-                    }
-
-                    // Update local video to show screen
-                    const localVideo = document.getElementById('localVideo');
-                    if (localVideo) {
-                        localVideo.srcObject = screenStream;
-                        console.log('Local video updated to show screen');
-                    }
-
-                    // Update UI
-                    isScreenSharing = true;
-                    screenShareBtn.classList.add('active');
-                    screenShareBtn.innerHTML = '🛑';
-                    screenShareIndicator.classList.add('active');
-
-                    // Show video container if it's not visible (for voice calls)
-                    if (!isVideoCall) {
-                        document.getElementById('videoContainer').style.display = 'block';
-                        document.getElementById('voiceCallAvatar').style.display = 'none';
-                        console.log('Video container shown for voice call');
-                    }
-
-                    console.log('Screen sharing started successfully');
-                } else {
-                    // Stop screen sharing
-                    stopScreenShare();
-                }
-            } catch (error) {
-                console.error('Error toggling screen share:', error);
-                console.error('Error name:', error.name);
-                console.error('Error message:', error.message);
-                console.error('Error stack:', error.stack);
-
-                let errorMsg = 'Could not share screen. ';
-                if (error.name === 'NotAllowedError') {
-                    errorMsg += 'Permission denied. Please allow screen sharing and try again.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMsg += 'No screen to share was found.';
-                } else if (error.name === 'NotReadableError') {
-                    errorMsg += 'Screen is already in use by another application.';
-                } else if (error.name === 'AbortError') {
-                    errorMsg += 'Screen sharing was cancelled.';
-                } else {
-                    errorMsg += error.message || 'Unknown error occurred.';
-                }
-                alert(errorMsg);
-            }
-        }
-
-        async function stopScreenShare() {
-            if (!isScreenSharing) return;
-
-            console.log('Stopping screen share...');
-
-            try {
-                // Stop screen stream
-                if (screenStream) {
-                    screenStream.getTracks().forEach(track => track.stop());
-                    screenStream = null;
-                }
-
-                // Handle restoration based on call type
-                if (originalStream && peerConnection) {
-                    const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                    const hasOriginalVideo = originalStream.getVideoTracks().length > 0;
-
-                    console.log('Has original video track:', hasOriginalVideo);
-
-                    if (videoSender) {
-                        if (hasOriginalVideo) {
-                            // Restore camera (video call)
-                            console.log('Restoring camera video track...');
-                            await videoSender.replaceTrack(originalStream.getVideoTracks()[0]);
-
-                            // Update local video to show camera again
-                            const localVideo = document.getElementById('localVideo');
-                            if (localVideo) {
-                                localVideo.srcObject = originalStream;
-                            }
-                        } else {
-                            // Remove video track (was voice call)
-                            console.log('Removing video track for voice call...');
-                            peerConnection.removeTrack(videoSender);
-
-                            // Renegotiate to remove track
-                            const offer = await peerConnection.createOffer();
-                            await peerConnection.setLocalDescription(offer);
-
-                            // Send renegotiation offer
-                            const chat = chats.get(currentChatId);
-                            if (chat) {
-                                console.log('Sending renegotiation offer to remove video...');
-                                socket.emit('call-offer', {
-                                    to: chat.name,
-                                    offer: offer,
-                                    isVideo: false // Back to voice only
-                                });
-                            }
-                        }
-                    }
-                }
-
-                // Update UI
-                isScreenSharing = false;
-                const screenShareBtn = document.getElementById('screenShareBtn');
-                const screenShareIndicator = document.getElementById('screenShareIndicator');
-
-                if (screenShareBtn) {
-                    screenShareBtn.classList.remove('active');
-                    screenShareBtn.innerHTML = '🖥️';
-                }
-                if (screenShareIndicator) {
-                    screenShareIndicator.classList.remove('active');
-                }
-
-                // Hide video container if it was a voice call
-                if (!isVideoCall) {
-                    document.getElementById('videoContainer').style.display = 'none';
-                    document.getElementById('voiceCallAvatar').style.display = 'block';
-                }
-
-                console.log('Screen sharing stopped successfully');
-            } catch (error) {
-                console.error('Error stopping screen share:', error);
-                console.error('Error name:', error.name);
-                console.error('Error message:', error.message);
-            }
-        }
-
         function startCallTimer() {
             callStartTime = Date.now();
             document.getElementById('callTimer').style.display = 'block';
@@ -5591,6 +3374,572 @@
                 const seconds = (elapsed % 60).toString().padStart(2, '0');
                 document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
             }, 1000);
+        }
+
+        // ==================== Meeting Functions ====================
+
+        function showMeetings() {
+            document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('contactsTab').classList.remove('active');
+            document.getElementById('meetingsTab').classList.add('active');
+
+            document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('contactsList').classList.remove('active');
+            document.getElementById('meetingsList').classList.add('active');
+
+            loadMeetings();
+        }
+
+        function showChats() {
+            document.getElementById('chatsTab').classList.add('active');
+            document.getElementById('contactsTab').classList.remove('active');
+            document.getElementById('meetingsTab').classList.remove('active');
+
+            document.getElementById('chatList').classList.remove('hidden');
+            document.getElementById('contactsList').classList.remove('active');
+            document.getElementById('meetingsList').classList.remove('active');
+        }
+
+        function showContacts() {
+            document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('contactsTab').classList.add('active');
+            document.getElementById('meetingsTab').classList.remove('active');
+
+            document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('contactsList').classList.add('active');
+            document.getElementById('meetingsList').classList.remove('active');
+        }
+
+        function showCreateMeetingModal() {
+            const modal = document.getElementById('createMeetingModal');
+            modal.classList.add('active');
+
+            // Set minimum datetime to now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('meetingDateTime').min = now.toISOString().slice(0, 16);
+
+            // Load contacts for participant selection
+            loadParticipantsForMeeting();
+        }
+
+        function closeCreateMeetingModal() {
+            const modal = document.getElementById('createMeetingModal');
+            modal.classList.remove('active');
+
+            // Clear form
+            document.getElementById('meetingTitle').value = '';
+            document.getElementById('meetingDescription').value = '';
+            document.getElementById('meetingDateTime').value = '';
+            document.getElementById('meetingDuration').value = '60';
+        }
+
+        function loadParticipantsForMeeting() {
+            const participantsList = document.getElementById('participantsList');
+            participantsList.innerHTML = '';
+
+            if (contacts.length === 0) {
+                participantsList.innerHTML = '<p style="color: #8696a0; text-align: center; padding: 20px;">No contacts available. Add contacts first.</p>';
+                return;
+            }
+
+            contacts.forEach(contact => {
+                const item = document.createElement('div');
+                item.className = 'participant-checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="participant-${contact.username}" value="${contact.username}">
+                    <label for="participant-${contact.username}">${contact.username}</label>
+                `;
+                participantsList.appendChild(item);
+            });
+        }
+
+        function scheduleMeeting() {
+            const title = document.getElementById('meetingTitle').value.trim();
+            const description = document.getElementById('meetingDescription').value.trim();
+            const dateTime = document.getElementById('meetingDateTime').value;
+            const duration = parseInt(document.getElementById('meetingDuration').value);
+            const sendInvitations = document.getElementById('sendInvitations').checked;
+
+            if (!title) {
+                alert('Please enter a meeting title');
+                return;
+            }
+
+            if (!dateTime) {
+                alert('Please select a date and time');
+                return;
+            }
+
+            // Get selected participants
+            const selectedParticipants = [];
+            document.querySelectorAll('#participantsList input:checked').forEach(checkbox => {
+                selectedParticipants.push(checkbox.value);
+            });
+
+            if (selectedParticipants.length === 0) {
+                alert('Please select at least one participant');
+                return;
+            }
+
+            const meeting = {
+                id: Date.now().toString(),
+                title,
+                description,
+                dateTime,
+                duration,
+                participants: selectedParticipants,
+                organizer: currentUser.username,
+                status: 'scheduled',
+                sendInvitations
+            };
+
+            // Send to server
+            socket.emit('create-meeting', meeting);
+
+            closeCreateMeetingModal();
+        }
+
+        function loadMeetings() {
+            socket.emit('get-meetings');
+        }
+
+        function renderMeetings() {
+            const container = document.getElementById('meetingsContainer');
+
+            if (meetings.length === 0) {
+                container.innerHTML = '<div class="loading">No meetings scheduled. Create one to get started!</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            // Sort meetings by date
+            const sortedMeetings = [...meetings].sort((a, b) =>
+                new Date(a.dateTime) - new Date(b.dateTime)
+            );
+
+            sortedMeetings.forEach(meeting => {
+                const meetingDate = new Date(meeting.dateTime);
+                const now = new Date();
+                const isPast = meetingDate < now;
+                const isToday = meetingDate.toDateString() === now.toDateString();
+
+                let timeDisplay;
+                if (isToday) {
+                    timeDisplay = 'Today ' + meetingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timeDisplay = meetingDate.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
+                const item = document.createElement('div');
+                item.className = 'meeting-item';
+                item.innerHTML = `
+                    <div class="meeting-item-header">
+                        <span class="meeting-icon">📅</span>
+                        <div class="meeting-title">${meeting.title}</div>
+                        <span class="meeting-time">${timeDisplay}</span>
+                    </div>
+                    ${meeting.description ? `<div class="meeting-details">${meeting.description}</div>` : ''}
+                    <div class="meeting-participants">👥 ${meeting.participants.join(', ')}</div>
+                    <div class="meeting-actions">
+                        ${!isPast ? `<button class="join-meeting-btn" onclick="joinMeeting('${meeting.id}')">Join Meeting</button>` : ''}
+                        <button class="delete-meeting-btn" onclick="deleteMeeting('${meeting.id}')">Delete</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function deleteMeeting(meetingId) {
+            if (confirm('Are you sure you want to delete this meeting?')) {
+                socket.emit('delete-meeting', meetingId);
+            }
+        }
+
+        function joinMeeting(meetingId) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            if (!meeting) {
+                alert('Meeting not found');
+                return;
+            }
+
+            currentMeeting = meeting;
+
+            // Open meeting room
+            document.getElementById('meetingRoomModal').classList.add('active');
+            document.getElementById('meetingRoomTitle').textContent = meeting.title;
+
+            // Initialize meeting media
+            initializeMeetingMedia();
+
+            // Notify other participants
+            socket.emit('join-meeting-room', {
+                meetingId: meeting.id,
+                username: currentUser.username
+            });
+
+            // Start meeting timer
+            startMeetingTimer();
+        }
+
+        async function initializeMeetingMedia() {
+            try {
+                meetingLocalStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+                const localVideo = document.getElementById('meetingLocalVideo');
+                localVideo.srcObject = meetingLocalStream;
+                document.getElementById('meetingLocalPlaceholder').style.display = 'none';
+
+                isMeetingVideoEnabled = true;
+                isMeetingMuted = false;
+
+                // Create peer connection
+                createMeetingPeerConnection();
+
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                alert('Could not access camera/microphone. Please check permissions.');
+            }
+        }
+
+        function createMeetingPeerConnection() {
+            meetingPeerConnection = new RTCPeerConnection(iceServers);
+
+            // Add local stream tracks
+            if (meetingLocalStream) {
+                meetingLocalStream.getTracks().forEach(track => {
+                    meetingPeerConnection.addTrack(track, meetingLocalStream);
+                });
+            }
+
+            // Handle remote stream
+            meetingPeerConnection.ontrack = (event) => {
+                if (!meetingRemoteStream) {
+                    meetingRemoteStream = new MediaStream();
+                    const remoteVideo = document.getElementById('meetingRemoteVideo');
+                    remoteVideo.srcObject = meetingRemoteStream;
+                }
+
+                meetingRemoteStream.addTrack(event.track);
+                document.getElementById('meetingRemoteTile').style.display = 'block';
+                document.getElementById('meetingRemotePlaceholder').style.display = 'none';
+            };
+
+            // Handle ICE candidates
+            meetingPeerConnection.onicecandidate = (event) => {
+                if (event.candidate && currentMeeting) {
+                    socket.emit('meeting-ice-candidate', {
+                        meetingId: currentMeeting.id,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Create and send offer
+            meetingPeerConnection.createOffer().then(offer => {
+                return meetingPeerConnection.setLocalDescription(offer);
+            }).then(() => {
+                socket.emit('meeting-offer', {
+                    meetingId: currentMeeting.id,
+                    offer: meetingPeerConnection.localDescription
+                });
+            });
+        }
+
+        function leaveMeeting() {
+            // Stop all tracks
+            if (meetingLocalStream) {
+                meetingLocalStream.getTracks().forEach(track => track.stop());
+                meetingLocalStream = null;
+            }
+
+            // Close peer connection
+            if (meetingPeerConnection) {
+                meetingPeerConnection.close();
+                meetingPeerConnection = null;
+            }
+
+            // Clear timer
+            if (meetingTimer) {
+                clearInterval(meetingTimer);
+                meetingTimer = null;
+            }
+
+            // Notify server
+            if (currentMeeting) {
+                socket.emit('leave-meeting-room', {
+                    meetingId: currentMeeting.id,
+                    username: currentUser.username
+                });
+            }
+
+            // Close UI
+            document.getElementById('meetingRoomModal').classList.remove('active');
+            document.getElementById('meetingRemoteTile').style.display = 'none';
+            document.getElementById('meetingLocalPlaceholder').style.display = 'flex';
+            document.getElementById('participantsPanel').classList.remove('active');
+            document.getElementById('meetingChatPanel').classList.remove('active');
+
+            currentMeeting = null;
+            meetingRemoteStream = null;
+        }
+
+        function toggleMeetingAudio() {
+            if (!meetingLocalStream) return;
+
+            isMeetingMuted = !isMeetingMuted;
+            const audioTrack = meetingLocalStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !isMeetingMuted;
+            }
+
+            const muteBtn = document.getElementById('meetingMuteBtn');
+            const muteIcon = document.getElementById('meetingMuteIcon');
+
+            if (isMeetingMuted) {
+                muteBtn.classList.add('active');
+                muteIcon.textContent = '🔇';
+            } else {
+                muteBtn.classList.remove('active');
+                muteIcon.textContent = '🎤';
+            }
+        }
+
+        function toggleMeetingVideo() {
+            if (!meetingLocalStream) return;
+
+            isMeetingVideoEnabled = !isMeetingVideoEnabled;
+            const videoTrack = meetingLocalStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = isMeetingVideoEnabled;
+            }
+
+            const videoBtn = document.getElementById('meetingVideoBtn');
+            const videoIcon = document.getElementById('meetingVideoIcon');
+
+            if (!isMeetingVideoEnabled) {
+                videoBtn.classList.add('active');
+                videoIcon.textContent = '🚫';
+                document.getElementById('meetingLocalPlaceholder').style.display = 'flex';
+            } else {
+                videoBtn.classList.remove('active');
+                videoIcon.textContent = '📹';
+                document.getElementById('meetingLocalPlaceholder').style.display = 'none';
+            }
+        }
+
+        async function toggleScreenShare() {
+            if (!isScreenSharing) {
+                try {
+                    const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false
+                    });
+
+                    const screenTrack = screenStream.getVideoTracks()[0];
+
+                    if (meetingPeerConnection) {
+                        const sender = meetingPeerConnection.getSenders().find(s =>
+                            s.track && s.track.kind === 'video'
+                        );
+
+                        if (sender) {
+                            sender.replaceTrack(screenTrack);
+                        }
+                    }
+
+                    isScreenSharing = true;
+
+                    screenTrack.onended = () => {
+                        toggleScreenShare(); // Stop sharing when user stops
+                    };
+
+                } catch (error) {
+                    console.error('Error sharing screen:', error);
+                    alert('Could not share screen. Please check permissions.');
+                }
+            } else {
+                // Switch back to camera
+                if (meetingLocalStream && meetingPeerConnection) {
+                    const videoTrack = meetingLocalStream.getVideoTracks()[0];
+                    const sender = meetingPeerConnection.getSenders().find(s =>
+                        s.track && s.track.kind === 'video'
+                    );
+
+                    if (sender) {
+                        sender.replaceTrack(videoTrack);
+                    }
+                }
+
+                isScreenSharing = false;
+            }
+        }
+
+        function toggleParticipantsPanel() {
+            const panel = document.getElementById('participantsPanel');
+            const chatPanel = document.getElementById('meetingChatPanel');
+
+            chatPanel.classList.remove('active');
+            panel.classList.toggle('active');
+
+            // Update participant list
+            if (panel.classList.contains('active')) {
+                updateParticipantsList();
+            }
+        }
+
+        function updateParticipantsList() {
+            const list = document.getElementById('participantListPanel');
+            list.innerHTML = '';
+
+            if (currentMeeting) {
+                // Add organizer
+                const orgItem = document.createElement('div');
+                orgItem.className = 'participant-item';
+                orgItem.textContent = `${currentMeeting.organizer} (Organizer)`;
+                list.appendChild(orgItem);
+
+                // Add participants
+                currentMeeting.participants.forEach(participant => {
+                    const item = document.createElement('div');
+                    item.className = 'participant-item';
+                    item.textContent = participant;
+                    list.appendChild(item);
+                });
+
+                document.getElementById('participantCount').textContent =
+                    currentMeeting.participants.length + 1;
+            }
+        }
+
+        function toggleMeetingChat() {
+            const panel = document.getElementById('meetingChatPanel');
+            const participantsPanel = document.getElementById('participantsPanel');
+
+            participantsPanel.classList.remove('active');
+            panel.classList.toggle('active');
+        }
+
+        function sendMeetingChatMessage() {
+            const input = document.getElementById('meetingChatInput');
+            const message = input.value.trim();
+
+            if (message && currentMeeting) {
+                socket.emit('meeting-chat-message', {
+                    meetingId: currentMeeting.id,
+                    sender: currentUser.username,
+                    message
+                });
+
+                input.value = '';
+            }
+        }
+
+        function addMeetingChatMessage(sender, message) {
+            const chatMessages = document.getElementById('meetingChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'meeting-chat-message';
+            messageDiv.innerHTML = `
+                <div class="meeting-chat-sender">${sender}</div>
+                <div class="meeting-chat-text">${message}</div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function startMeetingTimer() {
+            meetingStartTime = Date.now();
+
+            meetingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - meetingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('meetingRoomTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function joinMeetingFromInvitation(meetingId) {
+            // First, switch to meetings tab and load meetings
+            showMeetings();
+
+            // Wait a bit for meetings to load, then join
+            setTimeout(() => {
+                const meeting = meetings.find(m => m.id === meetingId);
+                if (meeting) {
+                    joinMeeting(meetingId);
+                } else {
+                    alert('Meeting not found or has been cancelled');
+                }
+            }, 500);
+        }
+
+        function viewMeetingFromInvitation(meetingId) {
+            // Switch to meetings tab
+            showMeetings();
+        }
+
+        // Socket event listeners for meetings
+        if (socket) {
+            socket.on('meetings-list', (meetingsList) => {
+                meetings = meetingsList;
+                renderMeetings();
+            });
+
+            socket.on('meeting-created', (meeting) => {
+                meetings.push(meeting);
+                renderMeetings();
+                alert('Meeting scheduled successfully!');
+            });
+
+            socket.on('meeting-deleted', (meetingId) => {
+                meetings = meetings.filter(m => m.id !== meetingId);
+                renderMeetings();
+            });
+
+            socket.on('meeting-offer', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    await meetingPeerConnection.setRemoteDescription(data.offer);
+                    const answer = await meetingPeerConnection.createAnswer();
+                    await meetingPeerConnection.setLocalDescription(answer);
+
+                    socket.emit('meeting-answer', {
+                        meetingId: data.meetingId,
+                        answer: meetingPeerConnection.localDescription
+                    });
+                }
+            });
+
+            socket.on('meeting-answer', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    await meetingPeerConnection.setRemoteDescription(data.answer);
+                }
+            });
+
+            socket.on('meeting-ice-candidate', async (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId && meetingPeerConnection) {
+                    await meetingPeerConnection.addIceCandidate(data.candidate);
+                }
+            });
+
+            socket.on('meeting-chat-message', (data) => {
+                if (currentMeeting && currentMeeting.id === data.meetingId) {
+                    addMeetingChatMessage(data.sender, data.message);
+                }
+            });
+
+            socket.on('meeting-invitation', (invitation) => {
+                // Meeting invitation received - no action needed as it will appear in chat
+                console.log('Meeting invitation received:', invitation.meetingTitle);
+            });
         }
     </script>
 </body>
