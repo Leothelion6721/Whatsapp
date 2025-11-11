@@ -25,7 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 
 // Gemini API Configuration (Using free tier model)
 const GEMINI_API_KEY = 'AIzaSyCPhyBAf5N1Cs7-wZxXbySubllrZBwibCw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -648,6 +648,78 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Voice message handler
+    socket.on('send-voice-message', async (data) => {
+        const { chatId, audioData, duration } = data;
+
+        if (!currentUsername || !chatId || !audioData) return;
+
+        const chat = chats.get(chatId);
+        if (!chat || !chat.participants.includes(currentUsername)) return;
+
+        try {
+            // Save audio file
+            const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
+            const filePath = path.join(uploadsDir, uniqueFilename);
+
+            const base64Data = audioData.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            fs.writeFileSync(filePath, buffer);
+
+            const voiceMessage = {
+                url: `/uploads/${uniqueFilename}`,
+                duration: duration || 0
+            };
+
+            // Create message with voice attachment
+            const message = {
+                id: generateId(),
+                chatId,
+                senderUsername: currentUsername,
+                text: '',
+                voiceMessage: voiceMessage,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            const chatMessages = messages.get(chatId) || [];
+            chatMessages.push(message);
+            messages.set(chatId, chatMessages);
+
+            chat.lastMessage = {
+                text: '🎤 Voice message',
+                time: Date.now()
+            };
+
+            saveData();
+
+            // Send to all participants
+            chat.participants.forEach(participantUsername => {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    io.to(participant.socketId).emit('new-message', {
+                        chatId,
+                        message: {
+                            id: message.id,
+                            text: message.text,
+                            voiceMessage: message.voiceMessage,
+                            senderUsername: message.senderUsername,
+                            timestamp: message.timestamp,
+                            sent: participantUsername === currentUsername
+                        }
+                    });
+                }
+            });
+
+            console.log(`Voice message sent in chat ${chatId} by ${currentUsername}`);
+
+        } catch (error) {
+            console.error('Voice message error:', error);
+            socket.emit('upload-error', { error: 'Failed to send voice message' });
+        }
+    });
+
     // Gemini AI Chat Handler
     socket.on('send-gemini-message', async (data) => {
         const { text, conversationHistory } = data;
@@ -674,9 +746,9 @@ io.on('connection', (socket) => {
                 parts: [{ text: text }]
             });
 
-            // Call Gemini API
+            // Call Gemini API (API key already in URL)
             const response = await axios.post(
-                `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+                GEMINI_API_URL,
                 {
                     contents: contents
                 },
