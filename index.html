@@ -1648,6 +1648,150 @@
             }
         }
 
+        /* Group Call Grid (Zoom-like layout) */
+        .group-call-grid {
+            display: grid;
+            grid-gap: 8px;
+            width: 95vw;
+            max-width: 1400px;
+            height: 80vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Dynamic grid columns based on participant count */
+        .group-call-grid.participants-1 {
+            grid-template-columns: 1fr;
+        }
+
+        .group-call-grid.participants-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .group-call-grid.participants-3,
+        .group-call-grid.participants-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .group-call-grid.participants-5,
+        .group-call-grid.participants-6 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .group-call-grid.participants-7,
+        .group-call-grid.participants-8,
+        .group-call-grid.participants-9 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .group-call-grid.participants-10,
+        .group-call-grid.participants-11,
+        .group-call-grid.participants-12 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .participant-tile {
+            position: relative;
+            background: #1c2731;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .participant-tile.speaking {
+            border-color: #00a884;
+            box-shadow: 0 0 20px rgba(0, 168, 132, 0.5);
+        }
+
+        .participant-tile video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .participant-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #00a884;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .participant-name {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10;
+        }
+
+        .participant-muted {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(241, 92, 109, 0.9);
+            color: white;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 16px;
+            z-index: 10;
+        }
+
+        .participant-tile.self {
+            border: 2px solid #00a884;
+        }
+
+        .participant-tile.self .participant-name::after {
+            content: ' (You)';
+            opacity: 0.7;
+        }
+
+        /* Responsive grid for smaller screens */
+        @media (max-width: 768px) {
+            .group-call-grid {
+                height: 70vh;
+                padding: 10px;
+                grid-gap: 6px;
+            }
+
+            .group-call-grid.participants-3,
+            .group-call-grid.participants-4,
+            .group-call-grid.participants-5,
+            .group-call-grid.participants-6 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .participant-tile {
+                min-height: 150px;
+            }
+
+            .participant-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            .participant-name {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+
         /* Scroll to Bottom Button */
         .scroll-to-bottom {
             position: absolute;
@@ -1974,6 +2118,11 @@
                 <div class="video-placeholder" id="videoPlaceholder">
                     <div class="call-avatar" id="callAvatarVideo">U</div>
                 </div>
+            </div>
+
+            <!-- Group Call Grid (Zoom-like layout) -->
+            <div class="group-call-grid" id="groupCallGrid" style="display: none;">
+                <!-- Participant video tiles will be added dynamically here -->
             </div>
 
             <!-- Voice Call Avatar (hidden for video calls) -->
@@ -5442,10 +5591,74 @@
         }
 
         function updateGroupCallUI() {
-            // For now, just display participant count
-            // In a full implementation, you would show multiple video feeds
+            const gridContainer = document.getElementById('groupCallGrid');
+            if (!gridContainer) return;
+
+            // Clear existing tiles
+            gridContainer.innerHTML = '';
+
             const participantCount = peerConnections.size + 1; // +1 for self
-            document.getElementById('callStatus').textContent = `${participantCount} participants`;
+            document.getElementById('callStatus').textContent = `${participantCount} participant${participantCount > 1 ? 's' : ''}`;
+
+            // Update grid class based on participant count
+            gridContainer.className = 'group-call-grid';
+            gridContainer.classList.add(`participants-${Math.min(participantCount, 12)}`);
+
+            // Add tile for self (local stream)
+            const selfTile = createParticipantTile(username, localStream, true);
+            gridContainer.appendChild(selfTile);
+
+            // Add tiles for each remote participant
+            peerConnections.forEach((pc, participantUsername) => {
+                const stream = remoteStreams.get(participantUsername);
+                const tile = createParticipantTile(participantUsername, stream, false);
+                gridContainer.appendChild(tile);
+            });
+        }
+
+        function createParticipantTile(participantName, stream, isSelf) {
+            const tile = document.createElement('div');
+            tile.className = 'participant-tile';
+            if (isSelf) tile.classList.add('self');
+            tile.id = `participant-${participantName}`;
+
+            // Add name label
+            const nameLabel = document.createElement('div');
+            nameLabel.className = 'participant-name';
+            nameLabel.textContent = participantName;
+            tile.appendChild(nameLabel);
+
+            if (stream && isVideoCall) {
+                // Add video element
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.playsinline = true;
+                if (isSelf) video.muted = true;
+                video.srcObject = stream;
+                tile.appendChild(video);
+
+                // Play video
+                video.play().catch(err => {
+                    console.error(`Error playing video for ${participantName}:`, err);
+                });
+            } else {
+                // Show avatar for voice calls or when no video
+                const avatar = document.createElement('div');
+                avatar.className = 'participant-avatar';
+                avatar.textContent = participantName.substring(0, 2).toUpperCase();
+                tile.appendChild(avatar);
+            }
+
+            // Add muted indicator if applicable
+            if (isSelf && isMuted) {
+                const mutedIndicator = document.createElement('div');
+                mutedIndicator.className = 'participant-muted';
+                mutedIndicator.textContent = '🔇';
+                mutedIndicator.id = 'self-muted-indicator';
+                tile.appendChild(mutedIndicator);
+            }
+
+            return tile;
         }
 
         function createPeerConnection() {
@@ -5524,6 +5737,7 @@
             const callAvatar = document.getElementById('callAvatar');
             const callAvatarVideo = document.getElementById('callAvatarVideo');
             const videoContainer = document.getElementById('videoContainer');
+            const groupCallGrid = document.getElementById('groupCallGrid');
             const voiceCallAvatar = document.getElementById('voiceCallAvatar');
             const videoBtn = document.getElementById('videoBtn');
 
@@ -5533,12 +5747,25 @@
             callName.textContent = name;
 
             // Show/hide elements based on call type
-            if (isVideo) {
+            if (isGroupCall) {
+                // Group call - show grid
+                videoContainer.style.display = 'none';
+                groupCallGrid.style.display = 'grid';
+                voiceCallAvatar.style.display = 'none';
+                videoBtn.style.display = 'block';
+
+                // Initialize grid with self
+                updateGroupCallUI();
+            } else if (isVideo) {
+                // 1-on-1 video call
                 videoContainer.style.display = 'block';
+                groupCallGrid.style.display = 'none';
                 voiceCallAvatar.style.display = 'none';
                 videoBtn.style.display = 'block';
             } else {
+                // 1-on-1 voice call
                 videoContainer.style.display = 'none';
+                groupCallGrid.style.display = 'none';
                 voiceCallAvatar.style.display = 'block';
                 videoBtn.style.display = 'none';
             }
@@ -5720,6 +5947,27 @@
             } else {
                 muteBtn.classList.remove('active');
                 muteBtn.innerHTML = '🎤';
+            }
+
+            // Update muted indicator in group call grid
+            if (isGroupCall) {
+                const selfTile = document.getElementById(`participant-${username}`);
+                if (selfTile) {
+                    const mutedIndicator = selfTile.querySelector('.participant-muted');
+                    if (isMuted) {
+                        if (!mutedIndicator) {
+                            const indicator = document.createElement('div');
+                            indicator.className = 'participant-muted';
+                            indicator.textContent = '🔇';
+                            indicator.id = 'self-muted-indicator';
+                            selfTile.appendChild(indicator);
+                        }
+                    } else {
+                        if (mutedIndicator) {
+                            mutedIndicator.remove();
+                        }
+                    }
+                }
             }
         }
 
