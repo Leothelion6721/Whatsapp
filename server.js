@@ -23,9 +23,9 @@ const io = socketIo(server, {
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
-// Gemini API Configuration
+// Gemini API Configuration (Using free tier model)
 const GEMINI_API_KEY = 'AIzaSyCPhyBAf5N1Cs7-wZxXbySubllrZBwibCw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent';
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -156,31 +156,49 @@ function verifyToken(token) {
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    
+    const { username, password, email } = req.body;
+
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if email already exists
+    for (const [, user] of users.entries()) {
+        if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+    }
+
     if (username.length < 3 || username.length > 20) {
         return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
-    
+
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
     if (users.has(username)) {
         return res.status(400).json({ error: 'Username already exists' });
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = generateId();
-    
+
     users.set(username, {
         userId,
         password: hashedPassword,
         username,
+        email: email.toLowerCase(), // Store email in lowercase for consistent lookup
         contacts: [],
         createdAt: Date.now(),
         online: false,
