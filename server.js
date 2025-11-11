@@ -24,8 +24,8 @@ const io = socketIo(server, {
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
 // Mailjet configuration (IMPORTANT: Use environment variables for security)
-const MAILJET_API_KEY = process.env.MAILJET_API_KEY || 'F26FADC590F1FAC70BC378EF5E264C98';
-const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY || '';  // You need to provide this
+const MAILJET_API_KEY = process.env.MAILJET_API_KEY || 'f26fadc590f1fac70bc378ef5e264c98';
+const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY || '7178ef0f05c46a6b34f8a2563c0c2a66';
 
 // Initialize Mailjet client
 let mailjetClient = null;
