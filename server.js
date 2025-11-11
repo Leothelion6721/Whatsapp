@@ -23,9 +23,9 @@ const io = socketIo(server, {
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
-// Gemini API Configuration (Using free tier model)
+// Gemini API Configuration (Using gemini-2.0-flash model)
 const GEMINI_API_KEY = 'AIzaSyAOXsnaYi6cI3QsH2al8Cf9H-0ZOBvq_Fw';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -720,55 +720,78 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Gemini AI Chat Handler
+    // Gemini AI Chat Handler (Enhanced with better conversation context)
     socket.on('send-gemini-message', async (data) => {
         const { text, conversationHistory } = data;
 
         if (!currentUsername || !text) return;
 
         try {
-            // Prepare the conversation context for Gemini
+            // Build chat history payload from conversation
             const contents = [];
 
-            // Add conversation history if provided
+            // Process conversation history with proper role detection
             if (conversationHistory && conversationHistory.length > 0) {
                 conversationHistory.forEach(msg => {
-                    contents.push({
-                        role: msg.sent ? 'user' : 'model',
-                        parts: [{ text: msg.text }]
-                    });
+                    // Determine role based on whether it was sent by user or received from bot
+                    const role = msg.sent ? 'user' : 'model';
+                    const messageText = msg.text || '';
+
+                    // Only add non-empty messages
+                    if (messageText.trim()) {
+                        contents.push({
+                            role: role,
+                            parts: [{ text: messageText }]
+                        });
+                    }
                 });
             }
 
-            // Add the new user message
+            // Add the current user message
             contents.push({
                 role: 'user',
                 parts: [{ text: text }]
             });
 
-            // Call Gemini API (API key already in URL)
+            // Prepare the request payload
+            const payload = {
+                contents: contents
+            };
+
+            console.log(`Querying Gemini for user ${currentUsername} with ${contents.length} messages in context`);
+
+            // Call Gemini API
             const response = await axios.post(
                 GEMINI_API_URL,
-                {
-                    contents: contents
-                },
+                payload,
                 {
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    timeout: 30000 // 30 second timeout
                 }
             );
 
-            // Extract Gemini's response
-            let geminiResponse = 'Sorry, I could not generate a response.';
+            // Extract Gemini's response with robust error checking
+            let geminiResponse = 'Received an unexpected response from the AI.';
 
             if (response.data &&
                 response.data.candidates &&
-                response.data.candidates.length > 0 &&
-                response.data.candidates[0].content &&
-                response.data.candidates[0].content.parts &&
-                response.data.candidates[0].content.parts.length > 0) {
-                geminiResponse = response.data.candidates[0].content.parts[0].text;
+                response.data.candidates.length > 0) {
+
+                const candidate = response.data.candidates[0];
+
+                if (candidate.content &&
+                    candidate.content.parts &&
+                    candidate.content.parts.length > 0 &&
+                    candidate.content.parts[0].text) {
+
+                    geminiResponse = candidate.content.parts[0].text;
+                } else {
+                    console.log('Unexpected Gemini response structure:', JSON.stringify(response.data));
+                }
+            } else {
+                console.log('No candidates in Gemini response:', JSON.stringify(response.data));
             }
 
             // Send Gemini's response back to the user
@@ -778,12 +801,24 @@ io.on('connection', (socket) => {
                 timestamp: Date.now()
             });
 
-            console.log(`Gemini response sent to ${currentUsername}`);
+            console.log(`Gemini response sent to ${currentUsername}: ${geminiResponse.substring(0, 50)}...`);
 
         } catch (error) {
             console.error('Gemini API error:', error.response?.data || error.message);
+
+            // Send more helpful error message
+            let errorMessage = 'Failed to get response from Gemini AI.';
+
+            if (error.response?.data?.error?.message) {
+                errorMessage += ' ' + error.response.data.error.message;
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = 'Request timed out. Please try again.';
+            } else if (error.code === 'ENOTFOUND') {
+                errorMessage = 'Unable to connect to Gemini API. Check your internet connection.';
+            }
+
             socket.emit('gemini-error', {
-                error: 'Failed to get response from Gemini AI. Please try again.'
+                error: errorMessage
             });
         }
     });
