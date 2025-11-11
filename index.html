@@ -570,6 +570,47 @@
             background: #00a884;
         }
 
+        .meta-ai-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin: 8px 12px;
+            background: linear-gradient(135deg, #00a884 0%, #008069 100%);
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
+        }
+
+        .meta-ai-button:hover {
+            background: linear-gradient(135deg, #00c296 0%, #00a884 100%);
+            box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .meta-ai-button:active {
+            transform: translateY(0);
+        }
+
+        .meta-ai-icon {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
         .chat-list, .contacts-list {
             flex: 1;
             overflow-y: scroll !important;
@@ -1814,7 +1855,13 @@
                 <button class="tab active" id="chatsTab" onclick="showChats()">Chats</button>
                 <button class="tab" id="contactsTab" onclick="showContacts()">Contacts</button>
             </div>
-            
+
+            <!-- Meta AI Button -->
+            <button class="meta-ai-button" onclick="openMetaAI()">
+                <span class="meta-ai-icon">🤖</span>
+                <span>Ask Meta AI</span>
+            </button>
+
             <!-- Chats List -->
             <div class="chat-list" id="chatList">
                 <div class="loading">No chats yet. Add contacts to start chatting!</div>
@@ -2756,18 +2803,7 @@
                     });
                 }
 
-                // Add Gemini AI as a special chat
-                chats.set('gemini-ai', {
-                    id: 'gemini-ai',
-                    name: '🤖 Gemini AI',
-                    online: true,
-                    messages: [],
-                    isGemini: true,
-                    lastMessage: {
-                        text: 'Hi! I\'m Gemini AI. Ask me anything!',
-                        time: Date.now()
-                    }
-                });
+                // Note: Gemini AI chat is now created on-demand via the Meta AI button
 
                 renderChatList();
                 renderContactsList();
@@ -3419,6 +3455,49 @@
 
                 chatList.appendChild(chatItem);
             });
+        }
+
+        function openMetaAI() {
+            // Check if Gemini AI chat already exists
+            if (!chats.has('gemini-ai')) {
+                // Create the Gemini AI chat
+                chats.set('gemini-ai', {
+                    id: 'gemini-ai',
+                    name: '🤖 Gemini AI',
+                    online: true,
+                    messages: [],
+                    isGemini: true,
+                    lastMessage: {
+                        text: 'Hi! I\'m Gemini AI. Ask me anything!',
+                        time: Date.now()
+                    }
+                });
+
+                // Add welcome message from Gemini
+                const geminiChat = chats.get('gemini-ai');
+                geminiChat.messages.push({
+                    id: generateId(),
+                    text: 'Hi! I\'m Gemini AI. Ask me anything!',
+                    timestamp: Date.now(),
+                    sent: false
+                });
+
+                renderChatList();
+            }
+
+            // Switch to chats tab if on contacts tab
+            const chatsTab = document.getElementById('chatsTab');
+            const contactsTab = document.getElementById('contactsTab');
+            const chatList = document.getElementById('chatList');
+            const contactsList = document.getElementById('contactsList');
+
+            chatsTab.classList.add('active');
+            contactsTab.classList.remove('active');
+            chatList.classList.remove('hidden');
+            contactsList.classList.remove('active');
+
+            // Open the Gemini AI chat
+            selectChat('gemini-ai');
         }
 
         function selectChat(chatId) {
