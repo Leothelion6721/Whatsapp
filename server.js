@@ -63,7 +63,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: {
         fileSize: 10 * 1024 * 1024
@@ -72,7 +72,7 @@ const upload = multer({
         const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|zip|mp4|mp3|webm/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
-        
+
         if (extname && mimetype) {
             return cb(null, true);
         } else {
@@ -377,14 +377,14 @@ app.post('/api/register', async (req, res) => {
         online: false,
         socketId: null
     });
-    
+
     saveData();
-    
+
     const token = generateToken(userId);
     sessions.set(token, userId);
-    
-    res.json({ 
-        success: true, 
+
+    res.json({
+        success: true,
         token,
         userId,
         username
@@ -394,24 +394,24 @@ app.post('/api/register', async (req, res) => {
 // Login endpoint
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
     const user = users.get(username);
     if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
-    
+
     res.json({
         success: true,
         token,
@@ -566,12 +566,12 @@ app.post('/api/reset-password', async (req, res) => {
 // Add contact endpoint
 app.post('/api/add-contact', async (req, res) => {
     const { token, contactUsername } = req.body;
-    
+
     const userId = verifyToken(token);
     if (!userId) {
         return res.status(401).json({ error: 'Invalid token' });
     }
-    
+
     let currentUser = null;
     for (const [username, user] of users.entries()) {
         if (user.userId === userId) {
@@ -579,34 +579,34 @@ app.post('/api/add-contact', async (req, res) => {
             break;
         }
     }
-    
+
     if (!currentUser) {
         return res.status(404).json({ error: 'User not found' });
     }
-    
+
     if (!users.has(contactUsername)) {
         return res.status(404).json({ error: 'Contact username does not exist' });
     }
-    
+
     if (currentUser.contacts.includes(contactUsername)) {
         return res.status(400).json({ error: 'Contact already added' });
     }
-    
+
     currentUser.contacts.push(contactUsername);
     saveData();
-    
+
     res.json({ success: true, message: 'Contact added successfully' });
 });
 
 // Get contacts endpoint
 app.post('/api/get-contacts', async (req, res) => {
     const { token } = req.body;
-    
+
     const userId = verifyToken(token);
     if (!userId) {
         return res.status(401).json({ error: 'Invalid token' });
     }
-    
+
     let currentUser = null;
     for (const [username, user] of users.entries()) {
         if (user.userId === userId) {
@@ -614,11 +614,11 @@ app.post('/api/get-contacts', async (req, res) => {
             break;
         }
     }
-    
+
     if (!currentUser) {
         return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const contactsList = currentUser.contacts.map(contactUsername => {
         const contact = users.get(contactUsername);
         return {
@@ -627,7 +627,7 @@ app.post('/api/get-contacts', async (req, res) => {
             userId: contact ? contact.userId : null
         };
     });
-    
+
     res.json({ success: true, contacts: contactsList });
 });
 
@@ -639,18 +639,18 @@ io.on('connection', (socket) => {
     socket.on('authenticate', (data) => {
         const { token } = data;
         const userId = verifyToken(token);
-        
+
         if (!userId) {
             socket.emit('auth-error', { error: 'Invalid token' });
             return;
         }
-        
+
         for (const [username, user] of users.entries()) {
             if (user.userId === userId) {
                 currentUsername = username;
                 user.online = true;
                 user.socketId = socket.id;
-                
+
                 user.contacts.forEach(contactUsername => {
                     const contact = users.get(contactUsername);
                     if (contact && contact.online && contact.socketId) {
@@ -659,7 +659,7 @@ io.on('connection', (socket) => {
                         });
                     }
                 });
-                
+
                 const contactsList = user.contacts.map(contactUsername => {
                     const contact = users.get(contactUsername);
                     return {
@@ -667,7 +667,7 @@ io.on('connection', (socket) => {
                         online: contact ? contact.online : false
                     };
                 });
-                
+
                 const chatsList = [];
                 for (const [chatId, chat] of chats.entries()) {
                     if (chat.participants.includes(currentUsername)) {
@@ -682,13 +682,13 @@ io.on('connection', (socket) => {
                         }
                     }
                 }
-                
+
                 socket.emit('authenticated', {
                     username: currentUsername,
                     contacts: contactsList,
                     chats: chatsList
                 });
-                
+
                 saveData();
                 console.log(`User authenticated: ${currentUsername}`);
                 break;
@@ -698,17 +698,17 @@ io.on('connection', (socket) => {
 
     socket.on('create-chat', (data) => {
         const { contactUsername } = data;
-        
+
         if (!currentUsername || !contactUsername) return;
-        
+
         const currentUser = users.get(currentUsername);
         if (!currentUser || !currentUser.contacts.includes(contactUsername)) {
             socket.emit('chat-error', { error: 'User is not in your contacts' });
             return;
         }
-        
+
         const chatId = getChatId(currentUsername, contactUsername);
-        
+
         if (!chats.has(chatId)) {
             chats.set(chatId, {
                 id: chatId,
@@ -719,7 +719,7 @@ io.on('connection', (socket) => {
             messages.set(chatId, []);
             saveData();
         }
-        
+
         const contact = users.get(contactUsername);
         socket.emit('chat-created', {
             id: chatId,
@@ -730,21 +730,21 @@ io.on('connection', (socket) => {
 
     socket.on('send-message', (data) => {
         const { chatId, text, file } = data;
-        
+
         if (!currentUsername || !chatId) return;
         if (!text && !file) return;
-        
+
         const chat = chats.get(chatId);
         if (!chat || !chat.participants.includes(currentUsername)) return;
-        
+
         const currentUser = users.get(currentUsername);
         const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
+
         if (!currentUser.contacts.includes(otherParticipant)) {
             socket.emit('message-error', { error: 'Cannot send message to non-contact' });
             return;
         }
-        
+
         const message = {
             id: generateId(),
             chatId,
@@ -754,18 +754,18 @@ io.on('connection', (socket) => {
             timestamp: Date.now(),
             read: false
         };
-        
+
         const chatMessages = messages.get(chatId) || [];
         chatMessages.push(message);
         messages.set(chatId, chatMessages);
-        
+
         chat.lastMessage = {
             text: text || (file ? '📎 File' : ''),
             time: Date.now()
         };
-        
+
         saveData();
-        
+
         chat.participants.forEach(participantUsername => {
             const participant = users.get(participantUsername);
             if (participant && participant.online && participant.socketId) {
@@ -784,24 +784,24 @@ io.on('connection', (socket) => {
                 }
             }
         });
-        
+
         console.log(`Message sent in chat ${chatId} by ${currentUsername}`);
     });
 
     socket.on('upload-file', async (data) => {
         const { chatId, fileData, fileName, fileType } = data;
-        
+
         if (!currentUsername || !chatId || !fileData) return;
-        
+
         try {
             const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + fileName;
             const filePath = path.join(uploadsDir, uniqueFilename);
-            
+
             const base64Data = fileData.replace(/^data:.*?;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             fs.writeFileSync(filePath, buffer);
-            
+
             const fileInfo = {
                 filename: uniqueFilename,
                 originalName: fileName,
@@ -809,12 +809,12 @@ io.on('connection', (socket) => {
                 size: buffer.length,
                 url: `/uploads/${uniqueFilename}`
             };
-            
+
             socket.emit('file-uploaded', {
                 chatId,
                 file: fileInfo
             });
-            
+
         } catch (error) {
             console.error('File upload error:', error);
             socket.emit('upload-error', { error: 'Failed to upload file' });
@@ -998,59 +998,59 @@ io.on('connection', (socket) => {
 
     socket.on('add-contact', async (data) => {
         const { contactUsername } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const currentUser = users.get(currentUsername);
         if (!currentUser) return;
-        
+
         if (!users.has(contactUsername)) {
             socket.emit('contact-error', { error: 'User does not exist' });
             return;
         }
-        
+
         if (currentUser.contacts.includes(contactUsername)) {
             socket.emit('contact-error', { error: 'Already in contacts' });
             return;
         }
-        
+
         currentUser.contacts.push(contactUsername);
         saveData();
-        
+
         const contact = users.get(contactUsername);
         socket.emit('contact-added', {
             username: contactUsername,
             online: contact ? contact.online : false,
             userId: contact ? contact.userId : null
         });
-        
+
         console.log(`${currentUsername} added ${contactUsername} as contact`);
     });
 
     socket.on('remove-contact', async (data) => {
         const { contactUsername } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const currentUser = users.get(currentUsername);
         if (!currentUser) return;
-        
+
         currentUser.contacts = currentUser.contacts.filter(c => c !== contactUsername);
         saveData();
-        
+
         socket.emit('contact-removed', { username: contactUsername });
-        
+
         console.log(`${currentUsername} removed ${contactUsername} from contacts`);
     });
 
     socket.on('typing', (data) => {
         const { chatId, isTyping } = data;
-        
+
         if (!currentUsername || !chatId) return;
-        
+
         const chat = chats.get(chatId);
         if (!chat) return;
-        
+
         chat.participants.forEach(participantUsername => {
             if (participantUsername !== currentUsername) {
                 const participant = users.get(participantUsername);
@@ -1069,20 +1069,20 @@ io.on('connection', (socket) => {
 
     socket.on('get-messages', (data) => {
         const { chatId } = data;
-        
+
         if (!currentUsername || !chatId) return;
-        
+
         const chat = chats.get(chatId);
         if (!chat || !chat.participants.includes(currentUsername)) return;
-        
+
         const currentUser = users.get(currentUsername);
         const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
+
         if (!currentUser.contacts.includes(otherParticipant)) {
             socket.emit('messages-error', { error: 'Cannot access messages with non-contact' });
             return;
         }
-        
+
         const chatMessages = messages.get(chatId) || [];
 
         socket.emit('messages-loaded', {
@@ -1111,9 +1111,9 @@ io.on('connection', (socket) => {
     // WebRTC Call Signaling Handlers
     socket.on('call-offer', (data) => {
         const { to, offer, isVideo } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             // Forward the call offer to the target user
@@ -1128,9 +1128,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-answer', (data) => {
         const { to, answer } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             // Forward the call answer to the caller
@@ -1144,9 +1144,9 @@ io.on('connection', (socket) => {
 
     socket.on('ice-candidate', (data) => {
         const { to, candidate } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             // Forward ICE candidate
@@ -1159,9 +1159,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-declined', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-declined', {
@@ -1173,9 +1173,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-cancelled', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-cancelled', {
@@ -1534,7 +1534,7 @@ io.on('connection', (socket) => {
             if (user) {
                 user.online = false;
                 user.socketId = null;
-                
+
                 user.contacts.forEach(contactUsername => {
                     const contact = users.get(contactUsername);
                     if (contact && contact.online && contact.socketId) {
@@ -1543,7 +1543,7 @@ io.on('connection', (socket) => {
                         });
                     }
                 });
-                
+
                 saveData();
                 console.log(`User disconnected: ${currentUsername}`);
             }

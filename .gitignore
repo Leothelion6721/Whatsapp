@@ -1,1 +1,20 @@
-# .gitignore intentionally empty - tracking all files
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Uploads directory (generated files)
+uploads/
