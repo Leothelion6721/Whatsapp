@@ -556,43 +556,44 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send-message', (data) => {
-        const { chatId, text, file } = data;
-        
+        const { chatId, text, file, files } = data;
+
         if (!currentUsername || !chatId) return;
-        if (!text && !file) return;
-        
+        if (!text && !file && (!files || files.length === 0)) return;
+
         const chat = chats.get(chatId);
         if (!chat || !chat.participants.includes(currentUsername)) return;
-        
+
         const currentUser = users.get(currentUsername);
         const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
+
         if (!currentUser.contacts.includes(otherParticipant)) {
             socket.emit('message-error', { error: 'Cannot send message to non-contact' });
             return;
         }
-        
+
         const message = {
             id: generateId(),
             chatId,
             senderUsername: currentUsername,
             text: text || '',
             file: file || null,
+            files: files || null,
             timestamp: Date.now(),
             read: false
         };
-        
+
         const chatMessages = messages.get(chatId) || [];
         chatMessages.push(message);
         messages.set(chatId, chatMessages);
-        
+
         chat.lastMessage = {
-            text: text || (file ? '📎 File' : ''),
+            text: text || (file || (files && files.length > 0) ? '📎 File' : ''),
             time: Date.now()
         };
-        
+
         saveData();
-        
+
         chat.participants.forEach(participantUsername => {
             const participant = users.get(participantUsername);
             if (participant && participant.online && participant.socketId) {
@@ -603,6 +604,7 @@ io.on('connection', (socket) => {
                             id: message.id,
                             text: message.text,
                             file: message.file,
+                            files: message.files,
                             senderUsername: message.senderUsername,
                             timestamp: message.timestamp,
                             sent: participantUsername === currentUsername
@@ -611,7 +613,7 @@ io.on('connection', (socket) => {
                 }
             }
         });
-        
+
         console.log(`Message sent in chat ${chatId} by ${currentUsername}`);
     });
 

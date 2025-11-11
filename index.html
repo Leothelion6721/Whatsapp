@@ -2965,9 +2965,11 @@
             });
 
             socket.on('file-uploaded', (data) => {
-                if (data.chatId === currentChatId && selectedFiles.length > 0) {
+                if (data.chatId === currentChatId && totalFilesToUpload > 0) {
                     // Collect uploaded file
                     uploadedFilesForMessage.push(data.file);
+
+                    console.log(`File uploaded: ${uploadedFilesForMessage.length}/${totalFilesToUpload}`);
 
                     // Check if all files are uploaded
                     if (uploadedFilesForMessage.length === totalFilesToUpload) {
@@ -2977,6 +2979,8 @@
                             text: messageTextForFiles,
                             files: uploadedFilesForMessage  // Send array of files
                         });
+
+                        console.log('All files uploaded, message sent with', uploadedFilesForMessage.length, 'files');
 
                         // Clear state
                         document.getElementById('messageInput').value = '';
