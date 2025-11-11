@@ -1016,9 +1016,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-ended', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-ended', {
@@ -1026,6 +1026,142 @@ io.on('connection', (socket) => {
             });
             console.log(`Call ended by ${currentUsername}`);
         }
+    });
+
+    // Group Call Handlers
+    let groupCalls = new Map(); // callId -> { groupId, participants: Set(), isVideo }
+
+    socket.on('start-group-call', (data) => {
+        const { groupId, isVideo } = data;
+
+        if (!currentUsername || !groupId) return;
+
+        const group = groups.get(groupId);
+        if (!group || !group.members.includes(currentUsername)) return;
+
+        // Create a unique call ID
+        const callId = generateId();
+
+        // Initialize group call
+        groupCalls.set(callId, {
+            groupId: groupId,
+            participants: new Set([currentUsername]),
+            isVideo: isVideo,
+            initiator: currentUsername
+        });
+
+        // Notify all group members
+        group.members.forEach(memberUsername => {
+            const member = users.get(memberUsername);
+            if (member && member.online && member.socketId) {
+                io.to(member.socketId).emit('group-call-started', {
+                    groupId: groupId,
+                    callId: callId,
+                    initiator: currentUsername,
+                    isVideo: isVideo
+                });
+            }
+        });
+
+        console.log(`Group call started in ${groupId} by ${currentUsername}, callId: ${callId}`);
+    });
+
+    socket.on('join-group-call', async (data) => {
+        const { callId, groupId } = data;
+
+        if (!currentUsername || !callId) return;
+
+        const groupCall = groupCalls.get(callId);
+        if (!groupCall) return;
+
+        // Add this user to the call
+        groupCall.participants.add(currentUsername);
+
+        console.log(`${currentUsername} joined group call ${callId}`);
+
+        // Notify all existing participants that a new user joined
+        groupCall.participants.forEach(participantUsername => {
+            if (participantUsername !== currentUsername) {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    // Tell current user to create offer for this participant
+                    socket.emit('create-offer-for', {
+                        username: participantUsername
+                    });
+                }
+            }
+        });
+    });
+
+    socket.on('group-call-offer', async (data) => {
+        const { callId, to, offer } = data;
+
+        if (!currentUsername || !callId) return;
+
+        const targetUser = users.get(to);
+        if (targetUser && targetUser.online && targetUser.socketId) {
+            io.to(targetUser.socketId).emit('user-joined-group-call', {
+                username: currentUsername,
+                offer: offer
+            });
+        }
+    });
+
+    socket.on('group-call-answer', (data) => {
+        const { callId, to, answer } = data;
+
+        if (!currentUsername || !callId) return;
+
+        const targetUser = users.get(to);
+        if (targetUser && targetUser.online && targetUser.socketId) {
+            io.to(targetUser.socketId).emit('group-call-answer', {
+                from: currentUsername,
+                answer: answer
+            });
+        }
+    });
+
+    socket.on('group-call-ice-candidate', (data) => {
+        const { callId, to, candidate } = data;
+
+        if (!currentUsername || !callId) return;
+
+        const targetUser = users.get(to);
+        if (targetUser && targetUser.online && targetUser.socketId) {
+            io.to(targetUser.socketId).emit('group-call-ice-candidate', {
+                from: currentUsername,
+                candidate: candidate
+            });
+        }
+    });
+
+    socket.on('leave-group-call', (data) => {
+        const { callId } = data;
+
+        if (!currentUsername || !callId) return;
+
+        const groupCall = groupCalls.get(callId);
+        if (!groupCall) return;
+
+        // Remove from participants
+        groupCall.participants.delete(currentUsername);
+
+        // Notify all other participants
+        groupCall.participants.forEach(participantUsername => {
+            const participant = users.get(participantUsername);
+            if (participant && participant.online && participant.socketId) {
+                io.to(participant.socketId).emit('user-left-group-call', {
+                    username: currentUsername
+                });
+            }
+        });
+
+        // If no one left, clean up the call
+        if (groupCall.participants.size === 0) {
+            groupCalls.delete(callId);
+        }
+
+        console.log(`${currentUsername} left group call ${callId}`);
     });
 
     // Mark messages as read

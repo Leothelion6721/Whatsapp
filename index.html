@@ -2214,6 +2214,12 @@
         let isVideoCall = false;
         let isScreenSharing = false;
         let screenStream = null;
+
+        // Group Call Variables
+        let peerConnections = new Map(); // username -> RTCPeerConnection
+        let remoteStreams = new Map(); // username -> MediaStream
+        let isGroupCall = false;
+        let groupCallId = null;
         let originalStream = null;
 
         // ICE servers for WebRTC
@@ -3275,6 +3281,106 @@
             socket.on('user-busy', (data) => {
                 alert(`${data.username} is currently on another call`);
                 cleanupCall();
+            });
+
+            // Group Call Socket Handlers
+            socket.on('group-call-started', (data) => {
+                const { groupId, callId, initiator, isVideo } = data;
+                groupCallId = callId;
+                console.log(`Group call started in ${groupId} by ${initiator}`);
+
+                // Show notification to join if you're not the initiator
+                if (initiator !== username) {
+                    const group = groups.get(groupId);
+                    if (group && confirm(`${initiator} started a ${isVideo ? 'video' : 'voice'} call in ${group.name}. Join?`)) {
+                        joinGroupCall(groupId, callId, isVideo);
+                    }
+                }
+            });
+
+            socket.on('user-joined-group-call', async (data) => {
+                const { username: joinerUsername, offer } = data;
+                console.log(`User ${joinerUsername} joined group call`);
+
+                // Create peer connection for this user
+                const pc = createGroupPeerConnection(joinerUsername);
+
+                // Set remote description
+                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+                // Create answer
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                // Send answer back
+                socket.emit('group-call-answer', {
+                    callId: groupCallId,
+                    to: joinerUsername,
+                    answer: answer
+                });
+            });
+
+            socket.on('group-call-answer', async (data) => {
+                const { from, answer } = data;
+                console.log(`Received answer from ${from}`);
+
+                const pc = peerConnections.get(from);
+                if (pc) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                }
+            });
+
+            socket.on('group-call-ice-candidate', async (data) => {
+                const { from, candidate } = data;
+                const pc = peerConnections.get(from);
+                if (pc) {
+                    try {
+                        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (error) {
+                        console.error('Error adding group call ICE candidate:', error);
+                    }
+                }
+            });
+
+            socket.on('user-left-group-call', (data) => {
+                const { username: leftUsername } = data;
+                console.log(`User ${leftUsername} left group call`);
+
+                // Close peer connection for this user
+                const pc = peerConnections.get(leftUsername);
+                if (pc) {
+                    pc.close();
+                    peerConnections.delete(leftUsername);
+                }
+
+                // Remove remote stream
+                remoteStreams.delete(leftUsername);
+
+                // Update UI
+                updateGroupCallUI();
+            });
+
+            socket.on('group-call-ended', () => {
+                console.log('Group call ended');
+                cleanupCall();
+            });
+
+            socket.on('create-offer-for', async (data) => {
+                const { username: targetUsername } = data;
+                console.log(`Creating offer for ${targetUsername}`);
+
+                // Create peer connection for this user
+                const pc = createGroupPeerConnection(targetUsername);
+
+                // Create and send offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                socket.emit('group-call-offer', {
+                    callId: groupCallId,
+                    to: targetUsername,
+                    offer: offer
+                });
             });
         }
 
@@ -5078,41 +5184,41 @@
         async function startVoiceCall() {
             if (!currentChatId) return;
 
-            // Check if it's a group (calls only work for 1-on-1)
             const group = groups.get(currentChatId);
-            if (group) {
-                alert('Voice calls are only available for 1-on-1 chats, not groups.');
-                return;
-            }
-
             const chat = chats.get(currentChatId);
-            if (!chat) {
-                alert('Please select a contact to call.');
+
+            if (!group && !chat) {
+                alert('Please select a chat to call.');
                 return;
             }
 
             isVideoCall = false;
-            await initiateCall(false);
+
+            if (group) {
+                await initiateGroupCall(false);
+            } else {
+                await initiateCall(false);
+            }
         }
 
         async function startVideoCall() {
             if (!currentChatId) return;
 
-            // Check if it's a group (calls only work for 1-on-1)
             const group = groups.get(currentChatId);
-            if (group) {
-                alert('Video calls are only available for 1-on-1 chats, not groups.');
-                return;
-            }
-
             const chat = chats.get(currentChatId);
-            if (!chat) {
-                alert('Please select a contact to call.');
+
+            if (!group && !chat) {
+                alert('Please select a chat to call.');
                 return;
             }
 
             isVideoCall = true;
-            await initiateCall(true);
+
+            if (group) {
+                await initiateGroupCall(true);
+            } else {
+                await initiateCall(true);
+            }
         }
 
         async function initiateCall(video) {
@@ -5186,6 +5292,160 @@
                 alert(errorMessage);
                 closeCallUI();
             }
+        }
+
+        async function initiateGroupCall(video) {
+            try {
+                const group = groups.get(currentChatId);
+                if (!group) return;
+
+                // Get user media
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        sampleRate: 48000,
+                        sampleSize: 16,
+                        channelCount: 1
+                    },
+                    video: video
+                });
+
+                isGroupCall = true;
+                isVideoCall = video;
+
+                // Show call UI
+                showCallUI(group.name + ' 👥', 'outgoing', video);
+
+                if (video) {
+                    document.getElementById('localVideo').srcObject = localStream;
+                    isVideoEnabled = true;
+                } else {
+                    document.getElementById('localAudio').srcObject = localStream;
+                }
+
+                // Start group call on server
+                socket.emit('start-group-call', {
+                    groupId: currentChatId,
+                    isVideo: video
+                });
+
+                currentCall = {
+                    type: 'outgoing',
+                    groupId: currentChatId,
+                    groupName: group.name,
+                    isVideo: video,
+                    isGroup: true
+                };
+
+            } catch (error) {
+                console.error('Error starting group call:', error);
+                let errorMessage = 'Could not start group call. ';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage += 'Please allow access to your camera and microphone.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage += 'No camera or microphone found.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage += 'Camera/microphone is already in use by another application.';
+                } else {
+                    errorMessage += error.message || 'Unknown error occurred.';
+                }
+                alert(errorMessage);
+                closeCallUI();
+            }
+        }
+
+        async function joinGroupCall(groupId, callId, video) {
+            try {
+                // Get user media
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        sampleRate: 48000,
+                        sampleSize: 16,
+                        channelCount: 1
+                    },
+                    video: video
+                });
+
+                isGroupCall = true;
+                isVideoCall = video;
+                groupCallId = callId;
+
+                const group = groups.get(groupId);
+                showCallUI(group.name + ' 👥', 'incoming', video);
+
+                if (video) {
+                    document.getElementById('localVideo').srcObject = localStream;
+                    isVideoEnabled = true;
+                } else {
+                    document.getElementById('localAudio').srcObject = localStream;
+                }
+
+                // Join the group call on server
+                socket.emit('join-group-call', {
+                    callId: callId,
+                    groupId: groupId
+                });
+
+                currentCall = {
+                    type: 'incoming',
+                    groupId: groupId,
+                    groupName: group.name,
+                    isVideo: video,
+                    isGroup: true
+                };
+
+            } catch (error) {
+                console.error('Error joining group call:', error);
+                alert('Could not join group call. Please check your camera and microphone permissions.');
+                closeCallUI();
+            }
+        }
+
+        function createGroupPeerConnection(remoteUsername) {
+            const pc = new RTCPeerConnection(iceServers);
+
+            // Add local stream tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
+            }
+
+            // Handle ICE candidates
+            pc.onicecandidate = (event) => {
+                if (event.candidate && groupCallId) {
+                    socket.emit('group-call-ice-candidate', {
+                        callId: groupCallId,
+                        to: remoteUsername,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Handle remote stream
+            pc.ontrack = (event) => {
+                console.log(`Received track from ${remoteUsername}:`, event.track.kind);
+
+                if (event.streams && event.streams[0]) {
+                    remoteStreams.set(remoteUsername, event.streams[0]);
+                    updateGroupCallUI();
+                }
+            };
+
+            peerConnections.set(remoteUsername, pc);
+            return pc;
+        }
+
+        function updateGroupCallUI() {
+            // For now, just display participant count
+            // In a full implementation, you would show multiple video feeds
+            const participantCount = peerConnections.size + 1; // +1 for self
+            document.getElementById('callStatus').textContent = `${participantCount} participants`;
         }
 
         function createPeerConnection() {
@@ -5386,11 +5646,18 @@
         }
 
         function cleanupCall() {
-            // Close peer connection
+            // Close peer connection(s)
             if (peerConnection) {
                 peerConnection.close();
                 peerConnection = null;
             }
+
+            // Close all group call peer connections
+            peerConnections.forEach((pc) => {
+                pc.close();
+            });
+            peerConnections.clear();
+            remoteStreams.clear();
 
             // Stop all media tracks
             if (localStream) {
@@ -5430,6 +5697,8 @@
             isVideoEnabled = false;
             isScreenSharing = false;
             callStartTime = null;
+            isGroupCall = false;
+            groupCallId = null;
 
             // Close UI
             closeCallUI();
