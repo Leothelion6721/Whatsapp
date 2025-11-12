@@ -32,8 +32,9 @@
             justify-content: center;
             align-items: center;
             z-index: 9999;
-            animation: splashFadeOut 0.8s ease 3s forwards;
             overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
         }
 
         /* Leo Text Background */
@@ -2089,6 +2090,15 @@
 
         // Check for saved token (using sessionStorage so each tab is independent)
         window.addEventListener('load', () => {
+            // Hide splash screen after animation
+            const splashScreen = document.getElementById('splashScreen');
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 500);
+            }, 2500);
+
             const savedToken = sessionStorage.getItem('authToken');
             if (savedToken) {
                 authToken = savedToken;
