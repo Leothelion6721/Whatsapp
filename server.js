@@ -6,6 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -72,6 +73,7 @@ let users = new Map();
 let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
+let resetCodes = new Map(); // For password reset codes
 
 // Load data from files if they exist
 function loadData() {
@@ -150,44 +152,51 @@ function verifyToken(token) {
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    
+    const { username, password, securityQuestion, securityAnswer } = req.body;
+
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
+    if (!securityQuestion || !securityAnswer) {
+        return res.status(400).json({ error: 'Security question and answer are required' });
+    }
+
     if (username.length < 3 || username.length > 20) {
         return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
-    
+
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
     if (users.has(username)) {
         return res.status(400).json({ error: 'Username already exists' });
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
     const userId = generateId();
-    
+
     users.set(username, {
         userId,
         password: hashedPassword,
         username,
+        securityQuestion,
+        securityAnswer: hashedSecurityAnswer,
         contacts: [],
         createdAt: Date.now(),
         online: false,
         socketId: null
     });
-    
+
     saveData();
-    
+
     const token = generateToken(userId);
     sessions.set(token, userId);
-    
-    res.json({ 
-        success: true, 
+
+    res.json({
+        success: true,
         token,
         userId,
         username
@@ -215,12 +224,125 @@ app.post('/api/login', async (req, res) => {
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
     
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         token,
         userId: user.userId,
         username: user.username
     });
+});
+
+// Get security question endpoint
+app.post('/api/get-security-question', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const user = users.get(username);
+    if (!user || !user.securityQuestion) {
+        return res.status(404).json({ error: 'User not found or no security question set' });
+    }
+
+    res.json({
+        success: true,
+        question: user.securityQuestion
+    });
+});
+
+// Request reset code endpoint
+app.post('/api/request-reset', async (req, res) => {
+    const { username, securityAnswer } = req.body;
+
+    if (!username || !securityAnswer) {
+        return res.status(400).json({ error: 'Username and security answer are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify security answer (case-insensitive)
+    const answerMatch = await bcrypt.compare(securityAnswer.toLowerCase().trim(), user.securityAnswer);
+    if (!answerMatch) {
+        console.log(`❌ Failed security answer attempt for user: ${username}`);
+        return res.status(401).json({ error: 'Incorrect security answer' });
+    }
+
+    // Generate secure 8-character code
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutes
+
+    resetCodes.set(username, { code, expiresAt });
+
+    // Print to server console (Render logs)
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 PASSWORD RESET REQUEST - VERIFIED');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log(`Username: ${username}`);
+    console.log(`Security Question: ${user.securityQuestion}`);
+    console.log(`Answer Verified: ✅ YES`);
+    console.log(`Reset Code: ${code}`);
+    console.log(`Generated: ${new Date().toISOString()}`);
+    console.log(`Expires: ${new Date(expiresAt).toISOString()}`);
+    console.log(`Valid for: 15 minutes`);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('');
+
+    res.json({
+        success: true,
+        message: 'Reset code generated. Contact admin at leothelion123@outlook.fr'
+    });
+});
+
+// Reset password endpoint
+app.post('/api/reset-password', async (req, res) => {
+    const { username, code, newPassword } = req.body;
+
+    if (!username || !code || !newPassword) {
+        return res.status(400).json({ error: 'Username, code, and new password are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const resetData = resetCodes.get(username);
+    if (!resetData) {
+        return res.status(400).json({ error: 'No reset code found. Please request a new one.' });
+    }
+
+    // Check expiration
+    if (Date.now() > resetData.expiresAt) {
+        resetCodes.delete(username);
+        console.log(`❌ Expired reset code attempt for user: ${username}`);
+        return res.status(400).json({ error: 'Reset code has expired. Please request a new one.' });
+    }
+
+    // Validate code (constant-time comparison to prevent timing attacks)
+    const codeBuffer1 = Buffer.from(code.toUpperCase());
+    const codeBuffer2 = Buffer.from(resetData.code);
+
+    if (codeBuffer1.length !== codeBuffer2.length || !crypto.timingSafeEqual(codeBuffer1, codeBuffer2)) {
+        console.log(`❌ Invalid reset code attempt for user: ${username}`);
+        return res.status(400).json({ error: 'Invalid reset code' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Remove used reset code
+    resetCodes.delete(username);
+    saveData();
+
+    console.log(`✅ Password successfully reset for user: ${username}`);
+
+    res.json({ success: true, message: 'Password reset successfully' });
 });
 
 // Add contact endpoint
@@ -486,6 +608,9 @@ io.on('connection', (socket) => {
 
         if (!currentUsername || !chatId || !audioData) return;
 
+        const currentUser = users.get(currentUsername);
+        if (!currentUser) return;
+
         try {
             const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
             const filePath = path.join(uploadsDir, uniqueFilename);
@@ -516,6 +641,8 @@ io.on('connection', (socket) => {
 
             chat.messages.push(message);
             saveData();
+
+            console.log(`🎤 Voice message sent in chat ${chatId} by ${currentUsername}`);
 
             // Emit to all participants in the chat
             chat.participants.forEach(participantId => {
@@ -794,6 +921,23 @@ process.on('SIGTERM', () => {
 });
 
 const PORT = process.env.PORT || 3000;
+// Cleanup expired reset codes every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    let expiredCount = 0;
+
+    for (const [username, data] of resetCodes.entries()) {
+        if (now > data.expiresAt) {
+            resetCodes.delete(username);
+            expiredCount++;
+        }
+    }
+
+    if (expiredCount > 0) {
+        console.log(`🧹 Cleaned up ${expiredCount} expired reset code(s)`);
+    }
+}, 5 * 60 * 1000); // Every 5 minutes
+
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 WhatsApp Clone Server running on port ${PORT}`);
     console.log(`🔐 Authentication enabled with password protection`);
@@ -801,6 +945,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`📎 File upload feature enabled`);
     console.log(`📞 Voice & Video calling enabled (WebRTC)`);
     console.log(`💾 Data persistence enabled`);
+    console.log(`🔑 Password reset feature enabled`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📂 Data directory: ${dataDir}`);
     console.log(`📂 Uploads directory: ${uploadsDir}`);
