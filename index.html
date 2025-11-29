@@ -1014,6 +1014,213 @@
         ::-webkit-scrollbar-thumb:active {
             background: #cccccc !important;
         }
+
+        /* Hamburger Menu */
+        .menu-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .menu-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 50px;
+            background: var(--bg-elevated);
+            min-width: 200px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            z-index: 100;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .menu-content.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        .menu-item {
+            padding: 14px 20px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .menu-item:active {
+            background: var(--bg-secondary);
+        }
+
+        /* Whiteboard Modal */
+        .whiteboard-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .whiteboard-modal.active {
+            display: flex;
+        }
+
+        .whiteboard-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            width: 95%;
+            height: 90%;
+            max-width: 1400px;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .whiteboard-header {
+            padding: 16px 24px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .whiteboard-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .whiteboard-close {
+            background: var(--error);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .whiteboard-close:hover {
+            opacity: 0.8;
+        }
+
+        .whiteboard-toolbar {
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+        }
+
+        .tool-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-picker:hover {
+            border-color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
+        .size-slider {
+            width: 120px;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .whiteboard-canvas-container {
+            flex: 1;
+            background: white;
+            margin: 16px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #whiteboardCanvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 30px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        @media (max-width: 768px) {
+            .whiteboard-container {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+
+            .whiteboard-toolbar {
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1103,6 +1310,15 @@
                     <div class="header-actions">
                         <button class="icon-btn" onclick="startVoiceCall()" title="Voice Call">📞</button>
                         <button class="icon-btn" onclick="startVideoCall()" title="Video Call">📹</button>
+                        <div class="menu-dropdown">
+                            <button class="icon-btn" onclick="toggleMenu()" title="More Options">⋮</button>
+                            <div class="menu-content" id="chatMenu">
+                                <div class="menu-item" onclick="openWhiteboard()">
+                                    <span>🎨</span>
+                                    <span>Whiteboard</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1175,6 +1391,52 @@
                 <div id="outgoingCallActions" style="display: none;">
                     <button class="call-btn decline" onclick="cancelCall()" title="Cancel">📵</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Whiteboard Modal -->
+    <div class="whiteboard-modal" id="whiteboardModal">
+        <div class="whiteboard-container">
+            <div class="whiteboard-header">
+                <div class="whiteboard-title">🎨 Collaborative Whiteboard</div>
+                <button class="whiteboard-close" onclick="closeWhiteboard()">Close</button>
+            </div>
+
+            <div class="whiteboard-toolbar">
+                <button class="tool-btn active" id="penTool" onclick="selectTool('pen')">
+                    <span>✏️</span>
+                    <span>Pen</span>
+                </button>
+                <button class="tool-btn" id="eraserTool" onclick="selectTool('eraser')">
+                    <span>🧹</span>
+                    <span>Eraser</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Choose Color">
+
+                <div class="toolbar-separator"></div>
+
+                <label style="color: var(--text-secondary); font-size: 13px; margin-left: 8px;">Size:</label>
+                <input type="range" id="sizeSlider" class="size-slider" min="1" max="20" value="3" title="Brush Size">
+
+                <div class="toolbar-separator"></div>
+
+                <button class="tool-btn" onclick="clearCanvas()">
+                    <span>🗑️</span>
+                    <span>Clear All</span>
+                </button>
+
+                <button class="tool-btn" onclick="saveWhiteboard()">
+                    <span>💾</span>
+                    <span>Save</span>
+                </button>
+            </div>
+
+            <div class="whiteboard-canvas-container">
+                <canvas id="whiteboardCanvas"></canvas>
             </div>
         </div>
     </div>
@@ -2168,6 +2430,258 @@
                 const seconds = (elapsed % 60).toString().padStart(2, '0');
                 document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
             }, 1000);
+        }
+
+        // ========== WHITEBOARD FUNCTIONALITY ==========
+
+        let whiteboardCanvas = null;
+        let whiteboardCtx = null;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let currentSize = 3;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Toggle menu
+        function toggleMenu() {
+            const menu = document.getElementById('chatMenu');
+            menu.classList.toggle('show');
+        }
+
+        // Close menu when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.icon-btn') && !e.target.closest('.menu-dropdown')) {
+                const menu = document.getElementById('chatMenu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // Open whiteboard
+        function openWhiteboard() {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            document.getElementById('whiteboardModal').classList.add('active');
+            document.getElementById('chatMenu').classList.remove('show');
+
+            // Initialize canvas
+            setTimeout(() => {
+                initWhiteboardCanvas();
+            }, 100);
+
+            // Notify other user
+            socket.emit('whiteboard-opened', { chatId: currentChatId });
+        }
+
+        // Close whiteboard
+        function closeWhiteboard() {
+            document.getElementById('whiteboardModal').classList.remove('active');
+            socket.emit('whiteboard-closed', { chatId: currentChatId });
+        }
+
+        // Initialize canvas
+        function initWhiteboardCanvas() {
+            whiteboardCanvas = document.getElementById('whiteboardCanvas');
+            whiteboardCtx = whiteboardCanvas.getContext('2d');
+
+            const container = whiteboardCanvas.parentElement;
+            whiteboardCanvas.width = container.clientWidth - 32;
+            whiteboardCanvas.height = container.clientHeight - 32;
+
+            // Fill with white background
+            whiteboardCtx.fillStyle = 'white';
+            whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+
+            // Set up drawing
+            whiteboardCanvas.addEventListener('mousedown', startDrawing);
+            whiteboardCanvas.addEventListener('mousemove', draw);
+            whiteboardCanvas.addEventListener('mouseup', stopDrawing);
+            whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch support
+            whiteboardCanvas.addEventListener('touchstart', handleTouchStart);
+            whiteboardCanvas.addEventListener('touchmove', handleTouchMove);
+            whiteboardCanvas.addEventListener('touchend', stopDrawing);
+
+            // Color and size updates
+            document.getElementById('colorPicker').addEventListener('change', (e) => {
+                currentColor = e.target.value;
+            });
+
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                currentSize = e.target.value;
+            });
+        }
+
+        // Select tool
+        function selectTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Tool').classList.add('active');
+        }
+
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            whiteboardCtx.beginPath();
+            whiteboardCtx.moveTo(lastX, lastY);
+            whiteboardCtx.lineTo(x, y);
+
+            if (currentTool === 'eraser') {
+                whiteboardCtx.strokeStyle = 'white';
+                whiteboardCtx.lineWidth = currentSize * 3;
+            } else {
+                whiteboardCtx.strokeStyle = currentColor;
+                whiteboardCtx.lineWidth = currentSize;
+            }
+
+            whiteboardCtx.lineCap = 'round';
+            whiteboardCtx.lineJoin = 'round';
+            whiteboardCtx.stroke();
+
+            // Emit drawing data to other user
+            socket.emit('whiteboard-draw', {
+                chatId: currentChatId,
+                data: {
+                    x0: lastX,
+                    y0: lastY,
+                    x1: x,
+                    y1: y,
+                    color: currentTool === 'eraser' ? 'white' : currentColor,
+                    size: currentTool === 'eraser' ? currentSize * 3 : currentSize,
+                    tool: currentTool
+                }
+            });
+
+            lastX = x;
+            lastY = y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Touch support
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            lastX = touch.clientX - rect.left;
+            lastY = touch.clientY - rect.top;
+            isDrawing = true;
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+
+            const touch = e.touches[0];
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            whiteboardCtx.beginPath();
+            whiteboardCtx.moveTo(lastX, lastY);
+            whiteboardCtx.lineTo(x, y);
+
+            if (currentTool === 'eraser') {
+                whiteboardCtx.strokeStyle = 'white';
+                whiteboardCtx.lineWidth = currentSize * 3;
+            } else {
+                whiteboardCtx.strokeStyle = currentColor;
+                whiteboardCtx.lineWidth = currentSize;
+            }
+
+            whiteboardCtx.lineCap = 'round';
+            whiteboardCtx.lineJoin = 'round';
+            whiteboardCtx.stroke();
+
+            socket.emit('whiteboard-draw', {
+                chatId: currentChatId,
+                data: {
+                    x0: lastX,
+                    y0: lastY,
+                    x1: x,
+                    y1: y,
+                    color: currentTool === 'eraser' ? 'white' : currentColor,
+                    size: currentTool === 'eraser' ? currentSize * 3 : currentSize,
+                    tool: currentTool
+                }
+            });
+
+            lastX = x;
+            lastY = y;
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            if (!confirm('Clear the entire whiteboard? This will affect both users.')) return;
+
+            whiteboardCtx.fillStyle = 'white';
+            whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+
+            socket.emit('whiteboard-clear', { chatId: currentChatId });
+        }
+
+        // Save whiteboard
+        function saveWhiteboard() {
+            const dataURL = whiteboardCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `whiteboard-${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+        }
+
+        // Handle incoming whiteboard events
+        if (socket) {
+            socket.on('whiteboard-draw', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x0, y0, x1, y1, color, size } = data.data;
+
+                    whiteboardCtx.beginPath();
+                    whiteboardCtx.moveTo(x0, y0);
+                    whiteboardCtx.lineTo(x1, y1);
+                    whiteboardCtx.strokeStyle = color;
+                    whiteboardCtx.lineWidth = size;
+                    whiteboardCtx.lineCap = 'round';
+                    whiteboardCtx.lineJoin = 'round';
+                    whiteboardCtx.stroke();
+                }
+            });
+
+            socket.on('whiteboard-clear', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    whiteboardCtx.fillStyle = 'white';
+                    whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                }
+            });
+
+            socket.on('whiteboard-opened', (data) => {
+                if (data.chatId === currentChatId) {
+                    console.log('Other user opened whiteboard');
+                }
+            });
+
+            socket.on('whiteboard-closed', (data) => {
+                if (data.chatId === currentChatId) {
+                    console.log('Other user closed whiteboard');
+                }
+            });
         }
     </script>
 </body>

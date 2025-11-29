@@ -674,13 +674,91 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Whiteboard events
+    socket.on('whiteboard-opened', (data) => {
+        const { chatId } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-opened', {
+                    chatId: chatId,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-closed', (data) => {
+        const { chatId } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-closed', {
+                    chatId: chatId,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-draw', (data) => {
+        const { chatId, data: drawData } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-draw', {
+                    chatId: chatId,
+                    data: drawData,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-clear', (data) => {
+        const { chatId } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-clear', {
+                    chatId: chatId,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);
             if (user) {
                 user.online = false;
                 user.socketId = null;
-                
+
                 user.contacts.forEach(contactUsername => {
                     const contact = users.get(contactUsername);
                     if (contact && contact.online && contact.socketId) {
@@ -689,7 +767,7 @@ io.on('connection', (socket) => {
                         });
                     }
                 });
-                
+
                 saveData();
                 console.log(`User disconnected: ${currentUsername}`);
             }
