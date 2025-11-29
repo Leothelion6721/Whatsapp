@@ -2341,7 +2341,7 @@
                             </div>
                             <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
                             <input type="file" id="folderInput" style="display:none;" onchange="handleFileSelect(event)" webkitdirectory directory multiple>
-                            <button class="voice-btn" id="voiceBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Voice message">🎤</button>
+                            <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()" title="Voice message">🎤</button>
                             <textarea
                                 class="message-input"
                                 id="messageInput"
@@ -2516,7 +2516,7 @@
             <div class="recording-bar"></div>
         </div>
         <div class="recording-time" id="recordingTime">00:00</div>
-        <div style="font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-top: -8px;">Hold to record, release to send</div>
+        <div style="font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-top: -8px;">Recording voice message...</div>
         <button class="recording-cancel" onclick="cancelRecording()">Cancel</button>
     </div>
 
@@ -3558,11 +3558,29 @@
         let recordingStartTime = null;
         let recordingTimer = null;
         let isCancelled = false;
+        let isRecording = false;
 
-        async function startRecording() {
-            if (!currentChatId) return;
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
 
             try {
+                console.log('🎤 Starting voice recording...');
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
@@ -3573,14 +3591,17 @@
                 };
 
                 mediaRecorder.onstop = async () => {
+                    console.log('🎤 Recording stopped');
                     // Stop all tracks to release microphone
                     stream.getTracks().forEach(track => track.stop());
 
                     if (!isCancelled && audioChunks.length > 0) {
+                        console.log('🎤 Processing voice message...');
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const reader = new FileReader();
 
                         reader.onload = function(e) {
+                            console.log('🎤 Sending voice message...');
                             socket.emit('upload-voice', {
                                 chatId: currentChatId,
                                 audioData: e.target.result,
@@ -3597,12 +3618,15 @@
 
                 mediaRecorder.start();
                 recordingStartTime = Date.now();
+                isRecording = true;
+                console.log('🎤 Recording started');
 
                 // Show recording indicator
                 const indicator = document.getElementById('recordingIndicator');
                 const voiceBtn = document.getElementById('voiceBtn');
                 indicator.classList.add('active');
                 voiceBtn.classList.add('recording');
+                voiceBtn.textContent = '⏹️'; // Stop icon
 
                 // Start timer
                 updateRecordingTime();
@@ -3610,24 +3634,34 @@
 
             } catch (error) {
                 console.error('Error accessing microphone:', error);
-                alert('Could not access microphone. Please grant microphone permissions.');
+                alert('Could not access microphone. Please grant microphone permissions and try again.');
+                isRecording = false;
             }
         }
 
-        function stopRecording() {
+        function stopRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            console.log('🎤 Stop recording called');
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
+                isRecording = false;
 
                 // Hide recording indicator
                 const indicator = document.getElementById('recordingIndicator');
                 const voiceBtn = document.getElementById('voiceBtn');
                 indicator.classList.remove('active');
                 voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤'; // Microphone icon
             }
         }
 
         function cancelRecording() {
             isCancelled = true;
+            isRecording = false;
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
             }
@@ -3637,6 +3671,7 @@
             const voiceBtn = document.getElementById('voiceBtn');
             indicator.classList.remove('active');
             voiceBtn.classList.remove('recording');
+            voiceBtn.textContent = '🎤'; // Microphone icon
         }
 
         function updateRecordingTime() {
