@@ -1317,6 +1317,168 @@
             background: var(--bg-secondary);
         }
 
+        /* File Upload Menu */
+        .file-upload-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-menu-content {
+            display: none;
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            background: var(--bg-elevated);
+            min-width: 180px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            z-index: 100;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .file-menu-content.show {
+            display: block;
+            animation: slideUp 0.2s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-menu-item {
+            padding: 14px 20px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .file-menu-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .file-menu-item:active {
+            background: var(--bg-secondary);
+        }
+
+        /* File Preview Area */
+        .file-preview-area {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-preview-header span {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .preview-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .preview-close-btn:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .file-preview-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-elevated);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .file-preview-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .file-preview-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-preview-name {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-preview-size {
+            color: var(--text-tertiary);
+            font-size: 11px;
+        }
+
+        .file-preview-remove {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .file-preview-remove:hover {
+            background: var(--bg-secondary);
+            color: var(--error);
+        }
+
         /* Whiteboard Modal */
         .whiteboard-modal {
             display: none;
@@ -1959,9 +2121,32 @@
                             </div>
                             <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
                         </div>
+                        <!-- File Preview Area -->
+                        <div class="file-preview-area" id="filePreviewArea" style="display: none;">
+                            <div class="file-preview-header">
+                                <span id="filePreviewCount">0 files selected</span>
+                                <button class="preview-close-btn" onclick="clearFileSelection()">✕</button>
+                            </div>
+                            <div class="file-preview-list" id="filePreviewList"></div>
+                        </div>
+
                         <div style="display: flex; gap: 12px; align-items: flex-end;">
-                            <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
+                            <!-- File Upload Menu -->
+                            <div class="file-upload-menu">
+                                <button class="icon-btn" onclick="toggleFileMenu()" title="Attach files">📎</button>
+                                <div class="file-menu-content" id="fileMenu">
+                                    <div class="file-menu-item" onclick="openFileUpload()">
+                                        <span>📄</span>
+                                        <span>Upload Files</span>
+                                    </div>
+                                    <div class="file-menu-item" onclick="openFolderUpload()">
+                                        <span>📁</span>
+                                        <span>Upload Folder</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
+                            <input type="file" id="folderInput" style="display:none;" onchange="handleFileSelect(event)" webkitdirectory directory multiple>
                             <textarea
                                 class="message-input"
                                 id="messageInput"
@@ -2914,27 +3099,121 @@
             scrollToBottom();
         }
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // File upload menu functions
+        function toggleFileMenu() {
+            const menu = document.getElementById('fileMenu');
+            menu.classList.toggle('show');
+        }
 
-            if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
+        function openFileUpload() {
+            document.getElementById('fileInput').click();
+            document.getElementById('fileMenu').classList.remove('show');
+        }
+
+        function openFolderUpload() {
+            document.getElementById('folderInput').click();
+            document.getElementById('fileMenu').classList.remove('show');
+        }
+
+        // Close file menu when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.icon-btn') && !e.target.closest('.file-upload-menu')) {
+                const menu = document.getElementById('fileMenu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // Handle multiple file selection
+        let selectedFiles = [];
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            // Validate files
+            const validFiles = [];
+            let totalSize = 0;
+
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+                    continue;
+                }
+                validFiles.push(file);
+                totalSize += file.size;
+            }
+
+            if (totalSize > 50 * 1024 * 1024) {
+                alert('Total files size must be less than 50MB');
                 event.target.value = '';
                 return;
             }
 
-            selectedFile = file;
+            selectedFiles = validFiles;
 
-            const preview = document.getElementById('attachmentPreview');
-            const previewName = document.getElementById('previewName');
-            const previewSize = document.getElementById('previewSize');
+            if (selectedFiles.length > 0) {
+                displayFilePreview();
+                // Hide old attachment preview
+                document.getElementById('attachmentPreview').classList.remove('active');
+            }
 
-            previewName.textContent = file.name;
-            previewSize.textContent = formatFileSize(file.size);
-            preview.classList.add('active');
+            // Reset input
+            event.target.value = '';
+        }
 
-            document.getElementById('messageInput').focus();
+        function displayFilePreview() {
+            const previewArea = document.getElementById('filePreviewArea');
+            const previewCount = document.getElementById('filePreviewCount');
+            const previewList = document.getElementById('filePreviewList');
+
+            previewCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
+            previewList.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-preview-item';
+                item.innerHTML = `
+                    <div class="file-preview-icon">${getFileIcon(file.name)}</div>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name">${file.name}</div>
+                        <div class="file-preview-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="file-preview-remove" onclick="removeFile(${index})" title="Remove">✕</button>
+                `;
+                previewList.appendChild(item);
+            });
+
+            previewArea.style.display = 'block';
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'txt': '📝',
+                'zip': '🗜️', 'rar': '🗜️', '7z': '🗜️',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'webp': '🖼️',
+                'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'mkv': '🎬',
+                'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'ogg': '🎵'
+            };
+            return icons[ext] || '📎';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            if (selectedFiles.length > 0) {
+                displayFilePreview();
+            } else {
+                clearFileSelection();
+            }
+        }
+
+        function clearFileSelection() {
+            selectedFiles = [];
+            document.getElementById('filePreviewArea').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('folderInput').value = '';
         }
 
         function removeAttachment() {
@@ -2943,13 +3222,31 @@
             document.getElementById('attachmentPreview').classList.remove('active');
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
 
-            if (!currentChatId || (!text && !selectedFile)) return;
+            if (!currentChatId || (!text && !selectedFile && selectedFiles.length === 0)) return;
 
-            if (selectedFile) {
+            // Handle multiple files upload
+            if (selectedFiles.length > 0) {
+                for (const file of selectedFiles) {
+                    await uploadSingleFile(file);
+                }
+                clearFileSelection();
+
+                // Send text message if provided
+                if (text) {
+                    socket.emit('send-message', {
+                        chatId: currentChatId,
+                        text: text
+                    });
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                }
+            }
+            // Handle single file upload (old attachment method)
+            else if (selectedFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     socket.emit('upload-file', {
@@ -2960,7 +3257,9 @@
                     });
                 };
                 reader.readAsDataURL(selectedFile);
-            } else {
+            }
+            // Handle text-only message
+            else if (text) {
                 socket.emit('send-message', {
                     chatId: currentChatId,
                     text: text
@@ -2968,6 +3267,23 @@
                 messageInput.value = '';
                 autoResize(messageInput);
             }
+        }
+
+        function uploadSingleFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('upload-file', {
+                        chatId: currentChatId,
+                        fileData: e.target.result,
+                        fileName: file.name,
+                        fileType: file.type
+                    });
+                    resolve();
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         function handleKeyPress(event) {
