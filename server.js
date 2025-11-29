@@ -752,6 +752,126 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('whiteboard-shape', (data) => {
+        const { chatId, data: shapeData } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-shape', {
+                    chatId: chatId,
+                    data: shapeData,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-text', (data) => {
+        const { chatId, data: textData } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-text', {
+                    chatId: chatId,
+                    data: textData,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-sticky', (data) => {
+        const { chatId, data: stickyData } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-sticky', {
+                    chatId: chatId,
+                    data: stickyData,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-sticky-move', (data) => {
+        const { chatId, data: moveData } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-sticky-move', {
+                    chatId: chatId,
+                    data: moveData,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-undo', (data) => {
+        const { chatId, state } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-undo', {
+                    chatId: chatId,
+                    state: state,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
+    socket.on('whiteboard-redo', (data) => {
+        const { chatId, state } = data;
+
+        if (!currentUsername) return;
+
+        const chat = chats.get(chatId);
+        if (chat) {
+            const otherUser = chat.participants.find(p => p !== currentUsername);
+            const targetUser = users.get(otherUser);
+
+            if (targetUser && targetUser.online && targetUser.socketId) {
+                io.to(targetUser.socketId).emit('whiteboard-redo', {
+                    chatId: chatId,
+                    state: state,
+                    from: currentUsername
+                });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         if (currentUsername) {
             const user = users.get(currentUsername);

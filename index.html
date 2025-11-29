@@ -1129,6 +1129,8 @@
             gap: 8px;
             align-items: center;
             flex-wrap: wrap;
+            max-height: 120px;
+            overflow-y: auto;
         }
 
         .tool-btn {
@@ -1208,6 +1210,51 @@
             height: 30px;
             background: var(--border);
             margin: 0 4px;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 6px;
+            padding: 4px;
+        }
+
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+            border-color: var(--text-primary);
+        }
+
+        .color-swatch.active {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px var(--accent-primary);
+        }
+
+        .sticky-note {
+            position: absolute;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px;
+            min-width: 150px;
+            min-height: 100px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: move;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            resize: both;
+            overflow: auto;
+        }
+
+        .sticky-note:focus {
+            outline: 2px solid var(--accent-primary);
         }
 
         @media (max-width: 768px) {
@@ -1404,9 +1451,14 @@
             </div>
 
             <div class="whiteboard-toolbar">
+                <!-- Drawing Tools -->
                 <button class="tool-btn active" id="penTool" onclick="selectTool('pen')">
                     <span>✏️</span>
                     <span>Pen</span>
+                </button>
+                <button class="tool-btn" id="highlighterTool" onclick="selectTool('highlighter')">
+                    <span>🖍️</span>
+                    <span>Highlighter</span>
                 </button>
                 <button class="tool-btn" id="eraserTool" onclick="selectTool('eraser')">
                     <span>🧹</span>
@@ -1415,12 +1467,66 @@
 
                 <div class="toolbar-separator"></div>
 
-                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Choose Color">
+                <!-- Shape Tools -->
+                <button class="tool-btn" id="rectangleTool" onclick="selectTool('rectangle')">
+                    <span>◻️</span>
+                    <span>Rectangle</span>
+                </button>
+                <button class="tool-btn" id="circleTool" onclick="selectTool('circle')">
+                    <span>⭕</span>
+                    <span>Circle</span>
+                </button>
+                <button class="tool-btn" id="lineTool" onclick="selectTool('line')">
+                    <span>➖</span>
+                    <span>Line</span>
+                </button>
+                <button class="tool-btn" id="arrowTool" onclick="selectTool('arrow')">
+                    <span>➡️</span>
+                    <span>Arrow</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Text and Sticky Tools -->
+                <button class="tool-btn" id="textTool" onclick="selectTool('text')">
+                    <span>📝</span>
+                    <span>Text</span>
+                </button>
+                <button class="tool-btn" id="stickyTool" onclick="selectTool('sticky')">
+                    <span>📌</span>
+                    <span>Sticky Note</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Color Palette Presets -->
+                <div class="color-palette">
+                    <div class="color-swatch" style="background: #000000;" onclick="setColor('#000000')" title="Black"></div>
+                    <div class="color-swatch" style="background: #ef4444;" onclick="setColor('#ef4444')" title="Red"></div>
+                    <div class="color-swatch" style="background: #3b82f6;" onclick="setColor('#3b82f6')" title="Blue"></div>
+                    <div class="color-swatch" style="background: #10b981;" onclick="setColor('#10b981')" title="Green"></div>
+                    <div class="color-swatch" style="background: #f59e0b;" onclick="setColor('#f59e0b')" title="Orange"></div>
+                    <div class="color-swatch" style="background: #8b5cf6;" onclick="setColor('#8b5cf6')" title="Purple"></div>
+                </div>
+
+                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Custom Color">
 
                 <div class="toolbar-separator"></div>
 
                 <label style="color: var(--text-secondary); font-size: 13px; margin-left: 8px;">Size:</label>
                 <input type="range" id="sizeSlider" class="size-slider" min="1" max="20" value="3" title="Brush Size">
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Undo/Redo -->
+                <button class="tool-btn" onclick="undo()" title="Undo">
+                    <span>↶</span>
+                    <span>Undo</span>
+                </button>
+                <button class="tool-btn" onclick="redo()" title="Redo">
+                    <span>↷</span>
+                    <span>Redo</span>
+                </button>
 
                 <div class="toolbar-separator"></div>
 
@@ -2442,6 +2548,12 @@
         let currentSize = 3;
         let lastX = 0;
         let lastY = 0;
+        let startX = 0;
+        let startY = 0;
+        let canvasHistory = [];
+        let historyStep = -1;
+        let stickyNotes = [];
+        let tempCanvas = null;
 
         // Toggle menu
         function toggleMenu() {
@@ -2456,6 +2568,71 @@
                 if (menu) menu.classList.remove('show');
             }
         });
+
+        // Set color from palette
+        function setColor(color) {
+            currentColor = color;
+            document.getElementById('colorPicker').value = color;
+
+            // Update active swatch
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Save canvas state for undo/redo
+        function saveState() {
+            historyStep++;
+            if (historyStep < canvasHistory.length) {
+                canvasHistory.length = historyStep;
+            }
+            canvasHistory.push(whiteboardCanvas.toDataURL());
+
+            // Limit history to 50 states
+            if (canvasHistory.length > 50) {
+                canvasHistory.shift();
+                historyStep--;
+            }
+        }
+
+        // Undo function
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                restoreState(canvasHistory[historyStep]);
+
+                // Sync undo with other user
+                socket.emit('whiteboard-undo', {
+                    chatId: currentChatId,
+                    state: canvasHistory[historyStep]
+                });
+            }
+        }
+
+        // Redo function
+        function redo() {
+            if (historyStep < canvasHistory.length - 1) {
+                historyStep++;
+                restoreState(canvasHistory[historyStep]);
+
+                // Sync redo with other user
+                socket.emit('whiteboard-redo', {
+                    chatId: currentChatId,
+                    state: canvasHistory[historyStep]
+                });
+            }
+        }
+
+        // Restore canvas state
+        function restoreState(dataURL) {
+            const img = new Image();
+            img.onload = function() {
+                whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.fillStyle = 'white';
+                whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.drawImage(img, 0, 0);
+            };
+            img.src = dataURL;
+        }
 
         // Open whiteboard
         function openWhiteboard() {
@@ -2495,6 +2672,11 @@
             whiteboardCtx.fillStyle = 'white';
             whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
 
+            // Reset history
+            canvasHistory = [];
+            historyStep = -1;
+            saveState(); // Save initial state
+
             // Set up drawing
             whiteboardCanvas.addEventListener('mousedown', startDrawing);
             whiteboardCanvas.addEventListener('mousemove', draw);
@@ -2525,10 +2707,46 @@
 
         // Drawing functions
         function startDrawing(e) {
-            isDrawing = true;
             const rect = whiteboardCanvas.getBoundingClientRect();
-            lastX = e.clientX - rect.left;
-            lastY = e.clientY - rect.top;
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            lastX = startX;
+            lastY = startY;
+
+            // Handle text tool
+            if (currentTool === 'text') {
+                const text = prompt('Enter text:');
+                if (text) {
+                    whiteboardCtx.font = `${currentSize * 6}px Arial`;
+                    whiteboardCtx.fillStyle = currentColor;
+                    whiteboardCtx.fillText(text, startX, startY);
+                    saveState();
+
+                    // Sync with other user
+                    socket.emit('whiteboard-text', {
+                        chatId: currentChatId,
+                        data: { x: startX, y: startY, text, color: currentColor, size: currentSize }
+                    });
+                }
+                return;
+            }
+
+            // Handle sticky note tool
+            if (currentTool === 'sticky') {
+                createStickyNote(startX, startY);
+                return;
+            }
+
+            isDrawing = true;
+
+            // For shapes, create a temporary canvas to preview
+            if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)) {
+                if (!tempCanvas) {
+                    tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = whiteboardCanvas.width;
+                    tempCanvas.height = whiteboardCanvas.height;
+                }
+            }
         }
 
         function draw(e) {
@@ -2538,94 +2756,221 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            whiteboardCtx.beginPath();
-            whiteboardCtx.moveTo(lastX, lastY);
-            whiteboardCtx.lineTo(x, y);
+            // Handle freehand drawing (pen, highlighter, eraser)
+            if (['pen', 'highlighter', 'eraser'].includes(currentTool)) {
+                whiteboardCtx.beginPath();
+                whiteboardCtx.moveTo(lastX, lastY);
+                whiteboardCtx.lineTo(x, y);
 
-            if (currentTool === 'eraser') {
-                whiteboardCtx.strokeStyle = 'white';
-                whiteboardCtx.lineWidth = currentSize * 3;
-            } else {
-                whiteboardCtx.strokeStyle = currentColor;
-                whiteboardCtx.lineWidth = currentSize;
+                if (currentTool === 'eraser') {
+                    whiteboardCtx.strokeStyle = 'white';
+                    whiteboardCtx.lineWidth = currentSize * 3;
+                    whiteboardCtx.globalAlpha = 1.0;
+                } else if (currentTool === 'highlighter') {
+                    whiteboardCtx.strokeStyle = currentColor;
+                    whiteboardCtx.lineWidth = currentSize * 2;
+                    whiteboardCtx.globalAlpha = 0.3;
+                } else {
+                    whiteboardCtx.strokeStyle = currentColor;
+                    whiteboardCtx.lineWidth = currentSize;
+                    whiteboardCtx.globalAlpha = 1.0;
+                }
+
+                whiteboardCtx.lineCap = 'round';
+                whiteboardCtx.lineJoin = 'round';
+                whiteboardCtx.stroke();
+
+                // Emit drawing data to other user
+                socket.emit('whiteboard-draw', {
+                    chatId: currentChatId,
+                    data: {
+                        x0: lastX,
+                        y0: lastY,
+                        x1: x,
+                        y1: y,
+                        color: currentTool === 'eraser' ? 'white' : currentColor,
+                        size: currentTool === 'eraser' ? currentSize * 3 : (currentTool === 'highlighter' ? currentSize * 2 : currentSize),
+                        tool: currentTool,
+                        alpha: currentTool === 'highlighter' ? 0.3 : 1.0
+                    }
+                });
+
+                lastX = x;
+                lastY = y;
+            }
+            // Handle shape drawing with preview
+            else if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)) {
+                // Clear temp canvas and redraw shape
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                // Copy current canvas to temp
+                tempCtx.drawImage(whiteboardCanvas, 0, 0);
+
+                // Draw preview shape
+                drawShape(tempCtx, startX, startY, x, y, currentTool);
+
+                // Show preview by temporarily replacing canvas
+                const savedData = whiteboardCtx.getImageData(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.putImageData(tempCtx.getImageData(0, 0, whiteboardCanvas.width, whiteboardCanvas.height), 0, 0);
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+
+            // For shapes, finalize the drawing
+            if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool) && e) {
+                const rect = whiteboardCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Draw final shape
+                drawShape(whiteboardCtx, startX, startY, x, y, currentTool);
+                saveState();
+
+                // Sync with other user
+                socket.emit('whiteboard-shape', {
+                    chatId: currentChatId,
+                    data: {
+                        x0: startX,
+                        y0: startY,
+                        x1: x,
+                        y1: y,
+                        color: currentColor,
+                        size: currentSize,
+                        shape: currentTool
+                    }
+                });
+            }
+            // For freehand tools, save state
+            else if (['pen', 'highlighter', 'eraser'].includes(currentTool)) {
+                saveState();
             }
 
-            whiteboardCtx.lineCap = 'round';
-            whiteboardCtx.lineJoin = 'round';
-            whiteboardCtx.stroke();
+            isDrawing = false;
+            whiteboardCtx.globalAlpha = 1.0; // Reset alpha
+        }
 
-            // Emit drawing data to other user
-            socket.emit('whiteboard-draw', {
-                chatId: currentChatId,
-                data: {
-                    x0: lastX,
-                    y0: lastY,
-                    x1: x,
-                    y1: y,
-                    color: currentTool === 'eraser' ? 'white' : currentColor,
-                    size: currentTool === 'eraser' ? currentSize * 3 : currentSize,
-                    tool: currentTool
+        // Draw shape helper function
+        function drawShape(ctx, x0, y0, x1, y1, shape) {
+            ctx.strokeStyle = currentColor;
+            ctx.fillStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (shape === 'rectangle') {
+                ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+            } else if (shape === 'circle') {
+                const radius = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+                ctx.beginPath();
+                ctx.arc(x0, y0, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (shape === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(x0, y0);
+                ctx.lineTo(x1, y1);
+                ctx.stroke();
+            } else if (shape === 'arrow') {
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(x0, y0);
+                ctx.lineTo(x1, y1);
+                ctx.stroke();
+
+                // Draw arrowhead
+                const angle = Math.atan2(y1 - y0, x1 - x0);
+                const headLength = 15 + currentSize;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(
+                    x1 - headLength * Math.cos(angle - Math.PI / 6),
+                    y1 - headLength * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(
+                    x1 - headLength * Math.cos(angle + Math.PI / 6),
+                    y1 - headLength * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            }
+        }
+
+        // Create sticky note
+        function createStickyNote(x, y) {
+            const text = prompt('Enter sticky note text:');
+            if (!text) return;
+
+            const stickyId = Date.now();
+            const container = document.querySelector('.whiteboard-canvas-container');
+
+            const sticky = document.createElement('div');
+            sticky.className = 'sticky-note';
+            sticky.contentEditable = true;
+            sticky.textContent = text;
+            sticky.style.left = x + 'px';
+            sticky.style.top = y + 'px';
+            sticky.id = 'sticky-' + stickyId;
+
+            // Make sticky draggable
+            let isDragging = false;
+            let dragStartX, dragStartY;
+
+            sticky.addEventListener('mousedown', (e) => {
+                if (e.target.tagName !== 'DIV') return;
+                isDragging = true;
+                dragStartX = e.clientX - parseInt(sticky.style.left);
+                dragStartY = e.clientY - parseInt(sticky.style.top);
+                e.stopPropagation();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                sticky.style.left = (e.clientX - dragStartX) + 'px';
+                sticky.style.top = (e.clientY - dragStartY) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    // Sync sticky position
+                    socket.emit('whiteboard-sticky-move', {
+                        chatId: currentChatId,
+                        data: { id: stickyId, x: parseInt(sticky.style.left), y: parseInt(sticky.style.top) }
+                    });
                 }
             });
 
-            lastX = x;
-            lastY = y;
-        }
+            container.appendChild(sticky);
+            stickyNotes.push({ id: stickyId, x, y, text });
 
-        function stopDrawing() {
-            isDrawing = false;
+            // Sync with other user
+            socket.emit('whiteboard-sticky', {
+                chatId: currentChatId,
+                data: { id: stickyId, x, y, text }
+            });
         }
 
         // Touch support
         function handleTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
-            const rect = whiteboardCanvas.getBoundingClientRect();
-            lastX = touch.clientX - rect.left;
-            lastY = touch.clientY - rect.top;
-            isDrawing = true;
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            whiteboardCanvas.dispatchEvent(mouseEvent);
         }
 
         function handleTouchMove(e) {
             e.preventDefault();
-            if (!isDrawing) return;
-
             const touch = e.touches[0];
-            const rect = whiteboardCanvas.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-
-            whiteboardCtx.beginPath();
-            whiteboardCtx.moveTo(lastX, lastY);
-            whiteboardCtx.lineTo(x, y);
-
-            if (currentTool === 'eraser') {
-                whiteboardCtx.strokeStyle = 'white';
-                whiteboardCtx.lineWidth = currentSize * 3;
-            } else {
-                whiteboardCtx.strokeStyle = currentColor;
-                whiteboardCtx.lineWidth = currentSize;
-            }
-
-            whiteboardCtx.lineCap = 'round';
-            whiteboardCtx.lineJoin = 'round';
-            whiteboardCtx.stroke();
-
-            socket.emit('whiteboard-draw', {
-                chatId: currentChatId,
-                data: {
-                    x0: lastX,
-                    y0: lastY,
-                    x1: x,
-                    y1: y,
-                    color: currentTool === 'eraser' ? 'white' : currentColor,
-                    size: currentTool === 'eraser' ? currentSize * 3 : currentSize,
-                    tool: currentTool
-                }
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
             });
-
-            lastX = x;
-            lastY = y;
+            whiteboardCanvas.dispatchEvent(mouseEvent);
         }
 
         // Clear canvas
@@ -2635,6 +2980,11 @@
             whiteboardCtx.fillStyle = 'white';
             whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
 
+            // Remove all sticky notes
+            document.querySelectorAll('.sticky-note').forEach(note => note.remove());
+            stickyNotes = [];
+
+            saveState();
             socket.emit('whiteboard-clear', { chatId: currentChatId });
         }
 
@@ -2651,8 +3001,9 @@
         if (socket) {
             socket.on('whiteboard-draw', (data) => {
                 if (whiteboardCtx && data.chatId === currentChatId) {
-                    const { x0, y0, x1, y1, color, size } = data.data;
+                    const { x0, y0, x1, y1, color, size, alpha } = data.data;
 
+                    whiteboardCtx.globalAlpha = alpha || 1.0;
                     whiteboardCtx.beginPath();
                     whiteboardCtx.moveTo(x0, y0);
                     whiteboardCtx.lineTo(x1, y1);
@@ -2661,6 +3012,72 @@
                     whiteboardCtx.lineCap = 'round';
                     whiteboardCtx.lineJoin = 'round';
                     whiteboardCtx.stroke();
+                    whiteboardCtx.globalAlpha = 1.0;
+                }
+            });
+
+            socket.on('whiteboard-shape', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x0, y0, x1, y1, color, size, shape } = data.data;
+                    const savedColor = currentColor;
+                    const savedSize = currentSize;
+
+                    currentColor = color;
+                    currentSize = size;
+                    drawShape(whiteboardCtx, x0, y0, x1, y1, shape);
+
+                    currentColor = savedColor;
+                    currentSize = savedSize;
+                }
+            });
+
+            socket.on('whiteboard-text', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x, y, text, color, size } = data.data;
+                    whiteboardCtx.font = `${size * 6}px Arial`;
+                    whiteboardCtx.fillStyle = color;
+                    whiteboardCtx.fillText(text, x, y);
+                }
+            });
+
+            socket.on('whiteboard-sticky', (data) => {
+                if (data.chatId === currentChatId) {
+                    const { id, x, y, text } = data.data;
+                    const container = document.querySelector('.whiteboard-canvas-container');
+
+                    const sticky = document.createElement('div');
+                    sticky.className = 'sticky-note';
+                    sticky.contentEditable = true;
+                    sticky.textContent = text;
+                    sticky.style.left = x + 'px';
+                    sticky.style.top = y + 'px';
+                    sticky.id = 'sticky-' + id;
+
+                    container.appendChild(sticky);
+                    stickyNotes.push({ id, x, y, text });
+                }
+            });
+
+            socket.on('whiteboard-sticky-move', (data) => {
+                if (data.chatId === currentChatId) {
+                    const { id, x, y } = data.data;
+                    const sticky = document.getElementById('sticky-' + id);
+                    if (sticky) {
+                        sticky.style.left = x + 'px';
+                        sticky.style.top = y + 'px';
+                    }
+                }
+            });
+
+            socket.on('whiteboard-undo', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    restoreState(data.state);
+                }
+            });
+
+            socket.on('whiteboard-redo', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    restoreState(data.state);
                 }
             });
 
@@ -2668,6 +3085,8 @@
                 if (whiteboardCtx && data.chatId === currentChatId) {
                     whiteboardCtx.fillStyle = 'white';
                     whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                    document.querySelectorAll('.sticky-note').forEach(note => note.remove());
+                    stickyNotes = [];
                 }
             });
 
