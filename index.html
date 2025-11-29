@@ -530,16 +530,27 @@
         }
 
         .messages-container::-webkit-scrollbar {
-            width: 8px;
+            width: 12px;
         }
 
         .messages-container::-webkit-scrollbar-track {
-            background: transparent;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin: 8px 0;
         }
 
         .messages-container::-webkit-scrollbar-thumb {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
+            background: #404040;
+            border-radius: 8px;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #505050;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:active {
+            background: #606060;
         }
 
         .message {
@@ -963,20 +974,26 @@
 
         /* Scrollbar styling */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 12px;
         }
 
         ::-webkit-scrollbar-track {
-            background: transparent;
+            background: var(--bg-secondary);
+            border-radius: 8px;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--bg-elevated);
-            border-radius: 4px;
+            background: #404040;
+            border-radius: 8px;
+            border: 2px solid var(--bg-secondary);
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--border);
+            background: #505050;
+        }
+
+        ::-webkit-scrollbar-thumb:active {
+            background: #606060;
         }
     </style>
 </head>
