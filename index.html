@@ -543,27 +543,31 @@
         }
 
         .messages-container::-webkit-scrollbar {
-            width: 14px !important;
+            width: 16px !important;
             display: block !important;
         }
 
         .messages-container::-webkit-scrollbar-track {
-            background: #2a2a2a !important;
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.15) !important;
+            border-radius: 8px;
+            margin: 4px 0;
         }
 
         .messages-container::-webkit-scrollbar-thumb {
-            background: #888888 !important;
-            border-radius: 10px;
-            border: 3px solid #2a2a2a;
+            background: rgba(0, 0, 0, 0.4) !important;
+            border-radius: 8px;
+            border: 3px solid transparent;
+            background-clip: padding-box;
         }
 
         .messages-container::-webkit-scrollbar-thumb:hover {
-            background: #aaaaaa !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            background-clip: padding-box;
         }
 
         .messages-container::-webkit-scrollbar-thumb:active {
-            background: #cccccc !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            background-clip: padding-box;
         }
 
         .message {
@@ -573,26 +577,45 @@
             word-wrap: break-word;
             position: relative;
             animation: fadeIn 0.3s ease;
+        }
+
+        .message-text {
             overflow-x: auto;
             overflow-y: hidden;
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
-        .message::-webkit-scrollbar {
-            height: 6px;
+        .message-text::-webkit-scrollbar {
+            height: 8px;
         }
 
-        .message::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
+        .message-text::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            margin: 4px 0;
         }
 
-        .message::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 3px;
+        .message-text::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
         }
 
-        .message::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.5);
+        .message-text::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .message.sent .message-text::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message.sent .message-text::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .message.sent .message-text::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.7);
         }
 
         @keyframes fadeIn {
@@ -2318,16 +2341,16 @@
                             </div>
                             <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
                             <input type="file" id="folderInput" style="display:none;" onchange="handleFileSelect(event)" webkitdirectory directory multiple>
+                            <button class="voice-btn" id="voiceBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Voice message">🎤</button>
                             <textarea
                                 class="message-input"
                                 id="messageInput"
                                 placeholder="Type a message"
                                 rows="1"
                                 onkeypress="handleKeyPress(event)"
-                                oninput="handleTyping(); autoResize(this); toggleVoiceButton()"
+                                oninput="handleTyping(); autoResize(this)"
                             ></textarea>
-                            <button class="send-btn" id="sendBtn" onclick="sendMessage()" style="display: none;">➤</button>
-                            <button class="voice-btn" id="voiceBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</button>
+                            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
                         </div>
                     </div>
                 </div>
@@ -2588,6 +2611,19 @@
             // Show security question when username is entered in reset form
             const resetUsernameInput = document.getElementById('resetUsernameInput');
             if (resetUsernameInput) {
+                let debounceTimer;
+                resetUsernameInput.addEventListener('input', async () => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(async () => {
+                        const username = resetUsernameInput.value.trim();
+                        if (username) {
+                            await fetchSecurityQuestion(username);
+                        } else {
+                            document.getElementById('securityQuestionDisplay').style.display = 'none';
+                            document.getElementById('securityAnswerResetInput').style.display = 'none';
+                        }
+                    }, 500);
+                });
                 resetUsernameInput.addEventListener('blur', async () => {
                     const username = resetUsernameInput.value.trim();
                     if (username) {
@@ -3522,20 +3558,6 @@
         let recordingStartTime = null;
         let recordingTimer = null;
         let isCancelled = false;
-
-        function toggleVoiceButton() {
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendBtn');
-            const voiceBtn = document.getElementById('voiceBtn');
-
-            if (messageInput.value.trim() || selectedFiles.length > 0) {
-                sendBtn.style.display = 'flex';
-                voiceBtn.style.display = 'none';
-            } else {
-                sendBtn.style.display = 'none';
-                voiceBtn.style.display = 'flex';
-            }
-        }
 
         async function startRecording() {
             if (!currentChatId) return;
