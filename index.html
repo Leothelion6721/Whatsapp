@@ -2977,7 +2977,7 @@
                     chat.messages.push(data.message);
 
                     chat.lastMessage = {
-                        text: data.message.text || '📎 File',
+                        text: data.message.text || (data.message.file ? '📎 File' : (data.message.voice ? '🎤 Voice message' : '')),
                         time: data.message.timestamp
                     };
 

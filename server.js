@@ -543,7 +543,7 @@ io.on('connection', (socket) => {
         messages.set(chatId, chatMessages);
         
         chat.lastMessage = {
-            text: text || (file ? '📎 File' : ''),
+            text: text || (file ? '📎 File' : (voice ? '🎤 Voice message' : '')),
             time: Date.now()
         };
         
@@ -559,6 +559,7 @@ io.on('connection', (socket) => {
                             id: message.id,
                             text: message.text,
                             file: message.file,
+                            voice: message.voice,
                             senderUsername: message.senderUsername,
                             timestamp: message.timestamp,
                             sent: participantUsername === currentUsername
@@ -567,8 +568,8 @@ io.on('connection', (socket) => {
                 }
             }
         });
-        
-        console.log(`Message sent in chat ${chatId} by ${currentUsername}`);
+
+        console.log(`Message sent in chat ${chatId} by ${currentUsername}${voice ? ' (voice message)' : ''}`);
     });
 
     socket.on('upload-file', async (data) => {
