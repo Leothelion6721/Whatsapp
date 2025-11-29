@@ -1443,6 +1443,19 @@
             <input type="password" id="passwordInput" placeholder="Password">
             <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" style="display:none;">
 
+            <!-- Security Question for Registration -->
+            <div id="securityQuestionSection" style="display:none;">
+                <select id="securityQuestionSelect" style="width: 100%; padding: 16px 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 12px; font-size: 15px; margin-bottom: 16px; transition: all 0.2s ease; color: var(--text-primary);">
+                    <option value="">Select a security question</option>
+                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                    <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                    <option value="What city were you born in?">What city were you born in?</option>
+                    <option value="What is your favorite book?">What is your favorite book?</option>
+                    <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                </select>
+                <input type="text" id="securityAnswerInput" placeholder="Your answer (case-insensitive)" style="display:none;">
+            </div>
+
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
 
             <p id="forgotPasswordLink" style="margin-bottom: 12px;">
@@ -1468,13 +1481,21 @@
                 <!-- Step 1: Request Reset Code -->
                 <div id="resetStep1" class="reset-step">
                     <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
-                        Enter your username to request a password reset code. A secure code will be generated on the server.
+                        To verify your identity, answer your security question. Only you know this answer!
                     </p>
 
                     <div class="error-message" id="resetErrorMessage"></div>
                     <div class="success-message" id="resetSuccessMessage"></div>
 
                     <input type="text" id="resetUsernameInput" placeholder="Enter your username" class="reset-input">
+
+                    <div id="securityQuestionDisplay" style="background: var(--bg-elevated); padding: 14px 18px; border-radius: 10px; margin-bottom: 14px; color: var(--text-secondary); font-size: 14px; display: none;">
+                        <strong style="color: var(--text-primary);">Security Question:</strong><br>
+                        <span id="displayedQuestion" style="color: var(--accent-primary); margin-top: 6px; display: block;"></span>
+                    </div>
+
+                    <input type="text" id="securityAnswerResetInput" placeholder="Answer to your security question" class="reset-input" style="display:none;">
+
                     <button onclick="requestResetCode()" class="reset-btn">Request Reset Code</button>
                 </div>
 
@@ -1815,6 +1836,7 @@
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
             const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+            const securitySection = document.getElementById('securityQuestionSection');
 
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
@@ -1822,6 +1844,7 @@
                 switchText.textContent = "Don't have an account?";
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
+                securitySection.style.display = 'none';
                 forgotPasswordLink.style.display = 'block';
             } else {
                 title.textContent = 'Create a new account';
@@ -1829,11 +1852,39 @@
                 switchText.textContent = 'Already have an account?';
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
+                securitySection.style.display = 'block';
                 forgotPasswordLink.style.display = 'none';
             }
 
             clearMessages();
         }
+
+        // Show answer input when security question is selected
+        document.addEventListener('DOMContentLoaded', () => {
+            const securitySelect = document.getElementById('securityQuestionSelect');
+            const securityAnswerInput = document.getElementById('securityAnswerInput');
+
+            if (securitySelect) {
+                securitySelect.addEventListener('change', () => {
+                    if (securitySelect.value) {
+                        securityAnswerInput.style.display = 'block';
+                    } else {
+                        securityAnswerInput.style.display = 'none';
+                    }
+                });
+            }
+
+            // Show security question when username is entered in reset form
+            const resetUsernameInput = document.getElementById('resetUsernameInput');
+            if (resetUsernameInput) {
+                resetUsernameInput.addEventListener('blur', async () => {
+                    const username = resetUsernameInput.value.trim();
+                    if (username) {
+                        await fetchSecurityQuestion(username);
+                    }
+                });
+            }
+        });
 
         // Password Reset Functions
         function showForgotPassword() {
@@ -1841,8 +1892,37 @@
             document.getElementById('resetStep1').style.display = 'block';
             document.getElementById('resetStep2').style.display = 'none';
             document.getElementById('resetUsernameInput').value = '';
+            document.getElementById('securityAnswerResetInput').value = '';
+            document.getElementById('securityQuestionDisplay').style.display = 'none';
+            document.getElementById('securityAnswerResetInput').style.display = 'none';
             document.getElementById('resetErrorMessage').style.display = 'none';
             document.getElementById('resetSuccessMessage').style.display = 'none';
+        }
+
+        // Fetch security question for username
+        async function fetchSecurityQuestion(username) {
+            try {
+                const response = await fetch('/api/get-security-question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.question) {
+                    document.getElementById('displayedQuestion').textContent = data.question;
+                    document.getElementById('securityQuestionDisplay').style.display = 'block';
+                    document.getElementById('securityAnswerResetInput').style.display = 'block';
+                } else {
+                    document.getElementById('securityQuestionDisplay').style.display = 'none';
+                    document.getElementById('securityAnswerResetInput').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error fetching security question:', error);
+            }
         }
 
         function closeResetModal() {
@@ -1859,11 +1939,19 @@
 
         async function requestResetCode() {
             const username = document.getElementById('resetUsernameInput').value.trim();
+            const securityAnswer = document.getElementById('securityAnswerResetInput').value.trim();
             const errorDiv = document.getElementById('resetErrorMessage');
             const successDiv = document.getElementById('resetSuccessMessage');
 
             if (!username) {
                 errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            if (!securityAnswer) {
+                errorDiv.textContent = 'Please answer your security question';
                 errorDiv.style.display = 'block';
                 successDiv.style.display = 'none';
                 return;
@@ -1875,7 +1963,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username })
+                    body: JSON.stringify({ username, securityAnswer })
                 });
 
                 const data = await response.json();
@@ -2001,7 +2089,29 @@
                 return;
             }
 
+            // Check security question for registration
+            if (!isLoginMode) {
+                const securityQuestion = document.getElementById('securityQuestionSelect').value;
+                const securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+
+                if (!securityQuestion) {
+                    showError('Please select a security question');
+                    return;
+                }
+
+                if (!securityAnswer) {
+                    showError('Please answer your security question');
+                    return;
+                }
+            }
+
             const endpoint = isLoginMode ? '/api/login' : '/api/register';
+            const requestBody = { username, password };
+
+            if (!isLoginMode) {
+                requestBody.securityQuestion = document.getElementById('securityQuestionSelect').value;
+                requestBody.securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+            }
 
             try {
                 const response = await fetch(endpoint, {
@@ -2009,7 +2119,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();

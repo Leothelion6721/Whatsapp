@@ -152,44 +152,56 @@ function verifyToken(token) {
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    
+    const { username, password, securityQuestion, securityAnswer } = req.body;
+
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
+    if (!securityQuestion || !securityAnswer) {
+        return res.status(400).json({ error: 'Security question and answer are required' });
+    }
+
     if (username.length < 3 || username.length > 20) {
         return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
-    
+
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
+    if (securityAnswer.length < 2) {
+        return res.status(400).json({ error: 'Security answer must be at least 2 characters' });
+    }
+
     if (users.has(username)) {
         return res.status(400).json({ error: 'Username already exists' });
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash security answer (case-insensitive) for secure storage
+    const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
     const userId = generateId();
-    
+
     users.set(username, {
         userId,
         password: hashedPassword,
         username,
+        securityQuestion,
+        securityAnswer: hashedSecurityAnswer,
         contacts: [],
         createdAt: Date.now(),
         online: false,
         socketId: null
     });
-    
+
     saveData();
-    
+
     const token = generateToken(userId);
     sessions.set(token, userId);
-    
-    res.json({ 
-        success: true, 
+
+    res.json({
+        success: true,
         token,
         userId,
         username
@@ -225,8 +237,8 @@ app.post('/api/login', async (req, res) => {
     });
 });
 
-// Password Reset - Request Code
-app.post('/api/request-reset', async (req, res) => {
+// Get Security Question
+app.post('/api/get-security-question', async (req, res) => {
     const { username } = req.body;
 
     if (!username) {
@@ -236,6 +248,40 @@ app.post('/api/request-reset', async (req, res) => {
     const user = users.get(username);
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.securityQuestion) {
+        return res.status(400).json({ error: 'No security question set for this account' });
+    }
+
+    res.json({
+        success: true,
+        question: user.securityQuestion
+    });
+});
+
+// Password Reset - Request Code (with security question validation)
+app.post('/api/request-reset', async (req, res) => {
+    const { username, securityAnswer } = req.body;
+
+    if (!username || !securityAnswer) {
+        return res.status(400).json({ error: 'Username and security answer are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.securityAnswer) {
+        return res.status(400).json({ error: 'This account does not have a security question. Please contact admin.' });
+    }
+
+    // Verify security answer (case-insensitive)
+    const answerMatch = await bcrypt.compare(securityAnswer.toLowerCase().trim(), user.securityAnswer);
+    if (!answerMatch) {
+        console.log(`❌ Failed security answer attempt for user: ${username}`);
+        return res.status(401).json({ error: 'Incorrect security answer' });
     }
 
     // Generate secure 8-character alphanumeric code
@@ -248,9 +294,11 @@ app.post('/api/request-reset', async (req, res) => {
     // Print to server console/logs (visible in Render logs)
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
-    console.log('🔐 PASSWORD RESET REQUEST');
+    console.log('🔐 PASSWORD RESET REQUEST - VERIFIED');
     console.log('═══════════════════════════════════════════════════════');
     console.log(`Username: ${username}`);
+    console.log(`Security Question: ${user.securityQuestion}`);
+    console.log(`Answer Verified: ✅ YES`);
     console.log(`Reset Code: ${code}`);
     console.log(`Generated: ${new Date().toISOString()}`);
     console.log(`Expires: ${new Date(expiresAt).toISOString()}`);
