@@ -481,6 +481,62 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('upload-voice', async (data) => {
+        const { chatId, audioData, duration } = data;
+
+        if (!currentUsername || !chatId || !audioData) return;
+
+        try {
+            const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
+            const filePath = path.join(uploadsDir, uniqueFilename);
+
+            const base64Data = audioData.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            fs.writeFileSync(filePath, buffer);
+
+            const voiceInfo = {
+                filename: uniqueFilename,
+                duration: duration || 0,
+                size: buffer.length,
+                url: `/uploads/${uniqueFilename}`
+            };
+
+            const chat = chats.get(chatId);
+            if (!chat) return;
+
+            const message = {
+                id: Date.now() + Math.random(),
+                voice: voiceInfo,
+                timestamp: Date.now(),
+                sender: currentUser.userId,
+                senderUsername: currentUsername,
+                sent: true
+            };
+
+            chat.messages.push(message);
+            saveData();
+
+            // Emit to all participants in the chat
+            chat.participants.forEach(participantId => {
+                const participant = [...users.values()].find(u => u.userId === participantId);
+                if (participant && participant.socketId) {
+                    io.to(participant.socketId).emit('new-message', {
+                        chatId,
+                        message: {
+                            ...message,
+                            sent: participantId === currentUser.userId
+                        }
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.error('Voice upload error:', error);
+            socket.emit('upload-error', { error: 'Failed to upload voice message' });
+        }
+    });
+
     socket.on('add-contact', async (data) => {
         const { contactUsername } = data;
         
