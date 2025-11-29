@@ -947,41 +947,299 @@
             font-size: 100px;
         }
 
-        /* Responsive */
+        /* Responsive Design for Mobile */
         @media (max-width: 768px) {
+            /* Sidebar Mobile Behavior */
             .sidebar {
                 width: 100%;
-                position: absolute;
-                z-index: 10;
+                position: fixed;
+                height: 100vh;
+                z-index: 100;
+                transition: transform 0.3s ease;
             }
 
             .sidebar.hidden {
-                display: none;
+                transform: translateX(-100%);
             }
 
             .chat-main {
                 width: 100%;
             }
 
+            /* Auth Screen Mobile */
             .auth-box {
-                padding: 32px 24px;
+                padding: 28px 20px;
+                margin: 16px;
+                max-width: 100%;
             }
 
+            .auth-box h1 {
+                font-size: 28px;
+            }
+
+            .auth-box input,
+            .auth-box button,
+            #securityQuestionSelect {
+                padding: 14px 16px;
+                font-size: 16px; /* Prevents iOS zoom on focus */
+                min-height: 48px; /* Better touch target */
+            }
+
+            /* Call UI Mobile */
             .call-container {
-                padding: 32px 24px;
+                padding: 24px 20px;
+                max-width: 100%;
             }
 
             .call-avatar {
-                width: 100px;
-                height: 100px;
-                font-size: 40px;
+                width: 90px;
+                height: 90px;
+                font-size: 36px;
             }
 
             .local-video {
-                width: 120px;
-                height: 80px;
+                width: 100px;
+                height: 67px;
                 bottom: 12px;
                 right: 12px;
+            }
+
+            .call-btn {
+                width: 56px;
+                height: 56px;
+                font-size: 22px;
+            }
+
+            /* Message Input Mobile */
+            .message-input-container {
+                padding: 12px 16px;
+            }
+
+            .message-input {
+                font-size: 16px; /* Prevents iOS zoom */
+                padding: 10px 14px;
+            }
+
+            .icon-btn {
+                min-width: 44px;
+                min-height: 44px;
+                padding: 8px;
+            }
+
+            .send-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            /* Chat Header Mobile */
+            .chat-header {
+                padding: 14px 16px;
+            }
+
+            .chat-header-name {
+                font-size: 15px;
+            }
+
+            .chat-header-status {
+                font-size: 12px;
+            }
+
+            /* Messages Mobile */
+            .messages-container {
+                padding: 16px;
+                gap: 10px;
+            }
+
+            .message {
+                max-width: 80%;
+                padding: 10px 14px;
+                font-size: 15px;
+            }
+
+            /* Sidebar Header Mobile */
+            .sidebar-header {
+                padding: 16px 20px;
+            }
+
+            .user-avatar {
+                width: 38px;
+                height: 38px;
+                font-size: 15px;
+            }
+
+            .user-name {
+                font-size: 15px;
+            }
+
+            /* Chat List Mobile */
+            .chat-list, .contacts-list {
+                padding: 8px 4px;
+            }
+
+            .chat-item, .contact-item {
+                padding: 12px 14px;
+            }
+
+            .chat-avatar, .contact-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 15px;
+            }
+
+            /* Tabs Mobile */
+            .tabs {
+                padding: 8px 12px;
+            }
+
+            .tab {
+                font-size: 13px;
+                padding: 10px 12px;
+                min-height: 40px;
+            }
+
+            /* Contact Actions Mobile */
+            .contact-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-height: 36px;
+            }
+
+            /* Add Contact Mobile */
+            .add-contact-section {
+                padding: 12px;
+            }
+
+            .add-contact-input input {
+                font-size: 15px;
+                padding: 10px 14px;
+            }
+
+            .add-contact-input button {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            /* Empty Chat Mobile */
+            .empty-chat {
+                padding: 24px 20px;
+            }
+
+            .empty-chat h2 {
+                font-size: 20px;
+            }
+
+            .empty-chat p {
+                font-size: 14px;
+            }
+
+            /* Menu Dropdown Mobile */
+            .menu-content {
+                min-width: 180px;
+                top: 48px;
+            }
+
+            .menu-item {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+
+            /* Improve touch scrolling */
+            .messages-container,
+            .chat-list,
+            .contacts-list,
+            .whiteboard-toolbar {
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Prevent text selection on touch */
+            .icon-btn,
+            .send-btn,
+            .tool-btn,
+            .tab,
+            .contact-btn {
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            /* Larger scrollbar for mobile */
+            .messages-container::-webkit-scrollbar {
+                width: 8px !important;
+            }
+
+            .messages-container::-webkit-scrollbar-thumb {
+                border: 2px solid #2a2a2a;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .auth-box h1 {
+                font-size: 24px;
+            }
+
+            .auth-box p {
+                font-size: 14px;
+            }
+
+            .message {
+                max-width: 85%;
+                font-size: 14px;
+            }
+
+            .call-name {
+                font-size: 22px;
+            }
+
+            .call-status {
+                font-size: 14px;
+            }
+
+            .whiteboard-title {
+                font-size: 14px;
+            }
+
+            .tool-btn span:last-child {
+                display: none; /* Hide text labels on very small screens */
+            }
+
+            .color-palette {
+                gap: 4px;
+            }
+
+            .color-swatch {
+                width: 28px;
+                height: 28px;
+            }
+        }
+
+        /* Landscape mode on mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .call-container {
+                padding: 20px;
+            }
+
+            .call-avatar {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+                margin-bottom: 12px;
+            }
+
+            .call-name {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            .call-status {
+                font-size: 13px;
+                margin-bottom: 16px;
+            }
+
+            .video-container {
+                max-width: 600px;
+                margin-bottom: 16px;
             }
         }
 
@@ -1408,23 +1666,105 @@
         }
 
         @media (max-width: 768px) {
+            /* Whiteboard Mobile */
             .whiteboard-container {
                 width: 100%;
                 height: 100%;
                 border-radius: 0;
+                max-width: 100%;
+                max-height: 100%;
             }
 
             .whiteboard-toolbar {
                 overflow-x: auto;
+                overflow-y: hidden;
+                flex-wrap: nowrap;
+                padding: 10px 12px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
             }
 
+            .whiteboard-toolbar::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .whiteboard-toolbar::-webkit-scrollbar-thumb {
+                background: var(--text-tertiary);
+                border-radius: 3px;
+            }
+
+            .tool-btn {
+                padding: 10px 12px;
+                font-size: 13px;
+                white-space: nowrap;
+                min-width: fit-content;
+                flex-shrink: 0;
+            }
+
+            .whiteboard-header {
+                padding: 16px 20px;
+            }
+
+            .whiteboard-title {
+                font-size: 16px;
+            }
+
+            .whiteboard-canvas-container {
+                margin: 12px;
+                padding: 8px;
+            }
+
+            .toolbar-separator {
+                margin: 0 6px;
+            }
+
+            .color-picker {
+                width: 36px;
+                height: 36px;
+            }
+
+            .size-slider {
+                width: 100px;
+            }
+
+            /* Reset Modal Mobile - Full Screen */
             .reset-container {
-                width: 95%;
-                margin: 20px;
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                border-radius: 0;
+                margin: 0;
             }
 
             .reset-content {
                 padding: 20px;
+                max-height: calc(100vh - 80px);
+                overflow-y: auto;
+            }
+
+            .reset-header {
+                padding: 20px;
+            }
+
+            .reset-header h2 {
+                font-size: 20px;
+            }
+
+            .reset-input {
+                font-size: 16px; /* Prevents iOS zoom */
+                min-height: 48px;
+                padding: 14px 16px;
+            }
+
+            .reset-btn,
+            .reset-btn-secondary {
+                min-height: 48px;
+                font-size: 15px;
+            }
+
+            #securityQuestionDisplay {
+                padding: 14px 16px;
+                font-size: 13px;
             }
         }
     </style>
