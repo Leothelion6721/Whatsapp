@@ -522,35 +522,37 @@
         /* Messages Area */
         .messages-container {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll !important;
             padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: #888888 var(--bg-secondary);
         }
 
         .messages-container::-webkit-scrollbar {
-            width: 12px;
+            width: 14px !important;
+            display: block !important;
         }
 
         .messages-container::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            margin: 8px 0;
+            background: #2a2a2a !important;
+            border-radius: 10px;
         }
 
         .messages-container::-webkit-scrollbar-thumb {
-            background: #404040;
-            border-radius: 8px;
-            border: 2px solid var(--bg-secondary);
+            background: #888888 !important;
+            border-radius: 10px;
+            border: 3px solid #2a2a2a;
         }
 
         .messages-container::-webkit-scrollbar-thumb:hover {
-            background: #505050;
+            background: #aaaaaa !important;
         }
 
         .messages-container::-webkit-scrollbar-thumb:active {
-            background: #606060;
+            background: #cccccc !important;
         }
 
         .message {
@@ -973,27 +975,33 @@
         }
 
         /* Scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #888888 #2a2a2a;
+        }
+
         ::-webkit-scrollbar {
-            width: 12px;
+            width: 14px !important;
+            display: block !important;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 8px;
+            background: #2a2a2a !important;
+            border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #404040;
-            border-radius: 8px;
-            border: 2px solid var(--bg-secondary);
+            background: #888888 !important;
+            border-radius: 10px;
+            border: 3px solid #2a2a2a;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #505050;
+            background: #aaaaaa !important;
         }
 
         ::-webkit-scrollbar-thumb:active {
-            background: #606060;
+            background: #cccccc !important;
         }
     </style>
 </head>
