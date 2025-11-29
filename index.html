@@ -3003,6 +3003,18 @@
                 }
             });
 
+            socket.on('voice-uploaded', (data) => {
+                console.log('🎤 Voice uploaded, sending message...');
+                if (data.chatId === currentChatId) {
+                    socket.emit('send-message', {
+                        chatId: currentChatId,
+                        text: '',
+                        voice: data.voice
+                    });
+                    console.log('🎤 Voice message sent!');
+                }
+            });
+
             socket.on('contact-online', (data) => {
                 const contact = contacts.find(c => c.username === data.username);
                 if (contact) {

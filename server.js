@@ -511,28 +511,29 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send-message', (data) => {
-        const { chatId, text, file } = data;
-        
+        const { chatId, text, file, voice } = data;
+
         if (!currentUsername || !chatId) return;
-        if (!text && !file) return;
-        
+        if (!text && !file && !voice) return;
+
         const chat = chats.get(chatId);
         if (!chat || !chat.participants.includes(currentUsername)) return;
-        
+
         const currentUser = users.get(currentUsername);
         const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
+
         if (!currentUser.contacts.includes(otherParticipant)) {
             socket.emit('message-error', { error: 'Cannot send message to non-contact' });
             return;
         }
-        
+
         const message = {
             id: generateId(),
             chatId,
             senderUsername: currentUsername,
             text: text || '',
             file: file || null,
+            voice: voice || null,
             timestamp: Date.now(),
             read: false
         };
@@ -627,35 +628,12 @@ io.on('connection', (socket) => {
                 url: `/uploads/${uniqueFilename}`
             };
 
-            const chat = chats.get(chatId);
-            if (!chat) return;
+            console.log(`🎤 Voice message uploaded by ${currentUsername}`);
 
-            const message = {
-                id: Date.now() + Math.random(),
-                voice: voiceInfo,
-                timestamp: Date.now(),
-                sender: currentUser.userId,
-                senderUsername: currentUsername,
-                sent: true
-            };
-
-            chat.messages.push(message);
-            saveData();
-
-            console.log(`🎤 Voice message sent in chat ${chatId} by ${currentUsername}`);
-
-            // Emit to all participants in the chat
-            chat.participants.forEach(participantId => {
-                const participant = [...users.values()].find(u => u.userId === participantId);
-                if (participant && participant.socketId) {
-                    io.to(participant.socketId).emit('new-message', {
-                        chatId,
-                        message: {
-                            ...message,
-                            sent: participantId === currentUser.userId
-                        }
-                    });
-                }
+            // Send voice info back to client (like file-uploaded)
+            socket.emit('voice-uploaded', {
+                chatId,
+                voice: voiceInfo
             });
 
         } catch (error) {
