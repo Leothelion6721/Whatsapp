@@ -1257,6 +1257,156 @@
             outline: 2px solid var(--accent-primary);
         }
 
+        /* Password Reset Modal */
+        .reset-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .reset-modal.active {
+            display: flex;
+        }
+
+        .reset-container {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reset-header {
+            padding: 24px 28px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .reset-header h2 {
+            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .reset-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .reset-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .reset-content {
+            padding: 28px;
+        }
+
+        .reset-step {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .reset-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            margin-bottom: 14px;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+
+        .reset-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .reset-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: var(--bg-elevated);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+        }
+
+        .reset-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        .reset-btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn-secondary:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent-primary);
+        }
+
         @media (max-width: 768px) {
             .whiteboard-container {
                 width: 100%;
@@ -1266,6 +1416,15 @@
 
             .whiteboard-toolbar {
                 overflow-x: auto;
+            }
+
+            .reset-container {
+                width: 95%;
+                margin: 20px;
+            }
+
+            .reset-content {
+                padding: 20px;
             }
         }
     </style>
@@ -1286,10 +1445,69 @@
 
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
 
+            <p id="forgotPasswordLink" style="margin-bottom: 12px;">
+                <span class="auth-switch" onclick="showForgotPassword()">Forgot Password?</span>
+            </p>
+
             <p>
                 <span id="authSwitchText">Don't have an account?</span>
                 <span class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Sign Up</span>
             </p>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+    <div class="reset-modal" id="resetModal">
+        <div class="reset-container">
+            <div class="reset-header">
+                <h2>🔑 Reset Password</h2>
+                <button class="reset-close" onclick="closeResetModal()">✕</button>
+            </div>
+
+            <div class="reset-content">
+                <!-- Step 1: Request Reset Code -->
+                <div id="resetStep1" class="reset-step">
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
+                        Enter your username to request a password reset code. A secure code will be generated on the server.
+                    </p>
+
+                    <div class="error-message" id="resetErrorMessage"></div>
+                    <div class="success-message" id="resetSuccessMessage"></div>
+
+                    <input type="text" id="resetUsernameInput" placeholder="Enter your username" class="reset-input">
+                    <button onclick="requestResetCode()" class="reset-btn">Request Reset Code</button>
+                </div>
+
+                <!-- Step 2: Contact Admin Message -->
+                <div id="resetStep2" class="reset-step" style="display: none;">
+                    <div style="background: var(--bg-elevated); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px;">
+                        <h3 style="color: var(--accent-primary); margin-bottom: 12px; font-size: 18px;">📧 Contact Admin</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+                            A secure reset code has been generated and printed in the server console.
+                        </p>
+                        <p style="color: var(--text-primary); margin-bottom: 16px; font-weight: 500;">
+                            Please contact the administrator at:
+                        </p>
+                        <div style="background: var(--bg-tertiary); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+                            <a href="mailto:leothelion123@outlook.fr" style="color: var(--accent-primary); text-decoration: none; font-weight: 600; font-size: 15px;">
+                                leothelion123@outlook.fr
+                            </a>
+                        </div>
+                        <p style="color: var(--text-tertiary); font-size: 13px;">
+                            ⏱️ Code expires in 15 minutes
+                        </p>
+                    </div>
+
+                    <input type="text" id="resetCodeInput" placeholder="Enter the reset code" class="reset-input" style="font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 2px;">
+                    <input type="password" id="newPasswordInput" placeholder="Enter new password" class="reset-input">
+                    <input type="password" id="confirmNewPasswordInput" placeholder="Confirm new password" class="reset-input">
+
+                    <div class="error-message" id="resetCodeErrorMessage"></div>
+
+                    <button onclick="resetPassword()" class="reset-btn">Reset Password</button>
+                    <button onclick="backToStep1()" class="reset-btn-secondary">Back</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1596,6 +1814,7 @@
             const switchText = document.getElementById('authSwitchText');
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
@@ -1603,15 +1822,149 @@
                 switchText.textContent = "Don't have an account?";
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
+                forgotPasswordLink.style.display = 'block';
             } else {
                 title.textContent = 'Create a new account';
                 btn.textContent = 'Sign Up';
                 switchText.textContent = 'Already have an account?';
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
+                forgotPasswordLink.style.display = 'none';
             }
 
             clearMessages();
+        }
+
+        // Password Reset Functions
+        function showForgotPassword() {
+            document.getElementById('resetModal').classList.add('active');
+            document.getElementById('resetStep1').style.display = 'block';
+            document.getElementById('resetStep2').style.display = 'none';
+            document.getElementById('resetUsernameInput').value = '';
+            document.getElementById('resetErrorMessage').style.display = 'none';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.remove('active');
+            // Clear all inputs
+            document.getElementById('resetUsernameInput').value = '';
+            document.getElementById('resetCodeInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmNewPasswordInput').value = '';
+            document.getElementById('resetErrorMessage').style.display = 'none';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+            document.getElementById('resetCodeErrorMessage').style.display = 'none';
+        }
+
+        async function requestResetCode() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const errorDiv = document.getElementById('resetErrorMessage');
+            const successDiv = document.getElementById('resetSuccessMessage');
+
+            if (!username) {
+                errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/request-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = 'Reset code generated! Check the instructions below.';
+                    successDiv.style.display = 'block';
+                    errorDiv.style.display = 'none';
+
+                    // Switch to step 2
+                    setTimeout(() => {
+                        document.getElementById('resetStep1').style.display = 'none';
+                        document.getElementById('resetStep2').style.display = 'block';
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to generate reset code';
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            }
+        }
+
+        async function resetPassword() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const code = document.getElementById('resetCodeInput').value.trim();
+            const newPassword = document.getElementById('newPasswordInput').value;
+            const confirmPassword = document.getElementById('confirmNewPasswordInput').value;
+            const errorDiv = document.getElementById('resetCodeErrorMessage');
+
+            if (!code) {
+                errorDiv.textContent = 'Please enter the reset code';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!newPassword || !confirmPassword) {
+                errorDiv.textContent = 'Please enter and confirm your new password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, code, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.display = 'none';
+                    alert('Password reset successfully! You can now login with your new password.');
+                    closeResetModal();
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to reset password';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function backToStep1() {
+            document.getElementById('resetStep1').style.display = 'block';
+            document.getElementById('resetStep2').style.display = 'none';
+            document.getElementById('resetCodeInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmNewPasswordInput').value = '';
+            document.getElementById('resetCodeErrorMessage').style.display = 'none';
         }
 
         function clearMessages() {

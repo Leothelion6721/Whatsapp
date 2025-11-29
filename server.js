@@ -6,6 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -72,6 +73,7 @@ let users = new Map();
 let messages = new Map();
 let chats = new Map();
 let sessions = new Map();
+let resetCodes = new Map(); // Store reset codes: username -> { code, expiresAt }
 
 // Load data from files if they exist
 function loadData() {
@@ -215,13 +217,128 @@ app.post('/api/login', async (req, res) => {
     const token = generateToken(user.userId);
     sessions.set(token, user.userId);
     
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         token,
         userId: user.userId,
         username: user.username
     });
 });
+
+// Password Reset - Request Code
+app.post('/api/request-reset', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate secure 8-character alphanumeric code
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutes
+
+    // Store reset code
+    resetCodes.set(username, { code, expiresAt });
+
+    // Print to server console/logs (visible in Render logs)
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 PASSWORD RESET REQUEST');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log(`Username: ${username}`);
+    console.log(`Reset Code: ${code}`);
+    console.log(`Generated: ${new Date().toISOString()}`);
+    console.log(`Expires: ${new Date(expiresAt).toISOString()}`);
+    console.log(`Valid for: 15 minutes`);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('');
+
+    res.json({
+        success: true,
+        message: 'Reset code generated. Contact admin at leothelion123@outlook.fr'
+    });
+});
+
+// Password Reset - Validate Code and Reset Password
+app.post('/api/reset-password', async (req, res) => {
+    const { username, code, newPassword } = req.body;
+
+    if (!username || !code || !newPassword) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const resetData = resetCodes.get(username);
+    if (!resetData) {
+        return res.status(400).json({ error: 'No reset code found. Please request a new one.' });
+    }
+
+    // Check if code expired
+    if (Date.now() > resetData.expiresAt) {
+        resetCodes.delete(username);
+        console.log(`❌ Expired reset code attempt for user: ${username}`);
+        return res.status(400).json({ error: 'Reset code has expired. Please request a new one.' });
+    }
+
+    // Validate code (constant-time comparison to prevent timing attacks)
+    if (!crypto.timingSafeEqual(Buffer.from(code), Buffer.from(resetData.code))) {
+        console.log(`❌ Invalid reset code attempt for user: ${username}`);
+        return res.status(400).json({ error: 'Invalid reset code' });
+    }
+
+    // Validate password length
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    try {
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+
+        // Remove used reset code
+        resetCodes.delete(username);
+
+        // Save updated user data
+        saveData();
+
+        console.log(`✅ Password successfully reset for user: ${username}`);
+
+        res.json({
+            success: true,
+            message: 'Password reset successfully'
+        });
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
+// Cleanup expired reset codes every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    let expiredCount = 0;
+
+    for (const [username, data] of resetCodes.entries()) {
+        if (now > data.expiresAt) {
+            resetCodes.delete(username);
+            expiredCount++;
+        }
+    }
+
+    if (expiredCount > 0) {
+        console.log(`🧹 Cleaned up ${expiredCount} expired reset code(s)`);
+    }
+}, 5 * 60 * 1000);
 
 // Add contact endpoint
 app.post('/api/add-contact', async (req, res) => {
