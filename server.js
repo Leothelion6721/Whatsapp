@@ -160,27 +160,27 @@ function verifyToken(token) {
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    
+    const { username, password, securityQuestions, faceDescriptor, email } = req.body;
+
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
     if (username.length < 3 || username.length > 20) {
         return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
-    
+
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
     if (users.has(username)) {
         return res.status(400).json({ error: 'Username already exists' });
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = generateId();
-    
+
     users.set(username, {
         userId,
         password: hashedPassword,
@@ -188,16 +188,19 @@ app.post('/api/register', async (req, res) => {
         contacts: [],
         createdAt: Date.now(),
         online: false,
-        socketId: null
+        socketId: null,
+        securityQuestions: securityQuestions || null,
+        faceDescriptor: faceDescriptor || null,
+        email: email || null
     });
-    
+
     saveData();
-    
+
     const token = generateToken(userId);
     sessions.set(token, userId);
-    
-    res.json({ 
-        success: true, 
+
+    res.json({
+        success: true,
         token,
         userId,
         username
@@ -230,6 +233,205 @@ app.post('/api/login', async (req, res) => {
         token,
         userId: user.userId,
         username: user.username
+    });
+});
+
+// Get user auth methods for password reset
+app.post('/api/get-user-auth-methods', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const methods = {
+        securityQuestions: user.securityQuestions ? true : false,
+        faceRecognition: user.faceDescriptor ? true : false,
+        email: user.email ? true : false
+    };
+
+    res.json({
+        success: true,
+        methods,
+        securityQuestions: user.securityQuestions || null
+    });
+});
+
+// Verify security answers
+app.post('/api/verify-security-answers', async (req, res) => {
+    const { username, answers } = req.body;
+
+    if (!username || !answers) {
+        return res.status(400).json({ error: 'Username and answers are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.securityQuestions) {
+        return res.status(400).json({ error: 'Security questions not set for this user' });
+    }
+
+    // Check if all answers match (case-insensitive)
+    let allCorrect = true;
+    for (let i = 0; i < user.securityQuestions.length; i++) {
+        if (user.securityQuestions[i].answer.toLowerCase() !== answers[i].toLowerCase()) {
+            allCorrect = false;
+            break;
+        }
+    }
+
+    if (!allCorrect) {
+        return res.status(401).json({ error: 'Incorrect security answers' });
+    }
+
+    res.json({ success: true, verified: true });
+});
+
+// Verify face for password reset
+app.post('/api/verify-face-reset', async (req, res) => {
+    const { username, faceDescriptor } = req.body;
+
+    if (!username || !faceDescriptor) {
+        return res.status(400).json({ error: 'Username and face descriptor are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.faceDescriptor) {
+        return res.status(400).json({ error: 'Face recognition not set for this user' });
+    }
+
+    // Calculate euclidean distance between face descriptors
+    const storedDescriptor = user.faceDescriptor;
+    if (!Array.isArray(storedDescriptor) || !Array.isArray(faceDescriptor)) {
+        return res.status(400).json({ error: 'Invalid face descriptor format' });
+    }
+
+    let sum = 0;
+    for (let i = 0; i < storedDescriptor.length; i++) {
+        const diff = storedDescriptor[i] - faceDescriptor[i];
+        sum += diff * diff;
+    }
+    const distance = Math.sqrt(sum);
+
+    // Threshold for face matching (typically 0.6)
+    const threshold = 0.6;
+
+    if (distance > threshold) {
+        return res.status(401).json({ error: 'Face verification failed' });
+    }
+
+    res.json({ success: true, verified: true, distance });
+});
+
+// Send reset code to email
+app.post('/api/send-reset-code', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.email) {
+        return res.status(400).json({ error: 'Email not set for this user' });
+    }
+
+    // Generate a 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store the reset code temporarily (in production, use Redis or similar)
+    user.resetCode = resetCode;
+    user.resetCodeExpiry = Date.now() + 600000; // 10 minutes
+    saveData();
+
+    // In production, send email here
+    console.log(`Reset code for ${username}: ${resetCode}`);
+
+    res.json({
+        success: true,
+        message: 'Reset code sent to email',
+        // For demo purposes only - remove in production
+        code: resetCode
+    });
+});
+
+// Verify reset code
+app.post('/api/verify-reset-code', async (req, res) => {
+    const { username, code } = req.body;
+
+    if (!username || !code) {
+        return res.status(400).json({ error: 'Username and code are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.resetCode) {
+        return res.status(400).json({ error: 'No reset code requested' });
+    }
+
+    if (Date.now() > user.resetCodeExpiry) {
+        return res.status(400).json({ error: 'Reset code expired' });
+    }
+
+    if (user.resetCode !== code) {
+        return res.status(401).json({ error: 'Invalid reset code' });
+    }
+
+    res.json({ success: true, verified: true });
+});
+
+// Reset password
+app.post('/api/reset-password', async (req, res) => {
+    const { username, newPassword, verified } = req.body;
+
+    if (!username || !newPassword) {
+        return res.status(400).json({ error: 'Username and new password are required' });
+    }
+
+    if (!verified) {
+        return res.status(400).json({ error: 'User must be verified before resetting password' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Clear reset code
+    delete user.resetCode;
+    delete user.resetCodeExpiry;
+
+    saveData();
+
+    res.json({
+        success: true,
+        message: 'Password reset successfully'
     });
 });
 
@@ -530,18 +732,18 @@ io.on('connection', (socket) => {
 
     socket.on('upload-file', async (data) => {
         const { chatId, fileData, fileName, fileType } = data;
-        
+
         if (!currentUsername || !chatId || !fileData) return;
-        
+
         try {
             const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + fileName;
             const filePath = path.join(uploadsDir, uniqueFilename);
-            
+
             const base64Data = fileData.replace(/^data:.*?;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             fs.writeFileSync(filePath, buffer);
-            
+
             const fileInfo = {
                 filename: uniqueFilename,
                 originalName: fileName,
@@ -549,15 +751,51 @@ io.on('connection', (socket) => {
                 size: buffer.length,
                 url: `/uploads/${uniqueFilename}`
             };
-            
+
             socket.emit('file-uploaded', {
                 chatId,
                 file: fileInfo
             });
-            
+
         } catch (error) {
             console.error('File upload error:', error);
             socket.emit('upload-error', { error: 'Failed to upload file' });
+        }
+    });
+
+    socket.on('upload-voice', async (data) => {
+        const { chatId, audioData } = data;
+
+        if (!currentUsername || !chatId || !audioData) return;
+
+        try {
+            const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-voice.webm';
+            const filePath = path.join(uploadsDir, uniqueFilename);
+
+            const base64Data = audioData.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            fs.writeFileSync(filePath, buffer);
+
+            const voiceInfo = {
+                filename: uniqueFilename,
+                originalName: 'voice-message.webm',
+                mimetype: 'audio/webm',
+                size: buffer.length,
+                url: `/uploads/${uniqueFilename}`,
+                isVoice: true
+            };
+
+            socket.emit('voice-uploaded', {
+                chatId,
+                file: voiceInfo
+            });
+
+            console.log(`Voice message uploaded by ${currentUsername} in chat ${chatId}`);
+
+        } catch (error) {
+            console.error('Voice upload error:', error);
+            socket.emit('upload-error', { error: 'Failed to upload voice message' });
         }
     });
 
