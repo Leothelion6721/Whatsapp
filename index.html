@@ -2102,6 +2102,29 @@
             border: 2px solid var(--accent-primary);
         }
 
+        .liveness-prompt {
+            background: var(--accent-primary);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 16px auto;
+            max-width: 320px;
+            text-align: center;
+            animation: pulse 1.5s ease-in-out infinite;
+            display: none;
+        }
+
+        .liveness-prompt.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
         .auth-method-choice {
             display: flex;
             gap: 12px;
@@ -2287,6 +2310,7 @@
                 <div id="faceRecognitionMethod" style="display:none;">
                     <div class="face-capture-container">
                         <p style="color: var(--text-secondary); margin-bottom: 12px;">Position your face in the camera</p>
+                        <div id="regLivenessPrompt" class="liveness-prompt">😊 Please smile!</div>
                         <video id="regFaceVideo" class="face-video" autoplay playsinline></video>
                         <canvas id="regFaceCanvas" class="face-canvas"></canvas>
                         <img id="regFacePreview" class="face-preview" style="display:none;">
@@ -2687,6 +2711,10 @@
 
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
+
+    <!-- Face API.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
     <script>
         let socket = null;
         let authToken = null;
@@ -2765,6 +2793,12 @@
         let selectedAuthMethod = 'security';
         let selectedResetMethod = 'security';
 
+        // Face API.js Variables
+        let faceApiModelsLoaded = false;
+        let faceDetectionOptions = null;
+        let livenessSteps = [];
+        let currentLivenessStep = 0;
+
         // Select authentication method during registration
         function selectAuthMethod(method) {
             selectedAuthMethod = method;
@@ -2811,12 +2845,57 @@
             }
         }
 
+        // Load Face API.js Models
+        async function loadFaceApiModels() {
+            if (faceApiModelsLoaded) return;
+
+            try {
+                console.log('🤖 Loading face-api.js models...');
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                faceDetectionOptions = new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 512,
+                    scoreThreshold: 0.5
+                });
+
+                faceApiModelsLoaded = true;
+                console.log('✅ Face-api.js models loaded successfully!');
+            } catch (error) {
+                console.error('❌ Failed to load face-api.js models:', error);
+                alert('Failed to load face recognition models. Please refresh the page.');
+            }
+        }
+
         // Start camera for registration
         async function startRegFaceCamera() {
             try {
+                // Load face-api.js models first
+                await loadFaceApiModels();
+
                 const video = document.getElementById('regFaceVideo');
-                regFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                regFaceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
                 video.srcObject = regFaceStream;
+
+                // Start liveness monitoring once video is playing
+                video.addEventListener('playing', () => {
+                    setTimeout(() => {
+                        startLivenessMonitoring();
+                    }, 1000);
+                }, { once: true });
+
             } catch (error) {
                 console.error('Camera access error:', error);
                 alert('Could not access camera. Please grant camera permissions.');
@@ -2825,6 +2904,7 @@
 
         // Stop registration camera
         function stopRegFaceCamera() {
+            stopLivenessMonitoring();
             if (regFaceStream) {
                 regFaceStream.getTracks().forEach(track => track.stop());
                 regFaceStream = null;
@@ -2834,8 +2914,17 @@
         // Start camera for password reset
         async function startResetFaceCamera() {
             try {
+                // Load face-api.js models first
+                await loadFaceApiModels();
+
                 const video = document.getElementById('resetFaceVideo');
-                resetFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                resetFaceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
                 video.srcObject = resetFaceStream;
             } catch (error) {
                 console.error('Camera access error:', error);
@@ -2851,25 +2940,136 @@
             }
         }
 
-        // Capture face during registration
-        function captureRegistrationFace() {
+        // Liveness detection helper
+        async function checkLiveness(video, promptElement) {
+            if (!faceApiModelsLoaded) return null;
+
+            try {
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceExpressions();
+
+                if (!detection) return null;
+
+                const expressions = detection.expressions;
+                const topExpression = Object.entries(expressions).sort((a, b) => b[1] - a[1])[0];
+
+                // Check if user is smiling (liveness check)
+                if (expressions.happy > 0.6) {
+                    promptElement.textContent = '✅ Great smile! Ready to capture';
+                    promptElement.style.background = 'var(--success)';
+                    return true;
+                } else if (expressions.neutral > 0.7) {
+                    promptElement.textContent = '😊 Please smile!';
+                    promptElement.style.background = 'var(--accent-primary)';
+                    return false;
+                } else {
+                    promptElement.textContent = `📸 Face detected - ${topExpression[0]}`;
+                    promptElement.style.background = 'var(--accent-primary)';
+                    return false;
+                }
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Start liveness monitoring during registration
+        let livenessInterval = null;
+        async function startLivenessMonitoring() {
+            const video = document.getElementById('regFaceVideo');
+            const promptElement = document.getElementById('regLivenessPrompt');
+
+            promptElement.classList.add('active');
+
+            if (livenessInterval) clearInterval(livenessInterval);
+
+            livenessInterval = setInterval(async () => {
+                await checkLiveness(video, promptElement);
+            }, 1000); // Check every second
+        }
+
+        function stopLivenessMonitoring() {
+            if (livenessInterval) {
+                clearInterval(livenessInterval);
+                livenessInterval = null;
+            }
+            const promptElement = document.getElementById('regLivenessPrompt');
+            promptElement.classList.remove('active');
+        }
+
+        // Capture face during registration with face-api.js and liveness detection
+        async function captureRegistrationFace() {
             const video = document.getElementById('regFaceVideo');
             const canvas = document.getElementById('regFaceCanvas');
             const preview = document.getElementById('regFacePreview');
+            const promptElement = document.getElementById('regLivenessPrompt');
             const ctx = canvas.getContext('2d');
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+            if (!faceApiModelsLoaded) {
+                alert('⏳ Face recognition models are still loading. Please wait...');
+                return;
+            }
 
-            registrationFaceData = canvas.toDataURL('image/jpeg', 0.8);
-            preview.src = registrationFaceData;
-            preview.style.display = 'block';
+            try {
+                console.log('🔍 Performing liveness check and face detection...');
 
-            alert('✅ Face captured successfully!');
+                // Detect face with landmarks, descriptor, and expressions
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor()
+                    .withFaceExpressions();
+
+                if (!detection) {
+                    alert('❌ No face detected! Please:\n• Face the camera directly\n• Ensure good lighting\n• Remove sunglasses/masks\n• Try again');
+                    return;
+                }
+
+                // Liveness check - require smile
+                const expressions = detection.expressions;
+                if (expressions.happy < 0.5) {
+                    alert('😊 Liveness Check: Please smile for the camera!\n\nThis ensures you are a real person, not a photo.');
+                    return;
+                }
+
+                console.log('✅ Liveness check passed! Face detected with smile');
+                console.log('📊 Landmarks:', detection.landmarks.positions.length);
+                console.log('😊 Expression scores:', expressions);
+
+                // Stop liveness monitoring
+                stopLivenessMonitoring();
+
+                // Draw face to canvas
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+
+                // Draw landmarks on canvas for visual feedback
+                const resizedDetection = faceapi.resizeResults(detection, { width: canvas.width, height: canvas.height });
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetection);
+                faceapi.draw.drawDetections(canvas, resizedDetection);
+
+                // Show preview
+                preview.src = canvas.toDataURL('image/jpeg', 0.8);
+                preview.style.display = 'block';
+
+                // Store the 128D face descriptor as JSON
+                registrationFaceData = JSON.stringify(Array.from(detection.descriptor));
+
+                console.log('💾 Face descriptor extracted (128 dimensions)');
+                alert('✅ Face captured successfully!\n\n' +
+                      `• Liveness check: PASSED (smile detected)\n` +
+                      `• 68 facial landmarks detected\n` +
+                      `• 128D neural network descriptor extracted\n` +
+                      `• Happy: ${Math.round(expressions.happy * 100)}%`);
+
+            } catch (error) {
+                console.error('❌ Face capture error:', error);
+                alert('Failed to capture face. Please try again.');
+            }
         }
 
-        // Verify face during password reset
+        // Verify face during password reset with face-api.js
         async function verifyFaceReset() {
             const username = document.getElementById('resetUsernameInput').value.trim();
             const errorDiv = document.getElementById('resetErrorMessage');
@@ -2882,21 +3082,43 @@
                 return;
             }
 
+            if (!faceApiModelsLoaded) {
+                errorDiv.textContent = '⏳ Face recognition models are still loading. Please wait...';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
             const video = document.getElementById('resetFaceVideo');
             const canvas = document.getElementById('resetFaceCanvas');
             const ctx = canvas.getContext('2d');
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-
-            const faceData = canvas.toDataURL('image/jpeg', 0.8);
-
             try {
+                console.log('🔍 Detecting face for password reset...');
+
+                // Detect face with landmarks and descriptor
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    errorDiv.textContent = '❌ No face detected! Please face the camera directly and try again.';
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                    return;
+                }
+
+                console.log('✅ Face detected for reset verification!');
+
+                // Extract the 128D face descriptor
+                const faceDescriptor = JSON.stringify(Array.from(detection.descriptor));
+
+                // Send descriptor to server for verification
                 const response = await fetch('/api/verify-face-reset', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, faceData })
+                    body: JSON.stringify({ username, faceData: faceDescriptor })
                 });
 
                 const data = await response.json();
@@ -2907,6 +3129,8 @@
                     successDiv.style.display = 'block';
                     stopResetFaceCamera();
 
+                    console.log('✅ Face verified successfully!');
+
                     setTimeout(() => {
                         document.getElementById('resetStep1').style.display = 'none';
                         document.getElementById('resetStep2').style.display = 'block';
@@ -2915,8 +3139,10 @@
                     errorDiv.textContent = data.error;
                     errorDiv.style.display = 'block';
                     successDiv.style.display = 'none';
+                    console.log('❌ Face verification failed:', data.error);
                 }
             } catch (error) {
+                console.error('❌ Face verification error:', error);
                 errorDiv.textContent = 'Face verification failed. Please try again.';
                 errorDiv.style.display = 'block';
                 successDiv.style.display = 'none';
