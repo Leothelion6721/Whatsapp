@@ -71,6 +71,7 @@ app.use('/uploads', express.static(uploadsDir));
 let users = new Map();
 let messages = new Map();
 let chats = new Map();
+let groups = new Map();
 let sessions = new Map();
 
 // Load data from files if they exist
@@ -79,6 +80,7 @@ function loadData() {
         const usersFile = path.join(dataDir, 'users.json');
         const messagesFile = path.join(dataDir, 'messages.json');
         const chatsFile = path.join(dataDir, 'chats.json');
+        const groupsFile = path.join(dataDir, 'groups.json');
 
         if (fs.existsSync(usersFile)) {
             const usersData = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
@@ -92,6 +94,10 @@ function loadData() {
             const chatsData = JSON.parse(fs.readFileSync(chatsFile, 'utf8'));
             chats = new Map(chatsData);
         }
+        if (fs.existsSync(groupsFile)) {
+            const groupsData = JSON.parse(fs.readFileSync(groupsFile, 'utf8'));
+            groups = new Map(groupsData);
+        }
         console.log('📁 Data loaded successfully');
     } catch (error) {
         console.error('Error loading data:', error.message);
@@ -102,16 +108,20 @@ function loadData() {
 function saveData() {
     try {
         fs.writeFileSync(
-            path.join(dataDir, 'users.json'), 
+            path.join(dataDir, 'users.json'),
             JSON.stringify([...users], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'messages.json'), 
+            path.join(dataDir, 'messages.json'),
             JSON.stringify([...messages], null, 2)
         );
         fs.writeFileSync(
-            path.join(dataDir, 'chats.json'), 
+            path.join(dataDir, 'chats.json'),
             JSON.stringify([...chats], null, 2)
+        );
+        fs.writeFileSync(
+            path.join(dataDir, 'groups.json'),
+            JSON.stringify([...groups], null, 2)
         );
     } catch (error) {
         console.error('Error saving data:', error.message);
@@ -336,17 +346,34 @@ io.on('connection', (socket) => {
                             chatsList.push({
                                 id: chatId,
                                 name: otherParticipant,
+                                type: 'individual',
                                 online: users.get(otherParticipant)?.online || false,
                                 lastMessage: chat.lastMessage || null
                             });
                         }
                     }
                 }
-                
+
+                const groupsList = [];
+                for (const [groupId, group] of groups.entries()) {
+                    if (group.members.includes(currentUsername)) {
+                        groupsList.push({
+                            id: groupId,
+                            name: group.name,
+                            type: 'group',
+                            admin: group.admin,
+                            members: group.members,
+                            memberCount: group.members.length,
+                            lastMessage: group.lastMessage || null
+                        });
+                    }
+                }
+
                 socket.emit('authenticated', {
                     username: currentUsername,
                     contacts: contactsList,
-                    chats: chatsList
+                    chats: chatsList,
+                    groups: groupsList
                 });
                 
                 saveData();
@@ -390,47 +417,46 @@ io.on('connection', (socket) => {
 
     socket.on('send-message', (data) => {
         const { chatId, text, file } = data;
-        
+
         if (!currentUsername || !chatId) return;
         if (!text && !file) return;
-        
-        const chat = chats.get(chatId);
-        if (!chat || !chat.participants.includes(currentUsername)) return;
-        
-        const currentUser = users.get(currentUsername);
-        const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
-        if (!currentUser.contacts.includes(otherParticipant)) {
-            socket.emit('message-error', { error: 'Cannot send message to non-contact' });
-            return;
-        }
-        
-        const message = {
-            id: generateId(),
-            chatId,
-            senderUsername: currentUsername,
-            text: text || '',
-            file: file || null,
-            timestamp: Date.now(),
-            read: false
-        };
-        
-        const chatMessages = messages.get(chatId) || [];
-        chatMessages.push(message);
-        messages.set(chatId, chatMessages);
-        
-        chat.lastMessage = {
-            text: text || (file ? '📎 File' : ''),
-            time: Date.now()
-        };
-        
-        saveData();
-        
-        chat.participants.forEach(participantUsername => {
-            const participant = users.get(participantUsername);
-            if (participant && participant.online && participant.socketId) {
-                if (participantUsername === currentUsername || participant.contacts.includes(currentUsername)) {
-                    io.to(participant.socketId).emit('new-message', {
+
+        // Check if it's a group chat
+        const isGroupChat = chatId.startsWith('group-');
+
+        if (isGroupChat) {
+            const group = groups.get(chatId);
+            if (!group || !group.members.includes(currentUsername)) {
+                socket.emit('message-error', { error: 'You are not a member of this group' });
+                return;
+            }
+
+            const message = {
+                id: generateId(),
+                chatId,
+                senderUsername: currentUsername,
+                text: text || '',
+                file: file || null,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            const chatMessages = messages.get(chatId) || [];
+            chatMessages.push(message);
+            messages.set(chatId, chatMessages);
+
+            group.lastMessage = {
+                text: text || (file ? '📎 File' : ''),
+                time: Date.now()
+            };
+
+            saveData();
+
+            // Send to all group members
+            group.members.forEach(memberUsername => {
+                const member = users.get(memberUsername);
+                if (member && member.online && member.socketId) {
+                    io.to(member.socketId).emit('new-message', {
                         chatId,
                         message: {
                             id: message.id,
@@ -438,14 +464,68 @@ io.on('connection', (socket) => {
                             file: message.file,
                             senderUsername: message.senderUsername,
                             timestamp: message.timestamp,
-                            sent: participantUsername === currentUsername
+                            sent: memberUsername === currentUsername
                         }
                     });
                 }
+            });
+
+            console.log(`Message sent in group ${chatId} by ${currentUsername}`);
+        } else {
+            // Individual chat logic
+            const chat = chats.get(chatId);
+            if (!chat || !chat.participants.includes(currentUsername)) return;
+
+            const currentUser = users.get(currentUsername);
+            const otherParticipant = chat.participants.find(p => p !== currentUsername);
+
+            if (!currentUser.contacts.includes(otherParticipant)) {
+                socket.emit('message-error', { error: 'Cannot send message to non-contact' });
+                return;
             }
-        });
-        
-        console.log(`Message sent in chat ${chatId} by ${currentUsername}`);
+
+            const message = {
+                id: generateId(),
+                chatId,
+                senderUsername: currentUsername,
+                text: text || '',
+                file: file || null,
+                timestamp: Date.now(),
+                read: false
+            };
+
+            const chatMessages = messages.get(chatId) || [];
+            chatMessages.push(message);
+            messages.set(chatId, chatMessages);
+
+            chat.lastMessage = {
+                text: text || (file ? '📎 File' : ''),
+                time: Date.now()
+            };
+
+            saveData();
+
+            chat.participants.forEach(participantUsername => {
+                const participant = users.get(participantUsername);
+                if (participant && participant.online && participant.socketId) {
+                    if (participantUsername === currentUsername || participant.contacts.includes(currentUsername)) {
+                        io.to(participant.socketId).emit('new-message', {
+                            chatId,
+                            message: {
+                                id: message.id,
+                                text: message.text,
+                                file: message.file,
+                                senderUsername: message.senderUsername,
+                                timestamp: message.timestamp,
+                                sent: participantUsername === currentUsername
+                            }
+                        });
+                    }
+                }
+            });
+
+            console.log(`Message sent in chat ${chatId} by ${currentUsername}`);
+        }
     });
 
     socket.on('upload-file', async (data) => {
@@ -554,33 +634,59 @@ io.on('connection', (socket) => {
 
     socket.on('get-messages', (data) => {
         const { chatId } = data;
-        
+
         if (!currentUsername || !chatId) return;
-        
-        const chat = chats.get(chatId);
-        if (!chat || !chat.participants.includes(currentUsername)) return;
-        
-        const currentUser = users.get(currentUsername);
-        const otherParticipant = chat.participants.find(p => p !== currentUsername);
-        
-        if (!currentUser.contacts.includes(otherParticipant)) {
-            socket.emit('messages-error', { error: 'Cannot access messages with non-contact' });
-            return;
+
+        // Check if it's a group chat
+        const isGroupChat = chatId.startsWith('group-');
+
+        if (isGroupChat) {
+            const group = groups.get(chatId);
+            if (!group || !group.members.includes(currentUsername)) {
+                socket.emit('messages-error', { error: 'You are not a member of this group' });
+                return;
+            }
+
+            const chatMessages = messages.get(chatId) || [];
+
+            socket.emit('messages-loaded', {
+                chatId,
+                messages: chatMessages.map(msg => ({
+                    id: msg.id,
+                    text: msg.text,
+                    file: msg.file,
+                    senderUsername: msg.senderUsername,
+                    timestamp: msg.timestamp,
+                    sent: msg.senderUsername === currentUsername
+                }))
+            });
+        } else {
+            // Individual chat logic
+            const chat = chats.get(chatId);
+            if (!chat || !chat.participants.includes(currentUsername)) return;
+
+            const currentUser = users.get(currentUsername);
+            const otherParticipant = chat.participants.find(p => p !== currentUsername);
+
+            if (!currentUser.contacts.includes(otherParticipant)) {
+                socket.emit('messages-error', { error: 'Cannot access messages with non-contact' });
+                return;
+            }
+
+            const chatMessages = messages.get(chatId) || [];
+
+            socket.emit('messages-loaded', {
+                chatId,
+                messages: chatMessages.map(msg => ({
+                    id: msg.id,
+                    text: msg.text,
+                    file: msg.file,
+                    senderUsername: msg.senderUsername,
+                    timestamp: msg.timestamp,
+                    sent: msg.senderUsername === currentUsername
+                }))
+            });
         }
-        
-        const chatMessages = messages.get(chatId) || [];
-        
-        socket.emit('messages-loaded', {
-            chatId,
-            messages: chatMessages.map(msg => ({
-                id: msg.id,
-                text: msg.text,
-                file: msg.file,
-                senderUsername: msg.senderUsername,
-                timestamp: msg.timestamp,
-                sent: msg.senderUsername === currentUsername
-            }))
-        });
     });
 
     // WebRTC Call Signaling Handlers
@@ -662,9 +768,9 @@ io.on('connection', (socket) => {
 
     socket.on('call-ended', (data) => {
         const { to } = data;
-        
+
         if (!currentUsername) return;
-        
+
         const targetUser = users.get(to);
         if (targetUser && targetUser.online && targetUser.socketId) {
             io.to(targetUser.socketId).emit('call-ended', {
@@ -672,6 +778,227 @@ io.on('connection', (socket) => {
             });
             console.log(`Call ended by ${currentUsername}`);
         }
+    });
+
+    // Group Management Handlers
+    socket.on('create-group', (data) => {
+        const { groupName, members } = data;
+
+        if (!currentUsername || !groupName || !members || !Array.isArray(members)) {
+            socket.emit('group-error', { error: 'Invalid group data' });
+            return;
+        }
+
+        if (groupName.trim().length < 3) {
+            socket.emit('group-error', { error: 'Group name must be at least 3 characters' });
+            return;
+        }
+
+        const currentUser = users.get(currentUsername);
+        if (!currentUser) return;
+
+        // Validate that all members are in current user's contacts
+        const validMembers = members.filter(member =>
+            currentUser.contacts.includes(member) && users.has(member)
+        );
+
+        if (validMembers.length === 0) {
+            socket.emit('group-error', { error: 'No valid members selected' });
+            return;
+        }
+
+        // Create the group
+        const groupId = 'group-' + generateId();
+        const groupMembers = [currentUsername, ...validMembers];
+
+        groups.set(groupId, {
+            id: groupId,
+            name: groupName.trim(),
+            admin: currentUsername,
+            members: groupMembers,
+            createdAt: Date.now(),
+            lastMessage: null
+        });
+
+        messages.set(groupId, []);
+        saveData();
+
+        // Notify all group members
+        groupMembers.forEach(memberUsername => {
+            const member = users.get(memberUsername);
+            if (member && member.online && member.socketId) {
+                io.to(member.socketId).emit('group-created', {
+                    id: groupId,
+                    name: groupName.trim(),
+                    type: 'group',
+                    admin: currentUsername,
+                    members: groupMembers,
+                    memberCount: groupMembers.length,
+                    lastMessage: null
+                });
+            }
+        });
+
+        console.log(`Group created: ${groupName} by ${currentUsername}`);
+    });
+
+    socket.on('add-group-member', (data) => {
+        const { groupId, memberUsername } = data;
+
+        if (!currentUsername || !groupId || !memberUsername) return;
+
+        const group = groups.get(groupId);
+        if (!group) {
+            socket.emit('group-error', { error: 'Group not found' });
+            return;
+        }
+
+        // Only admin can add members
+        if (group.admin !== currentUsername) {
+            socket.emit('group-error', { error: 'Only admin can add members' });
+            return;
+        }
+
+        if (group.members.includes(memberUsername)) {
+            socket.emit('group-error', { error: 'User is already a member' });
+            return;
+        }
+
+        if (!users.has(memberUsername)) {
+            socket.emit('group-error', { error: 'User does not exist' });
+            return;
+        }
+
+        // Add the member
+        group.members.push(memberUsername);
+        saveData();
+
+        // Notify all group members including the new one
+        group.members.forEach(member => {
+            const user = users.get(member);
+            if (user && user.online && user.socketId) {
+                io.to(user.socketId).emit('group-member-added', {
+                    groupId: groupId,
+                    memberUsername: memberUsername,
+                    members: group.members,
+                    memberCount: group.members.length
+                });
+            }
+        });
+
+        console.log(`${memberUsername} added to group ${groupId} by ${currentUsername}`);
+    });
+
+    socket.on('remove-group-member', (data) => {
+        const { groupId, memberUsername } = data;
+
+        if (!currentUsername || !groupId || !memberUsername) return;
+
+        const group = groups.get(groupId);
+        if (!group) {
+            socket.emit('group-error', { error: 'Group not found' });
+            return;
+        }
+
+        // Only admin can remove members
+        if (group.admin !== currentUsername) {
+            socket.emit('group-error', { error: 'Only admin can remove members' });
+            return;
+        }
+
+        if (memberUsername === currentUsername) {
+            socket.emit('group-error', { error: 'Admin cannot remove themselves. Transfer admin or leave group.' });
+            return;
+        }
+
+        if (!group.members.includes(memberUsername)) {
+            socket.emit('group-error', { error: 'User is not a member' });
+            return;
+        }
+
+        // Remove the member
+        group.members = group.members.filter(m => m !== memberUsername);
+        saveData();
+
+        // Notify the removed member
+        const removedUser = users.get(memberUsername);
+        if (removedUser && removedUser.online && removedUser.socketId) {
+            io.to(removedUser.socketId).emit('group-removed', { groupId });
+        }
+
+        // Notify remaining members
+        group.members.forEach(member => {
+            const user = users.get(member);
+            if (user && user.online && user.socketId) {
+                io.to(user.socketId).emit('group-member-removed', {
+                    groupId: groupId,
+                    memberUsername: memberUsername,
+                    members: group.members,
+                    memberCount: group.members.length
+                });
+            }
+        });
+
+        console.log(`${memberUsername} removed from group ${groupId} by ${currentUsername}`);
+    });
+
+    socket.on('leave-group', (data) => {
+        const { groupId } = data;
+
+        if (!currentUsername || !groupId) return;
+
+        const group = groups.get(groupId);
+        if (!group) {
+            socket.emit('group-error', { error: 'Group not found' });
+            return;
+        }
+
+        if (!group.members.includes(currentUsername)) {
+            socket.emit('group-error', { error: 'You are not a member of this group' });
+            return;
+        }
+
+        // If admin is leaving, transfer admin to another member or delete group
+        if (group.admin === currentUsername) {
+            group.members = group.members.filter(m => m !== currentUsername);
+
+            if (group.members.length > 0) {
+                // Transfer admin to first remaining member
+                group.admin = group.members[0];
+            } else {
+                // Delete the group if no members left
+                groups.delete(groupId);
+                messages.delete(groupId);
+                saveData();
+                socket.emit('group-deleted', { groupId });
+                console.log(`Group ${groupId} deleted (no members left)`);
+                return;
+            }
+        } else {
+            // Regular member leaving
+            group.members = group.members.filter(m => m !== currentUsername);
+        }
+
+        saveData();
+
+        // Notify the user who left
+        socket.emit('group-left', { groupId });
+
+        // Notify remaining members
+        group.members.forEach(member => {
+            const user = users.get(member);
+            if (user && user.online && user.socketId) {
+                io.to(user.socketId).emit('group-member-left', {
+                    groupId: groupId,
+                    memberUsername: currentUsername,
+                    newAdmin: group.admin,
+                    members: group.members,
+                    memberCount: group.members.length
+                });
+            }
+        });
+
+        console.log(`${currentUsername} left group ${groupId}`);
     });
 
     socket.on('disconnect', () => {
