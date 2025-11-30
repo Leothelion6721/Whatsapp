@@ -2525,22 +2525,149 @@
     <!-- Auth Screen -->
     <div class="auth-screen" id="authScreen">
         <div class="auth-box">
-            <h1>🔐 Secure WhatsApp</h1>
+            <h1>🔐 SecureChat</h1>
             <p id="authTitle">Sign in to your account</p>
-            
+
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
-            
+
             <input type="text" id="usernameInput" placeholder="Username" maxlength="20">
             <input type="password" id="passwordInput" placeholder="Password">
             <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" style="display:none;">
-            
+
+            <!-- Security Question for Registration -->
+            <div id="securityQuestionSection" style="display:none;">
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Choose verification method:</p>
+                <div class="auth-method-choice">
+                    <div class="method-btn active" id="methodSecurityBtn" onclick="selectAuthMethod('security')">
+                        <div class="method-icon">🔐</div>
+                        <div class="method-name">Security Question</div>
+                    </div>
+                    <div class="method-btn" id="methodFaceBtn" onclick="selectAuthMethod('face')">
+                        <div class="method-icon">👤</div>
+                        <div class="method-name">Face Recognition</div>
+                    </div>
+                </div>
+
+                <div id="securityQuestionMethod">
+                    <select id="securityQuestionSelect" style="width: 100%; padding: 16px 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 12px; font-size: 15px; margin-bottom: 16px; transition: all 0.2s ease; color: var(--text-primary);">
+                        <option value="">Select a security question</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                        <option value="What city were you born in?">What city were you born in?</option>
+                        <option value="What is your favorite book?">What is your favorite book?</option>
+                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                    </select>
+                    <input type="text" id="securityAnswerInput" placeholder="Your answer (case-insensitive)" style="display:none;">
+                </div>
+
+                <div id="faceRecognitionMethod" style="display:none;">
+                    <div class="face-capture-container">
+                        <p style="color: var(--text-secondary); margin-bottom: 12px;">Position your face in the camera</p>
+                        <div id="regLivenessPrompt" class="liveness-prompt">😊 Please smile!</div>
+                        <video id="regFaceVideo" class="face-video" autoplay playsinline></video>
+                        <canvas id="regFaceCanvas" class="face-canvas"></canvas>
+                        <img id="regFacePreview" class="face-preview" style="display:none;">
+                        <button type="button" class="reset-btn" id="captureFaceBtn" onclick="captureRegistrationFace()" style="max-width: 200px; margin: 0 auto;">📸 Capture Face</button>
+                    </div>
+                </div>
+            </div>
+
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
-            
+
+            <p id="forgotPasswordLink" style="margin-bottom: 12px;">
+                <span class="auth-switch" onclick="showForgotPassword()">Forgot Password?</span>
+            </p>
+
             <p>
                 <span id="authSwitchText">Don't have an account?</span>
                 <span class="auth-switch" id="authSwitch" onclick="toggleAuthMode()">Sign Up</span>
             </p>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+    <div class="reset-modal" id="resetModal">
+        <div class="reset-container">
+            <div class="reset-header">
+                <h2>🔑 Reset Password</h2>
+                <button class="reset-close" onclick="closeResetModal()">✕</button>
+            </div>
+
+            <div class="reset-content">
+                <!-- Step 1: Request Reset Code -->
+                <div id="resetStep1" class="reset-step">
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
+                        Choose how to verify your identity
+                    </p>
+
+                    <div class="error-message" id="resetErrorMessage"></div>
+                    <div class="success-message" id="resetSuccessMessage"></div>
+
+                    <input type="text" id="resetUsernameInput" placeholder="Enter your username" class="reset-input">
+
+                    <div id="resetMethodChoice" style="display:none;">
+                        <div class="auth-method-choice">
+                            <div class="method-btn active" id="resetMethodSecurityBtn" onclick="selectResetMethod('security')">
+                                <div class="method-icon">🔐</div>
+                                <div class="method-name">Security Question</div>
+                            </div>
+                            <div class="method-btn" id="resetMethodFaceBtn" onclick="selectResetMethod('face')">
+                                <div class="method-icon">👤</div>
+                                <div class="method-name">Face Recognition</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="resetSecurityMethod" style="display:none;">
+                        <div id="securityQuestionDisplay" style="background: var(--bg-elevated); padding: 14px 18px; border-radius: 10px; margin-bottom: 14px; color: var(--text-secondary); font-size: 14px;">
+                            <strong style="color: var(--text-primary);">Security Question:</strong><br>
+                            <span id="displayedQuestion" style="color: var(--accent-primary); margin-top: 6px; display: block;"></span>
+                        </div>
+                        <input type="text" id="securityAnswerResetInput" placeholder="Answer to your security question" class="reset-input">
+                        <button onclick="requestResetCode()" class="reset-btn">Request Reset Code</button>
+                    </div>
+
+                    <div id="resetFaceMethod" style="display:none;">
+                        <div class="face-capture-container">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">Position your face in the camera</p>
+                            <video id="resetFaceVideo" class="face-video" autoplay playsinline></video>
+                            <canvas id="resetFaceCanvas" class="face-canvas"></canvas>
+                            <button type="button" class="reset-btn" onclick="verifyFaceReset()">✅ Verify Face</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Contact Admin Message -->
+                <div id="resetStep2" class="reset-step" style="display: none;">
+                    <div style="background: var(--bg-elevated); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px;">
+                        <h3 style="color: var(--accent-primary); margin-bottom: 12px; font-size: 18px;">📧 Contact Admin</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+                            A secure reset code has been generated and printed in the server console.
+                        </p>
+                        <p style="color: var(--text-primary); margin-bottom: 16px; font-weight: 500;">
+                            Please contact the administrator at:
+                        </p>
+                        <div style="background: var(--bg-tertiary); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+                            <a href="mailto:leothelion123@outlook.fr" style="color: var(--accent-primary); text-decoration: none; font-weight: 600; font-size: 15px;">
+                                leothelion123@outlook.fr
+                            </a>
+                        </div>
+                        <p style="color: var(--text-tertiary); font-size: 13px;">
+                            ⏱️ Code expires in 15 minutes
+                        </p>
+                    </div>
+
+                    <input type="text" id="resetCodeInput" placeholder="Enter the reset code" class="reset-input" style="font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 2px;">
+                    <input type="password" id="newPasswordInput" placeholder="Enter new password" class="reset-input">
+                    <input type="password" id="confirmNewPasswordInput" placeholder="Confirm new password" class="reset-input">
+
+                    <div class="error-message" id="resetCodeErrorMessage"></div>
+
+                    <button onclick="resetPassword()" class="reset-btn">Reset Password</button>
+                    <button onclick="backToStep1()" class="reset-btn-secondary">Back</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2557,14 +2684,14 @@
                     <button class="icon-btn" title="Logout" onclick="logout()">🚪</button>
                 </div>
             </div>
-            
+
             <!-- Tabs -->
             <div class="tabs">
                 <button class="tab active" id="chatsTab" onclick="showChats()">Chats</button>
                 <button class="tab" id="groupsTab" onclick="showGroups()">Groups</button>
                 <button class="tab" id="contactsTab" onclick="showContacts()">Contacts</button>
             </div>
-            
+
             <!-- Chats List -->
             <div class="chat-list" id="chatList">
                 <div class="loading">No chats yet. Add contacts to start chatting!</div>
@@ -2623,32 +2750,73 @@
                     <div class="header-actions">
                         <button class="icon-btn" onclick="startVoiceCall()" title="Voice Call">📞</button>
                         <button class="icon-btn" onclick="startVideoCall()" title="Video Call">📹</button>
+                        <div class="menu-dropdown">
+                            <button class="icon-btn" onclick="toggleMenu()" title="More Options">⋮</button>
+                            <div class="menu-content" id="chatMenu">
+                                <div class="menu-item" onclick="openBackgroundCustomizer()">
+                                    <span>🎨</span>
+                                    <span>Chat Background</span>
+                                </div>
+                                <div class="menu-item" onclick="openThemeCustomizer()">
+                                    <span>🌈</span>
+                                    <span>Theme Colors</span>
+                                </div>
+                                <div class="menu-item" onclick="openWhiteboard()">
+                                    <span>✏️</span>
+                                    <span>Whiteboard</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
+
                 <div class="messages-container" id="messagesContainer"></div>
-                
+
                 <div class="message-input-container">
                     <div style="flex: 1;">
                         <div class="attachment-preview" id="attachmentPreview">
                             <div class="preview-info">
                                 <div id="previewName"></div>
-                                <div style="font-size: 12px; color: #8696a0;" id="previewSize"></div>
+                                <div style="font-size: 12px; color: var(--text-tertiary);" id="previewSize"></div>
                             </div>
                             <button class="contact-btn remove" onclick="removeAttachment()">Remove</button>
                         </div>
-                        <div style="display: flex; gap: 10px; align-items: flex-end;">
-                            <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
-                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3">
-                            <textarea 
-                                class="message-input" 
-                                id="messageInput" 
-                                placeholder="Type a message" 
+                        <!-- File Preview Area -->
+                        <div class="file-preview-area" id="filePreviewArea" style="display: none;">
+                            <div class="file-preview-header">
+                                <span id="filePreviewCount">0 files selected</span>
+                                <button class="preview-close-btn" onclick="clearFileSelection()">✕</button>
+                            </div>
+                            <div class="file-preview-list" id="filePreviewList"></div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px; align-items: flex-end;">
+                            <!-- File Upload Menu -->
+                            <div class="file-upload-menu">
+                                <button class="icon-btn" onclick="toggleFileMenu()" title="Attach files">📎</button>
+                                <div class="file-menu-content" id="fileMenu">
+                                    <div class="file-menu-item" onclick="openFileUpload()">
+                                        <span>📄</span>
+                                        <span>Upload Files</span>
+                                    </div>
+                                    <div class="file-menu-item" onclick="openFolderUpload()">
+                                        <span>📁</span>
+                                        <span>Upload Folder</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)" accept="image/*,application/pdf,.doc,.docx,.txt,.zip,.mp4,.mp3" multiple>
+                            <input type="file" id="folderInput" style="display:none;" onchange="handleFileSelect(event)" webkitdirectory directory multiple>
+                            <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()" title="Voice message">🎤</button>
+                            <textarea
+                                class="message-input"
+                                id="messageInput"
+                                placeholder="Type a message"
                                 rows="1"
                                 onkeypress="handleKeyPress(event)"
                                 oninput="handleTyping(); autoResize(this)"
                             ></textarea>
-                            <button class="send-btn" onclick="sendMessage()">➤</button>
+                            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
                         </div>
                     </div>
                 </div>
@@ -2737,8 +2905,270 @@
         </div>
     </div>
 
+    <!-- Whiteboard Modal -->
+    <div class="whiteboard-modal" id="whiteboardModal">
+        <div class="whiteboard-container">
+            <div class="whiteboard-header">
+                <div class="whiteboard-title">🎨 Collaborative Whiteboard</div>
+                <button class="whiteboard-close" onclick="closeWhiteboard()">Close</button>
+            </div>
+
+            <div class="whiteboard-toolbar">
+                <!-- Drawing Tools -->
+                <button class="tool-btn active" id="penTool" onclick="selectTool('pen')">
+                    <span>✏️</span>
+                    <span>Pen</span>
+                </button>
+                <button class="tool-btn" id="highlighterTool" onclick="selectTool('highlighter')">
+                    <span>🖍️</span>
+                    <span>Highlighter</span>
+                </button>
+                <button class="tool-btn" id="eraserTool" onclick="selectTool('eraser')">
+                    <span>🧹</span>
+                    <span>Eraser</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Shape Tools -->
+                <button class="tool-btn" id="rectangleTool" onclick="selectTool('rectangle')">
+                    <span>◻️</span>
+                    <span>Rectangle</span>
+                </button>
+                <button class="tool-btn" id="circleTool" onclick="selectTool('circle')">
+                    <span>⭕</span>
+                    <span>Circle</span>
+                </button>
+                <button class="tool-btn" id="lineTool" onclick="selectTool('line')">
+                    <span>➖</span>
+                    <span>Line</span>
+                </button>
+                <button class="tool-btn" id="arrowTool" onclick="selectTool('arrow')">
+                    <span>➡️</span>
+                    <span>Arrow</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Text and Sticky Tools -->
+                <button class="tool-btn" id="textTool" onclick="selectTool('text')">
+                    <span>📝</span>
+                    <span>Text</span>
+                </button>
+                <button class="tool-btn" id="stickyTool" onclick="selectTool('sticky')">
+                    <span>📌</span>
+                    <span>Sticky Note</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Color Palette Presets -->
+                <div class="color-palette">
+                    <div class="color-swatch" style="background: #000000;" onclick="setColor('#000000')" title="Black"></div>
+                    <div class="color-swatch" style="background: #ef4444;" onclick="setColor('#ef4444')" title="Red"></div>
+                    <div class="color-swatch" style="background: #3b82f6;" onclick="setColor('#3b82f6')" title="Blue"></div>
+                    <div class="color-swatch" style="background: #10b981;" onclick="setColor('#10b981')" title="Green"></div>
+                    <div class="color-swatch" style="background: #f59e0b;" onclick="setColor('#f59e0b')" title="Orange"></div>
+                    <div class="color-swatch" style="background: #8b5cf6;" onclick="setColor('#8b5cf6')" title="Purple"></div>
+                </div>
+
+                <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Custom Color">
+
+                <div class="toolbar-separator"></div>
+
+                <label style="color: var(--text-secondary); font-size: 13px; margin-left: 8px;">Size:</label>
+                <input type="range" id="sizeSlider" class="size-slider" min="1" max="20" value="3" title="Brush Size">
+
+                <div class="toolbar-separator"></div>
+
+                <!-- Undo/Redo -->
+                <button class="tool-btn" onclick="undo()" title="Undo">
+                    <span>↶</span>
+                    <span>Undo</span>
+                </button>
+                <button class="tool-btn" onclick="redo()" title="Redo">
+                    <span>↷</span>
+                    <span>Redo</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <button class="tool-btn" onclick="clearCanvas()">
+                    <span>🗑️</span>
+                    <span>Clear All</span>
+                </button>
+
+                <button class="tool-btn" onclick="saveWhiteboard()">
+                    <span>💾</span>
+                    <span>Save</span>
+                </button>
+            </div>
+
+            <div class="whiteboard-canvas-container">
+                <canvas id="whiteboardCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Customizer Modal -->
+    <div class="customizer-modal" id="backgroundModal">
+        <div class="customizer-container">
+            <div class="customizer-header">
+                <h2>🎨 Chat Background</h2>
+                <button class="customizer-close" onclick="closeBackgroundCustomizer()">✕</button>
+            </div>
+            <div class="customizer-content">
+                <div class="customizer-section">
+                    <h3>Preset Backgrounds</h3>
+                    <div class="background-grid">
+                        <div class="background-option" data-bg="none" onclick="setBackground('none')" style="background: var(--bg-secondary);">
+                            <span>Default</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient1" onclick="setBackground('gradient1')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <span>Purple Dream</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient2" onclick="setBackground('gradient2')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <span>Pink Sunset</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient3" onclick="setBackground('gradient3')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <span>Ocean Blue</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient4" onclick="setBackground('gradient4')" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <span>Mint Fresh</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient5" onclick="setBackground('gradient5')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <span>Sunrise</span>
+                        </div>
+                        <div class="background-option" data-bg="dark" onclick="setBackground('dark')" style="background: #000000;">
+                            <span style="color: white;">Pure Dark</span>
+                        </div>
+                        <div class="background-option" data-bg="pattern1" onclick="setBackground('pattern1')" style="background: repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #1a1a1a 10px, #1a1a1a 20px);">
+                            <span>Stripes</span>
+                        </div>
+                        <div class="background-option" data-bg="pattern2" onclick="setBackground('pattern2')" style="background: radial-gradient(circle, #1a1a1a 1px, #0a0a0a 1px); background-size: 20px 20px;">
+                            <span>Dots</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Custom Background</h3>
+                    <div class="custom-bg-controls">
+                        <input type="file" id="bgFileInput" accept="image/*" onchange="uploadCustomBackground(event)" style="display: none;">
+                        <button class="customizer-btn" onclick="document.getElementById('bgFileInput').click()">
+                            📁 Upload Image
+                        </button>
+                        <input type="color" id="solidColorPicker" onchange="setSolidColor(this.value)" class="color-picker">
+                        <label for="solidColorPicker" class="customizer-btn">🎨 Solid Color</label>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Background Options</h3>
+                    <div class="option-controls">
+                        <label>
+                            <input type="range" id="bgOpacity" min="0" max="100" value="20" oninput="setBgOpacity(this.value)">
+                            <span>Background Opacity: <span id="opacityValue">20</span>%</span>
+                        </label>
+                        <label>
+                            <input type="range" id="bgBlur" min="0" max="20" value="0" oninput="setBgBlur(this.value)">
+                            <span>Blur: <span id="blurValue">0</span>px</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="customizer-actions">
+                    <button class="customizer-btn secondary" onclick="resetBackground()">🔄 Reset</button>
+                    <button class="customizer-btn primary" onclick="closeBackgroundCustomizer()">✅ Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Customizer Modal -->
+    <div class="customizer-modal" id="themeModal">
+        <div class="customizer-container">
+            <div class="customizer-header">
+                <h2>🌈 Theme Colors</h2>
+                <button class="customizer-close" onclick="closeThemeCustomizer()">✕</button>
+            </div>
+            <div class="customizer-content">
+                <div class="customizer-section">
+                    <h3>Preset Themes</h3>
+                    <div class="theme-grid">
+                        <div class="theme-option" onclick="applyTheme('default')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0a0a0a 0%, #0ea5e9 100%);"></div>
+                            <span>Default Dark</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('purple')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #9d4edd 100%);"></div>
+                            <span>Purple Night</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('green')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0d1b2a 0%, #10b981 100%);"></div>
+                            <span>Matrix Green</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('red')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a1a 0%, #ef4444 100%);"></div>
+                            <span>Red Alert</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('orange')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1c1917 0%, #f97316 100%);"></div>
+                            <span>Sunset Orange</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('blue')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0c1222 0%, #3b82f6 100%);"></div>
+                            <span>Deep Blue</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Custom Colors</h3>
+                    <div class="color-controls">
+                        <label>
+                            <span>Accent Color:</span>
+                            <input type="color" id="accentColorPicker" value="#0ea5e9" onchange="setAccentColor(this.value)">
+                        </label>
+                        <label>
+                            <span>Message Sent:</span>
+                            <input type="color" id="sentColorPicker" value="#0ea5e9" onchange="setSentColor(this.value)">
+                        </label>
+                        <label>
+                            <span>Message Received:</span>
+                            <input type="color" id="receivedColorPicker" value="#1a1a1a" onchange="setReceivedColor(this.value)">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="customizer-actions">
+                    <button class="customizer-btn secondary" onclick="resetTheme()">🔄 Reset</button>
+                    <button class="customizer-btn primary" onclick="closeThemeCustomizer()">✅ Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recording Indicator -->
+    <div class="recording-indicator" id="recordingIndicator">
+        <div class="recording-wave">
+            <div class="recording-bar"></div>
+            <div class="recording-bar"></div>
+            <div class="recording-bar"></div>
+            <div class="recording-bar"></div>
+            <div class="recording-bar"></div>
+        </div>
+        <div class="recording-time" id="recordingTime">00:00</div>
+        <div style="font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-top: -8px;">Recording voice message...</div>
+        <button class="recording-cancel" onclick="cancelRecording()">Cancel</button>
+    </div>
+
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
+
+    <!-- Face API.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
     <script>
         let socket = null;
         let authToken = null;
@@ -2787,22 +3217,607 @@
             const switchText = document.getElementById('authSwitchText');
             const switchBtn = document.getElementById('authSwitch');
             const confirmInput = document.getElementById('confirmPasswordInput');
-            
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+            const securitySection = document.getElementById('securityQuestionSection');
+
             if (isLoginMode) {
                 title.textContent = 'Sign in to your account';
                 btn.textContent = 'Sign In';
                 switchText.textContent = "Don't have an account?";
                 switchBtn.textContent = 'Sign Up';
                 confirmInput.style.display = 'none';
+                securitySection.style.display = 'none';
+                forgotPasswordLink.style.display = 'block';
             } else {
                 title.textContent = 'Create a new account';
                 btn.textContent = 'Sign Up';
                 switchText.textContent = 'Already have an account?';
                 switchBtn.textContent = 'Sign In';
                 confirmInput.style.display = 'block';
+                securitySection.style.display = 'block';
+                forgotPasswordLink.style.display = 'none';
             }
-            
+
             clearMessages();
+        }
+
+        // Face Recognition Variables
+        let registrationFaceData = null;
+        let regFaceStream = null;
+        let resetFaceStream = null;
+        let selectedAuthMethod = 'security';
+        let selectedResetMethod = 'security';
+
+        // Face API.js Variables
+        let faceApiModelsLoaded = false;
+        let faceDetectionOptions = null;
+        let livenessSteps = [];
+        let currentLivenessStep = 0;
+
+        // Select authentication method during registration
+        function selectAuthMethod(method) {
+            selectedAuthMethod = method;
+            const securityBtn = document.getElementById('methodSecurityBtn');
+            const faceBtn = document.getElementById('methodFaceBtn');
+            const securityMethod = document.getElementById('securityQuestionMethod');
+            const faceMethod = document.getElementById('faceRecognitionMethod');
+
+            if (method === 'security') {
+                securityBtn.classList.add('active');
+                faceBtn.classList.remove('active');
+                securityMethod.style.display = 'block';
+                faceMethod.style.display = 'none';
+                stopRegFaceCamera();
+            } else {
+                securityBtn.classList.remove('active');
+                faceBtn.classList.add('active');
+                securityMethod.style.display = 'none';
+                faceMethod.style.display = 'block';
+                startRegFaceCamera();
+            }
+        }
+
+        // Select reset method
+        function selectResetMethod(method) {
+            selectedResetMethod = method;
+            const securityBtn = document.getElementById('resetMethodSecurityBtn');
+            const faceBtn = document.getElementById('resetMethodFaceBtn');
+            const securityMethod = document.getElementById('resetSecurityMethod');
+            const faceMethod = document.getElementById('resetFaceMethod');
+
+            if (method === 'security') {
+                securityBtn.classList.add('active');
+                faceBtn.classList.remove('active');
+                securityMethod.style.display = 'block';
+                faceMethod.style.display = 'none';
+                stopResetFaceCamera();
+            } else {
+                securityBtn.classList.remove('active');
+                faceBtn.classList.add('active');
+                securityMethod.style.display = 'none';
+                faceMethod.style.display = 'block';
+                startResetFaceCamera();
+            }
+        }
+
+        // Load Face API.js Models
+        async function loadFaceApiModels() {
+            if (faceApiModelsLoaded) return;
+
+            try {
+                console.log('🤖 Loading face-api.js models...');
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                faceDetectionOptions = new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 512,
+                    scoreThreshold: 0.5
+                });
+
+                faceApiModelsLoaded = true;
+                console.log('✅ Face-api.js models loaded successfully!');
+            } catch (error) {
+                console.error('❌ Failed to load face-api.js models:', error);
+                alert('Failed to load face recognition models. Please refresh the page.');
+            }
+        }
+
+        // Start camera for registration
+        async function startRegFaceCamera() {
+            try {
+                // Load face-api.js models first
+                await loadFaceApiModels();
+
+                const video = document.getElementById('regFaceVideo');
+                regFaceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
+                video.srcObject = regFaceStream;
+
+                // Start liveness monitoring once video is playing
+                video.addEventListener('playing', () => {
+                    setTimeout(() => {
+                        startLivenessMonitoring();
+                    }, 1000);
+                }, { once: true });
+
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Could not access camera. Please grant camera permissions.');
+            }
+        }
+
+        // Stop registration camera
+        function stopRegFaceCamera() {
+            stopLivenessMonitoring();
+            if (regFaceStream) {
+                regFaceStream.getTracks().forEach(track => track.stop());
+                regFaceStream = null;
+            }
+        }
+
+        // Start camera for password reset
+        async function startResetFaceCamera() {
+            try {
+                // Load face-api.js models first
+                await loadFaceApiModels();
+
+                const video = document.getElementById('resetFaceVideo');
+                resetFaceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
+                video.srcObject = resetFaceStream;
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Could not access camera. Please grant camera permissions.');
+            }
+        }
+
+        // Stop reset camera
+        function stopResetFaceCamera() {
+            if (resetFaceStream) {
+                resetFaceStream.getTracks().forEach(track => track.stop());
+                resetFaceStream = null;
+            }
+        }
+
+        // Liveness detection helper
+        async function checkLiveness(video, promptElement) {
+            if (!faceApiModelsLoaded) return null;
+
+            try {
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceExpressions();
+
+                if (!detection) return null;
+
+                const expressions = detection.expressions;
+                const topExpression = Object.entries(expressions).sort((a, b) => b[1] - a[1])[0];
+
+                // Check if user is smiling (liveness check)
+                if (expressions.happy > 0.6) {
+                    promptElement.textContent = '✅ Great smile! Ready to capture';
+                    promptElement.style.background = 'var(--success)';
+                    return true;
+                } else if (expressions.neutral > 0.7) {
+                    promptElement.textContent = '😊 Please smile!';
+                    promptElement.style.background = 'var(--accent-primary)';
+                    return false;
+                } else {
+                    promptElement.textContent = `📸 Face detected - ${topExpression[0]}`;
+                    promptElement.style.background = 'var(--accent-primary)';
+                    return false;
+                }
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Start liveness monitoring during registration
+        let livenessInterval = null;
+        async function startLivenessMonitoring() {
+            const video = document.getElementById('regFaceVideo');
+            const promptElement = document.getElementById('regLivenessPrompt');
+
+            promptElement.classList.add('active');
+
+            if (livenessInterval) clearInterval(livenessInterval);
+
+            livenessInterval = setInterval(async () => {
+                await checkLiveness(video, promptElement);
+            }, 1000); // Check every second
+        }
+
+        function stopLivenessMonitoring() {
+            if (livenessInterval) {
+                clearInterval(livenessInterval);
+                livenessInterval = null;
+            }
+            const promptElement = document.getElementById('regLivenessPrompt');
+            promptElement.classList.remove('active');
+        }
+
+        // Capture face during registration with face-api.js and liveness detection
+        async function captureRegistrationFace() {
+            const video = document.getElementById('regFaceVideo');
+            const canvas = document.getElementById('regFaceCanvas');
+            const preview = document.getElementById('regFacePreview');
+            const promptElement = document.getElementById('regLivenessPrompt');
+            const ctx = canvas.getContext('2d');
+
+            if (!faceApiModelsLoaded) {
+                alert('⏳ Face recognition models are still loading. Please wait...');
+                return;
+            }
+
+            try {
+                console.log('🔍 Performing liveness check and face detection...');
+
+                // Detect face with landmarks, descriptor, and expressions
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor()
+                    .withFaceExpressions();
+
+                if (!detection) {
+                    alert('❌ No face detected! Please:\n• Face the camera directly\n• Ensure good lighting\n• Remove sunglasses/masks\n• Try again');
+                    return;
+                }
+
+                // Liveness check - require smile
+                const expressions = detection.expressions;
+                if (expressions.happy < 0.5) {
+                    alert('😊 Liveness Check: Please smile for the camera!\n\nThis ensures you are a real person, not a photo.');
+                    return;
+                }
+
+                console.log('✅ Liveness check passed! Face detected with smile');
+                console.log('📊 Landmarks:', detection.landmarks.positions.length);
+                console.log('😊 Expression scores:', expressions);
+
+                // Stop liveness monitoring
+                stopLivenessMonitoring();
+
+                // Draw face to canvas
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+
+                // Draw landmarks on canvas for visual feedback
+                const resizedDetection = faceapi.resizeResults(detection, { width: canvas.width, height: canvas.height });
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetection);
+                faceapi.draw.drawDetections(canvas, resizedDetection);
+
+                // Show preview
+                preview.src = canvas.toDataURL('image/jpeg', 0.8);
+                preview.style.display = 'block';
+
+                // Store the 128D face descriptor as JSON
+                registrationFaceData = JSON.stringify(Array.from(detection.descriptor));
+
+                console.log('💾 Face descriptor extracted (128 dimensions)');
+                alert('✅ Face captured successfully!\n\n' +
+                      `• Liveness check: PASSED (smile detected)\n` +
+                      `• 68 facial landmarks detected\n` +
+                      `• 128D neural network descriptor extracted\n` +
+                      `• Happy: ${Math.round(expressions.happy * 100)}%`);
+
+            } catch (error) {
+                console.error('❌ Face capture error:', error);
+                alert('Failed to capture face. Please try again.');
+            }
+        }
+
+        // Verify face during password reset with face-api.js
+        async function verifyFaceReset() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const errorDiv = document.getElementById('resetErrorMessage');
+            const successDiv = document.getElementById('resetSuccessMessage');
+
+            if (!username) {
+                errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            if (!faceApiModelsLoaded) {
+                errorDiv.textContent = '⏳ Face recognition models are still loading. Please wait...';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            const video = document.getElementById('resetFaceVideo');
+            const canvas = document.getElementById('resetFaceCanvas');
+            const ctx = canvas.getContext('2d');
+
+            try {
+                console.log('🔍 Detecting face for password reset...');
+
+                // Detect face with landmarks and descriptor
+                const detection = await faceapi
+                    .detectSingleFace(video, faceDetectionOptions)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    errorDiv.textContent = '❌ No face detected! Please face the camera directly and try again.';
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                    return;
+                }
+
+                console.log('✅ Face detected for reset verification!');
+
+                // Extract the 128D face descriptor
+                const faceDescriptor = JSON.stringify(Array.from(detection.descriptor));
+
+                // Send descriptor to server for verification
+                const response = await fetch('/api/verify-face-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, faceData: faceDescriptor })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.display = 'none';
+                    successDiv.textContent = data.message;
+                    successDiv.style.display = 'block';
+                    stopResetFaceCamera();
+
+                    console.log('✅ Face verified successfully!');
+
+                    setTimeout(() => {
+                        document.getElementById('resetStep1').style.display = 'none';
+                        document.getElementById('resetStep2').style.display = 'block';
+                    }, 1000);
+                } else {
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                    console.log('❌ Face verification failed:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Face verification error:', error);
+                errorDiv.textContent = 'Face verification failed. Please try again.';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            }
+        }
+
+        // Show answer input when security question is selected
+        document.addEventListener('DOMContentLoaded', () => {
+            const securitySelect = document.getElementById('securityQuestionSelect');
+            const securityAnswerInput = document.getElementById('securityAnswerInput');
+
+            if (securitySelect) {
+                securitySelect.addEventListener('change', () => {
+                    if (securitySelect.value) {
+                        securityAnswerInput.style.display = 'block';
+                    } else {
+                        securityAnswerInput.style.display = 'none';
+                    }
+                });
+            }
+
+            // Show auth methods when username is entered in reset form
+            const resetUsernameInput = document.getElementById('resetUsernameInput');
+            if (resetUsernameInput) {
+                let debounceTimer;
+                resetUsernameInput.addEventListener('input', async () => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(async () => {
+                        const username = resetUsernameInput.value.trim();
+                        if (username) {
+                            await fetchUserAuthMethods(username);
+                        } else {
+                            document.getElementById('resetMethodChoice').style.display = 'none';
+                        }
+                    }, 500);
+                });
+                resetUsernameInput.addEventListener('blur', async () => {
+                    const username = resetUsernameInput.value.trim();
+                    if (username) {
+                        await fetchUserAuthMethods(username);
+                    }
+                });
+            }
+        });
+
+        // Password Reset Functions
+        function showForgotPassword() {
+            document.getElementById('resetModal').classList.add('active');
+            document.getElementById('resetStep1').style.display = 'block';
+            document.getElementById('resetStep2').style.display = 'none';
+            document.getElementById('resetUsernameInput').value = '';
+            document.getElementById('resetMethodChoice').style.display = 'none';
+            document.getElementById('resetSecurityMethod').style.display = 'none';
+            document.getElementById('resetFaceMethod').style.display = 'none';
+            document.getElementById('resetErrorMessage').style.display = 'none';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+        }
+
+        // Fetch user auth methods
+        async function fetchUserAuthMethods(username) {
+            try {
+                const response = await fetch('/api/get-auth-methods', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const methodChoice = document.getElementById('resetMethodChoice');
+                    methodChoice.style.display = 'block';
+
+                    // Store user auth data
+                    if (data.authMethod === 'security' && data.question) {
+                        document.getElementById('displayedQuestion').textContent = data.question;
+                        // Default to security method
+                        selectResetMethod('security');
+                    } else if (data.authMethod === 'face') {
+                        // Default to face method
+                        selectResetMethod('face');
+                    }
+                } else {
+                    document.getElementById('resetMethodChoice').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error fetching auth methods:', error);
+            }
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.remove('active');
+            // Clear all inputs
+            document.getElementById('resetUsernameInput').value = '';
+            document.getElementById('resetCodeInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmNewPasswordInput').value = '';
+            document.getElementById('resetErrorMessage').style.display = 'none';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+            document.getElementById('resetCodeErrorMessage').style.display = 'none';
+        }
+
+        async function requestResetCode() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const securityAnswer = document.getElementById('securityAnswerResetInput').value.trim();
+            const errorDiv = document.getElementById('resetErrorMessage');
+            const successDiv = document.getElementById('resetSuccessMessage');
+
+            if (!username) {
+                errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            if (!securityAnswer) {
+                errorDiv.textContent = 'Please answer your security question';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/request-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, securityAnswer })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = 'Reset code generated! Check the instructions below.';
+                    successDiv.style.display = 'block';
+                    errorDiv.style.display = 'none';
+
+                    // Switch to step 2
+                    setTimeout(() => {
+                        document.getElementById('resetStep1').style.display = 'none';
+                        document.getElementById('resetStep2').style.display = 'block';
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to generate reset code';
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            }
+        }
+
+        async function resetPassword() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const code = document.getElementById('resetCodeInput').value.trim();
+            const newPassword = document.getElementById('newPasswordInput').value;
+            const confirmPassword = document.getElementById('confirmNewPasswordInput').value;
+            const errorDiv = document.getElementById('resetCodeErrorMessage');
+
+            if (!code) {
+                errorDiv.textContent = 'Please enter the reset code';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!newPassword || !confirmPassword) {
+                errorDiv.textContent = 'Please enter and confirm your new password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, code, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.display = 'none';
+                    alert('Password reset successfully! You can now login with your new password.');
+                    closeResetModal();
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to reset password';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function backToStep1() {
+            document.getElementById('resetStep1').style.display = 'block';
+            document.getElementById('resetStep2').style.display = 'none';
+            document.getElementById('resetCodeInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmNewPasswordInput').value = '';
+            document.getElementById('resetCodeErrorMessage').style.display = 'none';
         }
 
         function clearMessages() {
@@ -2828,34 +3843,69 @@
             const username = document.getElementById('usernameInput').value.trim();
             const password = document.getElementById('passwordInput').value;
             const confirmPassword = document.getElementById('confirmPasswordInput').value;
-            
+
             if (!username || !password) {
                 showError('Please enter username and password');
                 return;
             }
-            
+
             if (!isLoginMode && password !== confirmPassword) {
                 showError('Passwords do not match');
                 return;
             }
-            
+
+            // Check verification method for registration
+            if (!isLoginMode) {
+                if (selectedAuthMethod === 'security') {
+                    const securityQuestion = document.getElementById('securityQuestionSelect').value;
+                    const securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+
+                    if (!securityQuestion) {
+                        showError('Please select a security question');
+                        return;
+                    }
+
+                    if (!securityAnswer) {
+                        showError('Please answer your security question');
+                        return;
+                    }
+                } else if (selectedAuthMethod === 'face') {
+                    if (!registrationFaceData) {
+                        showError('Please capture your face');
+                        return;
+                    }
+                }
+            }
+
             const endpoint = isLoginMode ? '/api/login' : '/api/register';
-            
+            const requestBody = { username, password };
+
+            if (!isLoginMode) {
+                requestBody.authMethod = selectedAuthMethod;
+
+                if (selectedAuthMethod === 'security') {
+                    requestBody.securityQuestion = document.getElementById('securityQuestionSelect').value;
+                    requestBody.securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+                } else if (selectedAuthMethod === 'face') {
+                    requestBody.faceData = registrationFaceData;
+                }
+            }
+
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify(requestBody)
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     authToken = data.token;
                     sessionStorage.setItem('authToken', authToken);
-                    
+
                     if (!isLoginMode) {
                         showSuccess('Account created successfully! Logging you in...');
                         setTimeout(() => {
@@ -2967,7 +4017,7 @@
                     chat.messages.push(data.message);
 
                     chat.lastMessage = {
-                        text: data.message.text || '📎 File',
+                        text: data.message.text || (data.message.file ? '📎 File' : (data.message.voice ? '🎤 Voice message' : '')),
                         time: data.message.timestamp
                     };
 
@@ -2990,9 +4040,21 @@
                         text: document.getElementById('messageInput').value.trim(),
                         file: data.file
                     });
-                    
+
                     document.getElementById('messageInput').value = '';
                     removeAttachment();
+                }
+            });
+
+            socket.on('voice-uploaded', (data) => {
+                console.log('🎤 Voice uploaded, sending message...');
+                if (data.chatId === currentChatId) {
+                    socket.emit('send-message', {
+                        chatId: currentChatId,
+                        text: '',
+                        voice: data.voice
+                    });
+                    console.log('🎤 Voice message sent!');
                 }
             });
 
@@ -3001,13 +4063,13 @@
                 if (contact) {
                     contact.online = true;
                 }
-                
+
                 chats.forEach(chat => {
                     if (chat.name === data.username) {
                         chat.online = true;
                     }
                 });
-                
+
                 renderContactsList();
                 renderChatList();
             });
@@ -3017,13 +4079,13 @@
                 if (contact) {
                     contact.online = false;
                 }
-                
+
                 chats.forEach(chat => {
                     if (chat.name === data.username) {
                         chat.online = false;
                     }
                 });
-                
+
                 renderContactsList();
                 renderChatList();
             });
@@ -3057,24 +4119,17 @@
             // Call event handlers
             socket.on('incoming-call', async (data) => {
                 const { from, offer, isVideo } = data;
-                
-                // Create peer connection
+
                 createPeerConnection();
-                
-                // Set remote description
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                
-                // Show incoming call UI
+
                 currentCall = {
                     type: 'incoming',
                     contactName: from,
                     isVideo: isVideo
                 };
-                
+
                 showCallUI(from, 'incoming', isVideo);
-                
-                // Play ringtone (optional)
-                // new Audio('/ringtone.mp3').play();
             });
 
             socket.on('call-answered', async (data) => {
@@ -3228,18 +4283,18 @@
         function addContact() {
             const input = document.getElementById('addContactInput');
             const username = input.value.trim();
-            
+
             if (!username) {
                 alert('Please enter a username');
                 return;
             }
-            
+
             if (username === currentUser.username) {
                 alert('You cannot add yourself as a contact');
                 input.value = '';
                 return;
             }
-            
+
             socket.emit('add-contact', { contactUsername: username });
             input.value = '';
         }
@@ -3417,7 +4472,7 @@
                         <div class="chat-name">${chat.name}</div>
                         <div class="chat-last-message">${lastMessageText}</div>
                     </div>
-                    ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
+                    ${time ? `<div style="font-size: 12px; color: var(--text-tertiary);">${time}</div>` : ''}
                 `;
 
                 chatList.appendChild(chatItem);
@@ -3441,7 +4496,7 @@
                         <div class="chat-name">${group.name}</div>
                         <div class="chat-last-message">${lastMessageText}</div>
                     </div>
-                    ${time ? `<div style="font-size: 12px; color: #8696a0;">${time}</div>` : ''}
+                    ${time ? `<div style="font-size: 12px; color: var(--text-tertiary);">${time}</div>` : ''}
                 `;
 
                 chatList.appendChild(chatItem);
@@ -3478,6 +4533,9 @@
 
             renderChatList();
             document.getElementById('messageInput').focus();
+
+            // Apply saved background for this chat
+            applyBackgroundToChat();
         }
 
         function renderMessages() {
@@ -3510,7 +4568,24 @@
                     content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
                 }
 
-                if (msg.file) {
+                if (msg.voice) {
+                    const duration = msg.voice.duration || 0;
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = duration % 60;
+                    const durationText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                    content += `
+                        <div class="voice-message">
+                            <button class="voice-play-btn" onclick="playVoiceMessage('${msg.voice.url}', this)">
+                                <span class="voice-icon">▶️</span>
+                            </button>
+                            <div class="voice-waveform">
+                                ${generateWaveform(20)}
+                            </div>
+                            <div class="voice-duration">${durationText}</div>
+                        </div>
+                    `;
+                } else if (msg.file) {
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
 
                     if (isImage) {
@@ -3550,27 +4625,121 @@
             scrollToBottom();
         }
 
+        // File upload menu functions
+        function toggleFileMenu() {
+            const menu = document.getElementById('fileMenu');
+            menu.classList.toggle('show');
+        }
+
+        function openFileUpload() {
+            document.getElementById('fileInput').click();
+            document.getElementById('fileMenu').classList.remove('show');
+        }
+
+        function openFolderUpload() {
+            document.getElementById('folderInput').click();
+            document.getElementById('fileMenu').classList.remove('show');
+        }
+
+        // Close file menu when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.icon-btn') && !e.target.closest('.file-upload-menu')) {
+                const menu = document.getElementById('fileMenu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // Handle multiple file selection
+        let selectedFiles = [];
+
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            // Validate files
+            const validFiles = [];
+            let totalSize = 0;
+
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+                    continue;
+                }
+                validFiles.push(file);
+                totalSize += file.size;
+            }
+
+            if (totalSize > 50 * 1024 * 1024) {
+                alert('Total files size must be less than 50MB');
                 event.target.value = '';
                 return;
             }
-            
-            selectedFile = file;
-            
-            const preview = document.getElementById('attachmentPreview');
-            const previewName = document.getElementById('previewName');
-            const previewSize = document.getElementById('previewSize');
-            
-            previewName.textContent = file.name;
-            previewSize.textContent = formatFileSize(file.size);
-            preview.classList.add('active');
-            
-            document.getElementById('messageInput').focus();
+
+            selectedFiles = validFiles;
+
+            if (selectedFiles.length > 0) {
+                displayFilePreview();
+                // Hide old attachment preview
+                document.getElementById('attachmentPreview').classList.remove('active');
+            }
+
+            // Reset input
+            event.target.value = '';
+        }
+
+        function displayFilePreview() {
+            const previewArea = document.getElementById('filePreviewArea');
+            const previewCount = document.getElementById('filePreviewCount');
+            const previewList = document.getElementById('filePreviewList');
+
+            previewCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
+            previewList.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-preview-item';
+                item.innerHTML = `
+                    <div class="file-preview-icon">${getFileIcon(file.name)}</div>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name">${file.name}</div>
+                        <div class="file-preview-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="file-preview-remove" onclick="removeFile(${index})" title="Remove">✕</button>
+                `;
+                previewList.appendChild(item);
+            });
+
+            previewArea.style.display = 'block';
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'txt': '📝',
+                'zip': '🗜️', 'rar': '🗜️', '7z': '🗜️',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'webp': '🖼️',
+                'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'mkv': '🎬',
+                'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'ogg': '🎵'
+            };
+            return icons[ext] || '📎';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            if (selectedFiles.length > 0) {
+                displayFilePreview();
+            } else {
+                clearFileSelection();
+            }
+        }
+
+        function clearFileSelection() {
+            selectedFiles = [];
+            document.getElementById('filePreviewArea').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('folderInput').value = '';
         }
 
         function removeAttachment() {
@@ -3579,13 +4748,31 @@
             document.getElementById('attachmentPreview').classList.remove('active');
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
-            
-            if (!currentChatId || (!text && !selectedFile)) return;
-            
-            if (selectedFile) {
+
+            if (!currentChatId || (!text && !selectedFile && selectedFiles.length === 0)) return;
+
+            // Handle multiple files upload
+            if (selectedFiles.length > 0) {
+                for (const file of selectedFiles) {
+                    await uploadSingleFile(file);
+                }
+                clearFileSelection();
+
+                // Send text message if provided
+                if (text) {
+                    socket.emit('send-message', {
+                        chatId: currentChatId,
+                        text: text
+                    });
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                }
+            }
+            // Handle single file upload (old attachment method)
+            else if (selectedFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     socket.emit('upload-file', {
@@ -3596,7 +4783,9 @@
                     });
                 };
                 reader.readAsDataURL(selectedFile);
-            } else {
+            }
+            // Handle text-only message
+            else if (text) {
                 socket.emit('send-message', {
                     chatId: currentChatId,
                     text: text
@@ -3604,6 +4793,23 @@
                 messageInput.value = '';
                 autoResize(messageInput);
             }
+        }
+
+        function uploadSingleFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('upload-file', {
+                        chatId: currentChatId,
+                        fileData: e.target.result,
+                        fileName: file.name,
+                        fileType: file.type
+                    });
+                    resolve();
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         function handleKeyPress(event) {
@@ -3615,12 +4821,12 @@
 
         function handleTyping() {
             if (!currentChatId) return;
-            
+
             if (!isTyping) {
                 isTyping = true;
                 socket.emit('typing', { chatId: currentChatId, isTyping: true });
             }
-            
+
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => {
                 isTyping = false;
@@ -3630,7 +4836,470 @@
 
         function autoResize(textarea) {
             textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // Background and Theme Customization
+        let chatBackgrounds = new Map(); // Store background per chat
+        let currentBackground = null;
+        let bgOpacity = 0.2;
+        let bgBlur = 0;
+
+        function openBackgroundCustomizer() {
+            document.getElementById('backgroundModal').classList.add('active');
+            toggleMenu(); // Close the chat menu
+        }
+
+        function closeBackgroundCustomizer() {
+            document.getElementById('backgroundModal').classList.remove('active');
+        }
+
+        function openThemeCustomizer() {
+            document.getElementById('themeModal').classList.add('active');
+            toggleMenu(); // Close the chat menu
+        }
+
+        function closeThemeCustomizer() {
+            document.getElementById('themeModal').classList.remove('active');
+        }
+
+        function setBackground(bgType) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            const messagesContainer = document.getElementById('messagesContainer');
+            const backgrounds = {
+                'none': 'none',
+                'gradient1': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'gradient2': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'gradient3': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'gradient4': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'gradient5': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'dark': '#000000',
+                'pattern1': 'repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #1a1a1a 10px, #1a1a1a 20px)',
+                'pattern2': 'radial-gradient(circle, #1a1a1a 1px, #0a0a0a 1px)'
+            };
+
+            currentBackground = { type: bgType, value: backgrounds[bgType] };
+            chatBackgrounds.set(currentChatId, currentBackground);
+
+            applyBackgroundToChat();
+            markActiveBackground(bgType);
+            localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+        }
+
+        function uploadCustomBackground(event) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentBackground = { type: 'custom', value: `url(${e.target.result})` };
+                chatBackgrounds.set(currentChatId, currentBackground);
+                applyBackgroundToChat();
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setSolidColor(color) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            currentBackground = { type: 'color', value: color };
+            chatBackgrounds.set(currentChatId, currentBackground);
+            applyBackgroundToChat();
+            localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+        }
+
+        function setBgOpacity(value) {
+            bgOpacity = value / 100;
+            document.getElementById('opacityValue').textContent = value;
+            applyBackgroundToChat();
+            if (currentChatId) {
+                const bg = chatBackgrounds.get(currentChatId) || {};
+                bg.opacity = bgOpacity;
+                chatBackgrounds.set(currentChatId, bg);
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            }
+        }
+
+        function setBgBlur(value) {
+            bgBlur = value;
+            document.getElementById('blurValue').textContent = value;
+            applyBackgroundToChat();
+            if (currentChatId) {
+                const bg = chatBackgrounds.get(currentChatId) || {};
+                bg.blur = bgBlur;
+                chatBackgrounds.set(currentChatId, bg);
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            }
+        }
+
+        function applyBackgroundToChat() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer) return;
+
+            if (currentChatId && chatBackgrounds.has(currentChatId)) {
+                const bg = chatBackgrounds.get(currentChatId);
+                messagesContainer.style.backgroundImage = bg.value;
+                messagesContainer.style.backgroundSize = 'cover';
+                messagesContainer.style.backgroundPosition = 'center';
+                messagesContainer.style.backgroundAttachment = 'fixed';
+
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.right = '0';
+                overlay.style.bottom = '0';
+                overlay.style.background = `rgba(0, 0, 0, ${1 - (bg.opacity || bgOpacity)})`;
+                overlay.style.backdropFilter = `blur(${bg.blur || bgBlur}px)`;
+                overlay.style.pointerEvents = 'none';
+                overlay.className = 'bg-overlay';
+
+                // Remove old overlay
+                const oldOverlay = messagesContainer.querySelector('.bg-overlay');
+                if (oldOverlay) oldOverlay.remove();
+
+                // Add new overlay
+                messagesContainer.style.position = 'relative';
+                messagesContainer.insertBefore(overlay, messagesContainer.firstChild);
+            } else {
+                messagesContainer.style.backgroundImage = 'none';
+                const oldOverlay = messagesContainer.querySelector('.bg-overlay');
+                if (oldOverlay) oldOverlay.remove();
+            }
+        }
+
+        function markActiveBackground(bgType) {
+            document.querySelectorAll('.background-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelector(`.background-option[data-bg="${bgType}"]`)?.classList.add('active');
+        }
+
+        function resetBackground() {
+            if (currentChatId) {
+                chatBackgrounds.delete(currentChatId);
+                currentBackground = null;
+                applyBackgroundToChat();
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+                document.querySelectorAll('.background-option').forEach(opt => opt.classList.remove('active'));
+                alert('✅ Background reset to default!');
+            }
+        }
+
+        // Theme customization
+        const themes = {
+            default: {
+                primary: '#0a0a0a',
+                secondary: '#141414',
+                accent: '#0ea5e9',
+                sent: '#0ea5e9',
+                received: '#1a1a1a'
+            },
+            purple: {
+                primary: '#1a1a2e',
+                secondary: '#222236',
+                accent: '#9d4edd',
+                sent: '#9d4edd',
+                received: '#2d2d44'
+            },
+            green: {
+                primary: '#0d1b2a',
+                secondary: '#1b263b',
+                accent: '#10b981',
+                sent: '#10b981',
+                received: '#1b2838'
+            },
+            red: {
+                primary: '#1a1a1a',
+                secondary: '#242424',
+                accent: '#ef4444',
+                sent: '#ef4444',
+                received: '#2a2a2a'
+            },
+            orange: {
+                primary: '#1c1917',
+                secondary: '#292524',
+                accent: '#f97316',
+                sent: '#f97316',
+                received: '#2d2823'
+            },
+            blue: {
+                primary: '#0c1222',
+                secondary: '#161d31',
+                accent: '#3b82f6',
+                sent: '#3b82f6',
+                received: '#1a2332'
+            }
+        };
+
+        function applyTheme(themeName) {
+            const theme = themes[themeName];
+            if (!theme) return;
+
+            const root = document.documentElement;
+            root.style.setProperty('--bg-primary', theme.primary);
+            root.style.setProperty('--bg-secondary', theme.secondary);
+            root.style.setProperty('--accent-primary', theme.accent);
+
+            // Update message colors
+            updateMessageColors(theme.sent, theme.received);
+
+            localStorage.setItem('currentTheme', themeName);
+            alert(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
+        }
+
+        function setAccentColor(color) {
+            document.documentElement.style.setProperty('--accent-primary', color);
+            localStorage.setItem('customAccentColor', color);
+        }
+
+        function setSentColor(color) {
+            localStorage.setItem('customSentColor', color);
+            updateMessageColors(color, null);
+        }
+
+        function setReceivedColor(color) {
+            localStorage.setItem('customReceivedColor', color);
+            updateMessageColors(null, color);
+        }
+
+        function updateMessageColors(sentColor, receivedColor) {
+            const style = document.createElement('style');
+            style.id = 'custom-message-colors';
+
+            const oldStyle = document.getElementById('custom-message-colors');
+            if (oldStyle) oldStyle.remove();
+
+            let css = '';
+            if (sentColor) {
+                css += `.message.sent .message-content { background: ${sentColor} !important; }`;
+            }
+            if (receivedColor) {
+                css += `.message.received .message-content { background: ${receivedColor} !important; }`;
+            }
+
+            style.textContent = css;
+            document.head.appendChild(style);
+        }
+
+        function resetTheme() {
+            applyTheme('default');
+            localStorage.removeItem('currentTheme');
+            localStorage.removeItem('customAccentColor');
+            localStorage.removeItem('customSentColor');
+            localStorage.removeItem('customReceivedColor');
+
+            const customStyle = document.getElementById('custom-message-colors');
+            if (customStyle) customStyle.remove();
+        }
+
+        // Load saved backgrounds and themes on startup
+        function loadCustomizations() {
+            // Load backgrounds
+            const savedBackgrounds = localStorage.getItem('chatBackgrounds');
+            if (savedBackgrounds) {
+                chatBackgrounds = new Map(JSON.parse(savedBackgrounds));
+            }
+
+            // Load theme
+            const savedTheme = localStorage.getItem('currentTheme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            }
+
+            const customAccent = localStorage.getItem('customAccentColor');
+            if (customAccent) {
+                setAccentColor(customAccent);
+            }
+
+            const customSent = localStorage.getItem('customSentColor');
+            const customReceived = localStorage.getItem('customReceivedColor');
+            if (customSent || customReceived) {
+                updateMessageColors(customSent, customReceived);
+            }
+        }
+
+        // Call loadCustomizations when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCustomizations();
+        });
+
+        // Voice Recording Variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let isCancelled = false;
+        let isRecording = false;
+
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            try {
+                console.log('🎤 Starting voice recording...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                isCancelled = false;
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    console.log('🎤 Recording stopped');
+                    // Stop all tracks to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+
+                    if (!isCancelled && audioChunks.length > 0) {
+                        console.log('🎤 Processing voice message...');
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+
+                        reader.onload = function(e) {
+                            console.log('🎤 Sending voice message...');
+                            socket.emit('upload-voice', {
+                                chatId: currentChatId,
+                                audioData: e.target.result,
+                                duration: Math.floor((Date.now() - recordingStartTime) / 1000)
+                            });
+                        };
+                        reader.readAsDataURL(audioBlob);
+                    }
+
+                    // Clean up
+                    clearInterval(recordingTimer);
+                    audioChunks = [];
+                };
+
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+                isRecording = true;
+                console.log('🎤 Recording started');
+
+                // Show recording indicator
+                const indicator = document.getElementById('recordingIndicator');
+                const voiceBtn = document.getElementById('voiceBtn');
+                indicator.classList.add('active');
+                voiceBtn.classList.add('recording');
+                voiceBtn.textContent = '⏹️'; // Stop icon
+
+                // Start timer
+                updateRecordingTime();
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                alert('Could not access microphone. Please grant microphone permissions and try again.');
+                isRecording = false;
+            }
+        }
+
+        function stopRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            console.log('🎤 Stop recording called');
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                isRecording = false;
+
+                // Hide recording indicator
+                const indicator = document.getElementById('recordingIndicator');
+                const voiceBtn = document.getElementById('voiceBtn');
+                indicator.classList.remove('active');
+                voiceBtn.classList.remove('recording');
+                voiceBtn.textContent = '🎤'; // Microphone icon
+            }
+        }
+
+        function cancelRecording() {
+            isCancelled = true;
+            isRecording = false;
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+
+            // Hide recording indicator
+            const indicator = document.getElementById('recordingIndicator');
+            const voiceBtn = document.getElementById('voiceBtn');
+            indicator.classList.remove('active');
+            voiceBtn.classList.remove('recording');
+            voiceBtn.textContent = '🎤'; // Microphone icon
+        }
+
+        function updateRecordingTime() {
+            if (!recordingStartTime) return;
+
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+
+            document.getElementById('recordingTime').textContent =
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function playVoiceMessage(audioUrl, button) {
+            const audio = new Audio(audioUrl);
+            const icon = button.querySelector('.voice-icon');
+
+            audio.onplay = () => {
+                icon.textContent = '⏸️';
+            };
+
+            audio.onended = () => {
+                icon.textContent = '▶️';
+            };
+
+            audio.onpause = () => {
+                icon.textContent = '▶️';
+            };
+
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        }
+
+        function generateWaveform(bars) {
+            const heights = [10, 15, 8, 20, 12, 18, 14, 22, 11, 16, 9, 19, 13, 17, 10, 21, 15, 12, 18, 14];
+            let html = '';
+            for (let i = 0; i < Math.min(bars, heights.length); i++) {
+                html += `<div class="voice-wave-bar" style="height: ${heights[i]}px;"></div>`;
+            }
+            return html;
         }
 
         function scrollToBottom() {
@@ -3648,7 +5317,7 @@
         function formatTime(timestamp) {
             const date = new Date(timestamp);
             const now = new Date();
-            
+
             if (date.toDateString() === now.toDateString()) {
                 return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             } else {
@@ -3717,13 +5386,11 @@
                 const chat = chats.get(currentChatId);
                 if (!chat) return;
 
-                // Get user media
                 localStream = await navigator.mediaDevices.getUserMedia({
                     audio: true,
                     video: video
                 });
 
-                // Show call UI
                 showCallUI(chat.name, 'outgoing', video);
 
                 if (video) {
@@ -3731,19 +5398,15 @@
                     isVideoEnabled = true;
                 }
 
-                // Create peer connection
                 createPeerConnection();
 
-                // Add local stream to peer connection
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
 
-                // Create and send offer
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                // Send call offer via socket
                 socket.emit('call-offer', {
                     to: chat.name,
                     offer: offer,
@@ -3766,7 +5429,6 @@
         function createPeerConnection() {
             peerConnection = new RTCPeerConnection(iceServers);
 
-            // Handle ICE candidates
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate && currentCall) {
                     socket.emit('ice-candidate', {
@@ -3776,25 +5438,23 @@
                 }
             };
 
-            // Handle remote stream
             peerConnection.ontrack = (event) => {
                 if (!remoteStream) {
                     remoteStream = new MediaStream();
                     document.getElementById('remoteVideo').srcObject = remoteStream;
                 }
                 remoteStream.addTrack(event.track);
-                
+
                 if (isVideoCall) {
                     document.getElementById('videoPlaceholder').style.display = 'none';
                 }
             };
 
-            // Handle connection state
             peerConnection.onconnectionstatechange = () => {
                 if (peerConnection.connectionState === 'connected') {
                     startCallTimer();
                     document.getElementById('callStatus').textContent = 'Connected';
-                } else if (peerConnection.connectionState === 'disconnected' || 
+                } else if (peerConnection.connectionState === 'disconnected' ||
                            peerConnection.connectionState === 'failed') {
                     endCall();
                 }
@@ -3816,7 +5476,6 @@
             callAvatarVideo.textContent = initials;
             callName.textContent = name;
 
-            // Show/hide elements based on call type
             if (isVideo) {
                 videoContainer.style.display = 'block';
                 voiceCallAvatar.style.display = 'none';
@@ -3827,7 +5486,6 @@
                 videoBtn.style.display = 'none';
             }
 
-            // Show appropriate buttons
             document.getElementById('incomingCallActions').style.display = 'none';
             document.getElementById('activeCallActions').style.display = 'none';
             document.getElementById('outgoingCallActions').style.display = 'none';
@@ -3851,7 +5509,7 @@
             document.getElementById('callTimer').style.display = 'none';
             document.getElementById('callTimer').textContent = '00:00';
             document.getElementById('videoPlaceholder').style.display = 'flex';
-            
+
             if (callTimer) {
                 clearInterval(callTimer);
                 callTimer = null;
@@ -3862,7 +5520,6 @@
             try {
                 if (!currentCall) return;
 
-                // Get user media
                 localStream = await navigator.mediaDevices.getUserMedia({
                     audio: true,
                     video: currentCall.isVideo
@@ -3873,22 +5530,18 @@
                     isVideoEnabled = true;
                 }
 
-                // Add local stream to existing peer connection
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
 
-                // Create answer
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
 
-                // Send answer
                 socket.emit('call-answer', {
                     to: currentCall.contactName,
                     answer: answer
                 });
 
-                // Update UI
                 showCallUI(currentCall.contactName, 'active', currentCall.isVideo);
 
             } catch (error) {
@@ -3920,13 +5573,11 @@
         }
 
         function cleanupCall() {
-            // Close peer connection
             if (peerConnection) {
                 peerConnection.close();
                 peerConnection = null;
             }
 
-            // Stop all media tracks
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
@@ -3937,13 +5588,11 @@
                 remoteStream = null;
             }
 
-            // Reset call state
             currentCall = null;
             isMuted = false;
             isVideoEnabled = false;
             callStartTime = null;
 
-            // Close UI
             closeCallUI();
         }
 
@@ -3995,6 +5644,571 @@
                 const seconds = (elapsed % 60).toString().padStart(2, '0');
                 document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
             }, 1000);
+        }
+
+        // ========== WHITEBOARD FUNCTIONALITY ==========
+
+        let whiteboardCanvas = null;
+        let whiteboardCtx = null;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let currentSize = 3;
+        let lastX = 0;
+        let lastY = 0;
+        let startX = 0;
+        let startY = 0;
+        let canvasHistory = [];
+        let historyStep = -1;
+        let stickyNotes = [];
+        let tempCanvas = null;
+
+        // Toggle menu
+        function toggleMenu() {
+            const menu = document.getElementById('chatMenu');
+            menu.classList.toggle('show');
+        }
+
+        // Close menu when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.icon-btn') && !e.target.closest('.menu-dropdown')) {
+                const menu = document.getElementById('chatMenu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // Set color from palette
+        function setColor(color) {
+            currentColor = color;
+            document.getElementById('colorPicker').value = color;
+
+            // Update active swatch
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Save canvas state for undo/redo
+        function saveState() {
+            historyStep++;
+            if (historyStep < canvasHistory.length) {
+                canvasHistory.length = historyStep;
+            }
+            canvasHistory.push(whiteboardCanvas.toDataURL());
+
+            // Limit history to 50 states
+            if (canvasHistory.length > 50) {
+                canvasHistory.shift();
+                historyStep--;
+            }
+        }
+
+        // Undo function
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                restoreState(canvasHistory[historyStep]);
+
+                // Sync undo with other user
+                socket.emit('whiteboard-undo', {
+                    chatId: currentChatId,
+                    state: canvasHistory[historyStep]
+                });
+            }
+        }
+
+        // Redo function
+        function redo() {
+            if (historyStep < canvasHistory.length - 1) {
+                historyStep++;
+                restoreState(canvasHistory[historyStep]);
+
+                // Sync redo with other user
+                socket.emit('whiteboard-redo', {
+                    chatId: currentChatId,
+                    state: canvasHistory[historyStep]
+                });
+            }
+        }
+
+        // Restore canvas state
+        function restoreState(dataURL) {
+            const img = new Image();
+            img.onload = function() {
+                whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.fillStyle = 'white';
+                whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.drawImage(img, 0, 0);
+            };
+            img.src = dataURL;
+        }
+
+        // Open whiteboard
+        function openWhiteboard() {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            document.getElementById('whiteboardModal').classList.add('active');
+            document.getElementById('chatMenu').classList.remove('show');
+
+            // Initialize canvas
+            setTimeout(() => {
+                initWhiteboardCanvas();
+            }, 100);
+
+            // Notify other user
+            socket.emit('whiteboard-opened', { chatId: currentChatId });
+        }
+
+        // Close whiteboard
+        function closeWhiteboard() {
+            document.getElementById('whiteboardModal').classList.remove('active');
+            socket.emit('whiteboard-closed', { chatId: currentChatId });
+        }
+
+        // Initialize canvas
+        function initWhiteboardCanvas() {
+            whiteboardCanvas = document.getElementById('whiteboardCanvas');
+            whiteboardCtx = whiteboardCanvas.getContext('2d');
+
+            const container = whiteboardCanvas.parentElement;
+            whiteboardCanvas.width = container.clientWidth - 32;
+            whiteboardCanvas.height = container.clientHeight - 32;
+
+            // Fill with white background
+            whiteboardCtx.fillStyle = 'white';
+            whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+
+            // Reset history
+            canvasHistory = [];
+            historyStep = -1;
+            saveState(); // Save initial state
+
+            // Set up drawing
+            whiteboardCanvas.addEventListener('mousedown', startDrawing);
+            whiteboardCanvas.addEventListener('mousemove', draw);
+            whiteboardCanvas.addEventListener('mouseup', stopDrawing);
+            whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch support
+            whiteboardCanvas.addEventListener('touchstart', handleTouchStart);
+            whiteboardCanvas.addEventListener('touchmove', handleTouchMove);
+            whiteboardCanvas.addEventListener('touchend', stopDrawing);
+
+            // Color and size updates
+            document.getElementById('colorPicker').addEventListener('change', (e) => {
+                currentColor = e.target.value;
+            });
+
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                currentSize = e.target.value;
+            });
+        }
+
+        // Select tool
+        function selectTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Tool').classList.add('active');
+        }
+
+        // Drawing functions
+        function startDrawing(e) {
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            lastX = startX;
+            lastY = startY;
+
+            // Handle text tool
+            if (currentTool === 'text') {
+                const text = prompt('Enter text:');
+                if (text) {
+                    whiteboardCtx.font = `${currentSize * 6}px Arial`;
+                    whiteboardCtx.fillStyle = currentColor;
+                    whiteboardCtx.fillText(text, startX, startY);
+                    saveState();
+
+                    // Sync with other user
+                    socket.emit('whiteboard-text', {
+                        chatId: currentChatId,
+                        data: { x: startX, y: startY, text, color: currentColor, size: currentSize }
+                    });
+                }
+                return;
+            }
+
+            // Handle sticky note tool
+            if (currentTool === 'sticky') {
+                createStickyNote(startX, startY);
+                return;
+            }
+
+            isDrawing = true;
+
+            // For shapes, create a temporary canvas to preview
+            if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)) {
+                if (!tempCanvas) {
+                    tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = whiteboardCanvas.width;
+                    tempCanvas.height = whiteboardCanvas.height;
+                }
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = whiteboardCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Handle freehand drawing (pen, highlighter, eraser)
+            if (['pen', 'highlighter', 'eraser'].includes(currentTool)) {
+                whiteboardCtx.beginPath();
+                whiteboardCtx.moveTo(lastX, lastY);
+                whiteboardCtx.lineTo(x, y);
+
+                if (currentTool === 'eraser') {
+                    whiteboardCtx.strokeStyle = 'white';
+                    whiteboardCtx.lineWidth = currentSize * 3;
+                    whiteboardCtx.globalAlpha = 1.0;
+                } else if (currentTool === 'highlighter') {
+                    whiteboardCtx.strokeStyle = currentColor;
+                    whiteboardCtx.lineWidth = currentSize * 2;
+                    whiteboardCtx.globalAlpha = 0.3;
+                } else {
+                    whiteboardCtx.strokeStyle = currentColor;
+                    whiteboardCtx.lineWidth = currentSize;
+                    whiteboardCtx.globalAlpha = 1.0;
+                }
+
+                whiteboardCtx.lineCap = 'round';
+                whiteboardCtx.lineJoin = 'round';
+                whiteboardCtx.stroke();
+
+                // Emit drawing data to other user
+                socket.emit('whiteboard-draw', {
+                    chatId: currentChatId,
+                    data: {
+                        x0: lastX,
+                        y0: lastY,
+                        x1: x,
+                        y1: y,
+                        color: currentTool === 'eraser' ? 'white' : currentColor,
+                        size: currentTool === 'eraser' ? currentSize * 3 : (currentTool === 'highlighter' ? currentSize * 2 : currentSize),
+                        tool: currentTool,
+                        alpha: currentTool === 'highlighter' ? 0.3 : 1.0
+                    }
+                });
+
+                lastX = x;
+                lastY = y;
+            }
+            // Handle shape drawing with preview
+            else if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)) {
+                // Clear temp canvas and redraw shape
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                // Copy current canvas to temp
+                tempCtx.drawImage(whiteboardCanvas, 0, 0);
+
+                // Draw preview shape
+                drawShape(tempCtx, startX, startY, x, y, currentTool);
+
+                // Show preview by temporarily replacing canvas
+                const savedData = whiteboardCtx.getImageData(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                whiteboardCtx.putImageData(tempCtx.getImageData(0, 0, whiteboardCanvas.width, whiteboardCanvas.height), 0, 0);
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+
+            // For shapes, finalize the drawing
+            if (['rectangle', 'circle', 'line', 'arrow'].includes(currentTool) && e) {
+                const rect = whiteboardCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Draw final shape
+                drawShape(whiteboardCtx, startX, startY, x, y, currentTool);
+                saveState();
+
+                // Sync with other user
+                socket.emit('whiteboard-shape', {
+                    chatId: currentChatId,
+                    data: {
+                        x0: startX,
+                        y0: startY,
+                        x1: x,
+                        y1: y,
+                        color: currentColor,
+                        size: currentSize,
+                        shape: currentTool
+                    }
+                });
+            }
+            // For freehand tools, save state
+            else if (['pen', 'highlighter', 'eraser'].includes(currentTool)) {
+                saveState();
+            }
+
+            isDrawing = false;
+            whiteboardCtx.globalAlpha = 1.0; // Reset alpha
+        }
+
+        // Draw shape helper function
+        function drawShape(ctx, x0, y0, x1, y1, shape) {
+            ctx.strokeStyle = currentColor;
+            ctx.fillStyle = currentColor;
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (shape === 'rectangle') {
+                ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+            } else if (shape === 'circle') {
+                const radius = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+                ctx.beginPath();
+                ctx.arc(x0, y0, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (shape === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(x0, y0);
+                ctx.lineTo(x1, y1);
+                ctx.stroke();
+            } else if (shape === 'arrow') {
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(x0, y0);
+                ctx.lineTo(x1, y1);
+                ctx.stroke();
+
+                // Draw arrowhead
+                const angle = Math.atan2(y1 - y0, x1 - x0);
+                const headLength = 15 + currentSize;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(
+                    x1 - headLength * Math.cos(angle - Math.PI / 6),
+                    y1 - headLength * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(
+                    x1 - headLength * Math.cos(angle + Math.PI / 6),
+                    y1 - headLength * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            }
+        }
+
+        // Create sticky note
+        function createStickyNote(x, y) {
+            const text = prompt('Enter sticky note text:');
+            if (!text) return;
+
+            const stickyId = Date.now();
+            const container = document.querySelector('.whiteboard-canvas-container');
+
+            const sticky = document.createElement('div');
+            sticky.className = 'sticky-note';
+            sticky.contentEditable = true;
+            sticky.textContent = text;
+            sticky.style.left = x + 'px';
+            sticky.style.top = y + 'px';
+            sticky.id = 'sticky-' + stickyId;
+
+            // Make sticky draggable
+            let isDragging = false;
+            let dragStartX, dragStartY;
+
+            sticky.addEventListener('mousedown', (e) => {
+                if (e.target.tagName !== 'DIV') return;
+                isDragging = true;
+                dragStartX = e.clientX - parseInt(sticky.style.left);
+                dragStartY = e.clientY - parseInt(sticky.style.top);
+                e.stopPropagation();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                sticky.style.left = (e.clientX - dragStartX) + 'px';
+                sticky.style.top = (e.clientY - dragStartY) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    // Sync sticky position
+                    socket.emit('whiteboard-sticky-move', {
+                        chatId: currentChatId,
+                        data: { id: stickyId, x: parseInt(sticky.style.left), y: parseInt(sticky.style.top) }
+                    });
+                }
+            });
+
+            container.appendChild(sticky);
+            stickyNotes.push({ id: stickyId, x, y, text });
+
+            // Sync with other user
+            socket.emit('whiteboard-sticky', {
+                chatId: currentChatId,
+                data: { id: stickyId, x, y, text }
+            });
+        }
+
+        // Touch support
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            whiteboardCanvas.dispatchEvent(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            whiteboardCanvas.dispatchEvent(mouseEvent);
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            if (!confirm('Clear the entire whiteboard? This will affect both users.')) return;
+
+            whiteboardCtx.fillStyle = 'white';
+            whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+
+            // Remove all sticky notes
+            document.querySelectorAll('.sticky-note').forEach(note => note.remove());
+            stickyNotes = [];
+
+            saveState();
+            socket.emit('whiteboard-clear', { chatId: currentChatId });
+        }
+
+        // Save whiteboard
+        function saveWhiteboard() {
+            const dataURL = whiteboardCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `whiteboard-${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+        }
+
+        // Handle incoming whiteboard events
+        if (socket) {
+            socket.on('whiteboard-draw', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x0, y0, x1, y1, color, size, alpha } = data.data;
+
+                    whiteboardCtx.globalAlpha = alpha || 1.0;
+                    whiteboardCtx.beginPath();
+                    whiteboardCtx.moveTo(x0, y0);
+                    whiteboardCtx.lineTo(x1, y1);
+                    whiteboardCtx.strokeStyle = color;
+                    whiteboardCtx.lineWidth = size;
+                    whiteboardCtx.lineCap = 'round';
+                    whiteboardCtx.lineJoin = 'round';
+                    whiteboardCtx.stroke();
+                    whiteboardCtx.globalAlpha = 1.0;
+                }
+            });
+
+            socket.on('whiteboard-shape', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x0, y0, x1, y1, color, size, shape } = data.data;
+                    const savedColor = currentColor;
+                    const savedSize = currentSize;
+
+                    currentColor = color;
+                    currentSize = size;
+                    drawShape(whiteboardCtx, x0, y0, x1, y1, shape);
+
+                    currentColor = savedColor;
+                    currentSize = savedSize;
+                }
+            });
+
+            socket.on('whiteboard-text', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    const { x, y, text, color, size } = data.data;
+                    whiteboardCtx.font = `${size * 6}px Arial`;
+                    whiteboardCtx.fillStyle = color;
+                    whiteboardCtx.fillText(text, x, y);
+                }
+            });
+
+            socket.on('whiteboard-sticky', (data) => {
+                if (data.chatId === currentChatId) {
+                    const { id, x, y, text } = data.data;
+                    const container = document.querySelector('.whiteboard-canvas-container');
+
+                    const sticky = document.createElement('div');
+                    sticky.className = 'sticky-note';
+                    sticky.contentEditable = true;
+                    sticky.textContent = text;
+                    sticky.style.left = x + 'px';
+                    sticky.style.top = y + 'px';
+                    sticky.id = 'sticky-' + id;
+
+                    container.appendChild(sticky);
+                    stickyNotes.push({ id, x, y, text });
+                }
+            });
+
+            socket.on('whiteboard-sticky-move', (data) => {
+                if (data.chatId === currentChatId) {
+                    const { id, x, y } = data.data;
+                    const sticky = document.getElementById('sticky-' + id);
+                    if (sticky) {
+                        sticky.style.left = x + 'px';
+                        sticky.style.top = y + 'px';
+                    }
+                }
+            });
+
+            socket.on('whiteboard-undo', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    restoreState(data.state);
+                }
+            });
+
+            socket.on('whiteboard-redo', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    restoreState(data.state);
+                }
+            });
+
+            socket.on('whiteboard-clear', (data) => {
+                if (whiteboardCtx && data.chatId === currentChatId) {
+                    whiteboardCtx.fillStyle = 'white';
+                    whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+                    document.querySelectorAll('.sticky-note').forEach(note => note.remove());
+                    stickyNotes = [];
+                }
+            });
+
+            socket.on('whiteboard-opened', (data) => {
+                if (data.chatId === currentChatId) {
+                    console.log('Other user opened whiteboard');
+                }
+            });
+
+            socket.on('whiteboard-closed', (data) => {
+                if (data.chatId === currentChatId) {
+                    console.log('Other user closed whiteboard');
+                }
+            });
         }
     </script>
 </body>
