@@ -291,12 +291,17 @@ app.post('/api/verify-face-reset', async (req, res) => {
     }
 
     // Neural network face comparison using face-api.js descriptors
-    const similarity = compareFaceData(user.faceData, faceData);
+    const euclideanDistance = compareFaceData(user.faceData, faceData);
 
-    // For face-api.js, we use euclidean distance threshold of 0.45
-    // This translates to similarity > 0.25 (25%) in our normalized scale
-    // Lower threshold = stricter matching (rejects "cut in two" faces)
-    if (similarity > 0.25) { // Strict threshold based on 0.45 euclidean distance
+    // Face-api.js uses Euclidean distance where LOWER = BETTER match
+    // Threshold: < 0.4 = VERY STRICT (same person, rejects "cut in two" faces)
+    // Threshold: < 0.6 = NORMAL (typical face-api.js threshold)
+    const STRICT_THRESHOLD = 0.4;
+
+    if (euclideanDistance < STRICT_THRESHOLD) {
+        // Calculate similarity percentage for display only
+        const similarity = Math.max(0, 1 - (euclideanDistance / 0.6)) * 100;
+
         // Generate reset code
         const code = crypto.randomBytes(4).toString('hex').toUpperCase();
         const expiresAt = Date.now() + (15 * 60 * 1000);
@@ -308,7 +313,9 @@ app.post('/api/verify-face-reset', async (req, res) => {
         console.log('🔐 PASSWORD RESET REQUEST - FACE VERIFIED');
         console.log('═══════════════════════════════════════════════════════');
         console.log(`Username: ${username}`);
-        console.log(`Face Verified: ✅ YES (${Math.round(similarity * 100)}% match)`);
+        console.log(`Euclidean Distance: ${euclideanDistance.toFixed(4)} (threshold: < ${STRICT_THRESHOLD})`);
+        console.log(`Similarity Score: ${similarity.toFixed(2)}%`);
+        console.log(`Face Verified: ✅ YES - STRICT MATCH`);
         console.log(`Reset Code: ${code}`);
         console.log(`Generated: ${new Date().toISOString()}`);
         console.log(`Expires: ${new Date(expiresAt).toISOString()}`);
@@ -321,7 +328,10 @@ app.post('/api/verify-face-reset', async (req, res) => {
             message: 'Face verified! Contact admin at leothelion123@outlook.fr'
         });
     } else {
-        console.log(`❌ Face verification failed for user: ${username} (${Math.round(similarity * 100)}% match)`);
+        const similarity = Math.max(0, 1 - (euclideanDistance / 0.6)) * 100;
+        console.log(`❌ Face verification FAILED for user: ${username}`);
+        console.log(`   Distance: ${euclideanDistance.toFixed(4)} (threshold: < ${STRICT_THRESHOLD})`);
+        console.log(`   Similarity: ${similarity.toFixed(2)}% - TOO LOW`);
         res.status(401).json({ error: 'Face does not match' });
     }
 });
@@ -336,12 +346,12 @@ function compareFaceData(stored, provided) {
         // Validate descriptors
         if (!Array.isArray(storedDescriptor) || !Array.isArray(providedDescriptor)) {
             console.error('❌ Invalid face descriptors: not arrays');
-            return 0;
+            return 999; // Return high distance to fail verification
         }
 
         if (storedDescriptor.length !== 128 || providedDescriptor.length !== 128) {
             console.error('❌ Invalid face descriptors: expected 128 dimensions, got', storedDescriptor.length, providedDescriptor.length);
-            return 0;
+            return 999; // Return high distance to fail verification
         }
 
         // Calculate Euclidean distance between the two 128D descriptors
@@ -352,28 +362,25 @@ function compareFaceData(stored, provided) {
         }
         const euclideanDistance = Math.sqrt(sumSquaredDiff);
 
-        // Convert distance to similarity percentage
-        // Face-api.js typical threshold: 0.6 (below = same person, above = different person)
-        // We'll use a more strict threshold of 0.45 for higher security
-        // Similarity = 1 - (distance / max_acceptable_distance)
-        const maxDistance = 0.6; // Typical face-api.js threshold
-        const similarity = Math.max(0, 1 - (euclideanDistance / maxDistance));
+        // For display purposes
+        const similarity = Math.max(0, 1 - (euclideanDistance / 0.6)) * 100;
 
         console.log('');
         console.log('🤖 FACE-API.JS NEURAL NETWORK COMPARISON');
         console.log('═══════════════════════════════════════');
         console.log(`📊 Euclidean Distance: ${euclideanDistance.toFixed(4)}`);
-        console.log(`📈 Similarity Score: ${(similarity * 100).toFixed(2)}%`);
-        console.log(`🎯 Distance Threshold: 0.45 (strict)`);
-        console.log(`✅ Match Status: ${euclideanDistance < 0.45 ? 'ACCEPTED ✓' : 'REJECTED ✗'}`);
+        console.log(`📈 Similarity Score: ${similarity.toFixed(2)}%`);
+        console.log(`🎯 STRICT Threshold: distance must be < 0.4`);
+        console.log(`✅ Match Status: ${euclideanDistance < 0.4 ? 'ACCEPTED ✓' : 'REJECTED ✗'}`);
         console.log('═══════════════════════════════════════');
         console.log('');
 
-        return similarity;
+        // RETURN THE DISTANCE (lower is better)
+        return euclideanDistance;
 
     } catch (error) {
         console.error('❌ Face comparison error:', error);
-        return 0;
+        return 999; // Return high distance to fail verification
     }
 }
 
