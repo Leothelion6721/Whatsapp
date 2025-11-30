@@ -293,7 +293,7 @@ app.post('/api/verify-face-reset', async (req, res) => {
     // Simple comparison - in production use proper face recognition library
     const similarity = compareFaceData(user.faceData, faceData);
 
-    if (similarity > 0.8) { // 80% similarity threshold
+    if (similarity > 0.95) { // 95% similarity threshold - very strict
         // Generate reset code
         const code = crypto.randomBytes(4).toString('hex').toUpperCase();
         const expiresAt = Date.now() + (15 * 60 * 1000);
@@ -329,10 +329,41 @@ function compareFaceData(stored, provided) {
     // In production, use a proper face recognition library like face-api.js
     if (stored === provided) return 1.0; // Exact match
 
-    // Simple similarity based on data length (placeholder)
-    const minLength = Math.min(stored.length, provided.length);
-    const maxLength = Math.max(stored.length, provided.length);
-    return minLength / maxLength;
+    // Remove data URI prefix if present
+    const cleanStored = stored.replace(/^data:image\/\w+;base64,/, '');
+    const cleanProvided = provided.replace(/^data:image\/\w+;base64,/, '');
+
+    // Must be similar length (within 5%)
+    const lengthRatio = Math.min(cleanStored.length, cleanProvided.length) /
+                       Math.max(cleanStored.length, cleanProvided.length);
+    if (lengthRatio < 0.95) return 0; // Too different in size
+
+    // Character-by-character comparison (sample every 10th character for speed)
+    const minLength = Math.min(cleanStored.length, cleanProvided.length);
+    let matches = 0;
+    let comparisons = 0;
+
+    for (let i = 0; i < minLength; i += 10) {
+        comparisons++;
+        if (cleanStored[i] === cleanProvided[i]) {
+            matches++;
+        }
+    }
+
+    // Also check some random positions for better coverage
+    const randomChecks = 50;
+    for (let i = 0; i < randomChecks; i++) {
+        const pos = Math.floor(Math.random() * minLength);
+        comparisons++;
+        if (cleanStored[pos] === cleanProvided[pos]) {
+            matches++;
+        }
+    }
+
+    const similarity = matches / comparisons;
+    console.log(`Face comparison: ${Math.round(similarity * 100)}% match (${matches}/${comparisons} samples)`);
+
+    return similarity;
 }
 
 // Request reset code endpoint

@@ -1919,8 +1919,11 @@
             border: 1px solid var(--border);
             width: 90%;
             max-width: 520px;
+            max-height: 90vh;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
 
         @keyframes slideUp {
@@ -1973,6 +1976,29 @@
 
         .reset-content {
             padding: 28px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1;
+        }
+
+        .reset-content::-webkit-scrollbar {
+            width: 14px;
+        }
+
+        .reset-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 7px;
+            margin: 8px 0;
+        }
+
+        .reset-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 7px;
+            border: 3px solid var(--bg-secondary);
+        }
+
+        .reset-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.7);
         }
 
         .reset-step {
