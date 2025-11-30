@@ -347,8 +347,51 @@
             display: block;
         }
 
+        .groups-list {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            display: none;
+        }
+
+        .groups-list.active {
+            display: block;
+        }
+
         .chat-list.hidden {
             display: none;
+        }
+
+        .group-item {
+            display: flex;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .group-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .group-item.active {
+            background: var(--bg-elevated);
+        }
+
+        .group-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            margin-right: 12px;
         }
 
         .chat-item, .contact-item {
@@ -2688,6 +2731,7 @@
             <!-- Tabs -->
             <div class="tabs">
                 <button class="tab active" id="chatsTab" onclick="showChats()">Chats</button>
+                <button class="tab" id="groupsTab" onclick="showGroups()">Groups</button>
                 <button class="tab" id="contactsTab" onclick="showContacts()">Contacts</button>
             </div>
 
@@ -2706,6 +2750,16 @@
                 </div>
                 <div id="contactsContainer">
                     <div class="loading">No contacts yet. Add someone to start chatting!</div>
+                </div>
+            </div>
+
+            <!-- Groups List -->
+            <div class="groups-list" id="groupsList">
+                <div class="add-contact-section">
+                    <button class="modern-button" onclick="showCreateGroupModal()" style="width: 100%; padding: 14px;">Create New Group</button>
+                </div>
+                <div id="groupsContainer">
+                    <div class="loading">No groups yet. Create a group to get started!</div>
                 </div>
             </div>
         </div>
@@ -3110,6 +3164,31 @@
         <button class="recording-cancel" onclick="cancelRecording()">Cancel</button>
     </div>
 
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="createGroupModal">
+        <div class="modal-container" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Create New Group</h3>
+                <button class="modal-close" onclick="closeCreateGroupModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="groupNameInput" placeholder="Group Name" maxlength="50" class="modern-input" style="margin-bottom: 20px;">
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; display: block;">Select Members (from your contacts):</label>
+                    <div id="groupMembersSelection" style="max-height: 300px; overflow-y: auto; background: var(--bg-tertiary); border-radius: 12px; padding: 12px; border: 1px solid var(--border);">
+                        <div class="loading">No contacts available</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="createGroup()" class="modern-button" style="flex: 1;">Create Group</button>
+                    <button onclick="closeCreateGroupModal()" class="modern-button secondary" style="flex: 1;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
 
@@ -3121,12 +3200,15 @@
         let authToken = null;
         let currentUser = null;
         let currentChatId = null;
+        let currentGroupId = null;
         let chats = new Map();
+        let groups = new Map();
         let contacts = [];
         let typingTimeout = null;
         let isTyping = false;
         let selectedFile = null;
         let isLoginMode = true;
+        let isGroupChat = false;
 
         // WebRTC Call Variables
         let peerConnection = null;
@@ -3897,6 +3979,20 @@
                     renderChatList();
                 }
 
+                if (data.groups && data.groups.length > 0) {
+                    data.groups.forEach(group => {
+                        groups.set(group.id, {
+                            id: group.id,
+                            name: group.name,
+                            members: group.members,
+                            admin: group.admin,
+                            lastMessage: group.lastMessage,
+                            messages: []
+                        });
+                    });
+                    renderGroupsList();
+                }
+
                 renderContactsList();
             });
 
@@ -4099,6 +4195,111 @@
                 alert(`${data.username} is currently on another call`);
                 cleanupCall();
             });
+
+            // Group event handlers
+            socket.on('group-created', (data) => {
+                groups.set(data.id, {
+                    id: data.id,
+                    name: data.name,
+                    members: data.members,
+                    admin: data.admin,
+                    lastMessage: null,
+                    messages: []
+                });
+                renderGroupsList();
+                closeCreateGroupModal();
+                showNotification(`Group "${data.name}" created successfully!`, 'success');
+            });
+
+            socket.on('group-error', (data) => {
+                alert(data.error);
+            });
+
+            socket.on('new-group-message', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    if (!group.messages) group.messages = [];
+                    group.messages.push(data.message);
+
+                    group.lastMessage = {
+                        text: data.message.text || '📎 File',
+                        time: data.message.timestamp,
+                        sender: data.message.senderUsername
+                    };
+
+                    renderGroupsList();
+
+                    if (currentGroupId === data.groupId && isGroupChat) {
+                        renderGroupMessages();
+                        scrollToBottom();
+                    }
+                }
+            });
+
+            socket.on('group-messages-loaded', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.messages = data.messages;
+                    if (currentGroupId === data.groupId && isGroupChat) {
+                        renderGroupMessages();
+                    }
+                }
+            });
+
+            socket.on('group-file-uploaded', (data) => {
+                if (data.groupId === currentGroupId && selectedFile && isGroupChat) {
+                    socket.emit('send-group-message', {
+                        groupId: currentGroupId,
+                        text: document.getElementById('messageInput').value.trim(),
+                        file: data.file
+                    });
+
+                    document.getElementById('messageInput').value = '';
+                    removeAttachment();
+                }
+            });
+
+            socket.on('group-member-added', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.members = data.group.members;
+                    if (currentGroupId === data.groupId && isGroupChat) {
+                        renderGroupHeader();
+                    }
+                    renderGroupsList();
+                }
+
+                if (!group && data.group) {
+                    groups.set(data.groupId, {
+                        ...data.group,
+                        messages: []
+                    });
+                    renderGroupsList();
+                }
+            });
+
+            socket.on('group-member-left', (data) => {
+                const group = groups.get(data.groupId);
+                if (group) {
+                    group.members = data.group.members;
+                    group.admin = data.group.admin;
+                    if (currentGroupId === data.groupId && isGroupChat) {
+                        renderGroupHeader();
+                    }
+                    renderGroupsList();
+                }
+            });
+
+            socket.on('group-left', (data) => {
+                groups.delete(data.groupId);
+                renderGroupsList();
+                if (currentGroupId === data.groupId && isGroupChat) {
+                    document.getElementById('emptyChat').style.display = 'flex';
+                    document.getElementById('activeChat').style.display = 'none';
+                    currentGroupId = null;
+                    isGroupChat = false;
+                }
+            });
         }
 
         function logout() {
@@ -4113,15 +4314,28 @@
 
         function showChats() {
             document.getElementById('chatsTab').classList.add('active');
+            document.getElementById('groupsTab').classList.remove('active');
             document.getElementById('contactsTab').classList.remove('active');
             document.getElementById('chatList').classList.remove('hidden');
+            document.getElementById('groupsList').classList.remove('active');
+            document.getElementById('contactsList').classList.remove('active');
+        }
+
+        function showGroups() {
+            document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('groupsTab').classList.add('active');
+            document.getElementById('contactsTab').classList.remove('active');
+            document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('groupsList').classList.add('active');
             document.getElementById('contactsList').classList.remove('active');
         }
 
         function showContacts() {
             document.getElementById('chatsTab').classList.remove('active');
+            document.getElementById('groupsTab').classList.remove('active');
             document.getElementById('contactsTab').classList.add('active');
             document.getElementById('chatList').classList.add('hidden');
+            document.getElementById('groupsList').classList.remove('active');
             document.getElementById('contactsList').classList.add('active');
         }
 
@@ -4188,6 +4402,189 @@
             });
         }
 
+        function renderGroupsList() {
+            const groupsContainer = document.getElementById('groupsContainer');
+
+            if (groups.size === 0) {
+                groupsContainer.innerHTML = '<div class="loading">No groups yet. Create a group to get started!</div>';
+                return;
+            }
+
+            groupsContainer.innerHTML = '';
+            groups.forEach((group, groupId) => {
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item' + (groupId === currentGroupId && isGroupChat ? ' active' : '');
+                groupItem.onclick = () => selectGroup(groupId);
+
+                const initials = group.name.substring(0, 2).toUpperCase();
+                const lastMessageText = group.lastMessage?.text || 'No messages yet';
+                const lastMessageSender = group.lastMessage?.sender || '';
+                const time = group.lastMessage?.time ? formatTime(group.lastMessage.time) : '';
+
+                groupItem.innerHTML = `
+                    <div class="group-avatar">${initials}</div>
+                    <div class="chat-details">
+                        <div class="chat-name">${group.name}</div>
+                        <div class="chat-last-message">${lastMessageSender ? lastMessageSender + ': ' : ''}${lastMessageText}</div>
+                    </div>
+                    ${time ? `<div style="font-size: 12px; color: var(--text-tertiary);">${time}</div>` : ''}
+                `;
+
+                groupsContainer.appendChild(groupItem);
+            });
+        }
+
+        function showCreateGroupModal() {
+            const modal = document.getElementById('createGroupModal');
+            const membersSelection = document.getElementById('groupMembersSelection');
+
+            document.getElementById('groupNameInput').value = '';
+
+            if (contacts.length === 0) {
+                membersSelection.innerHTML = '<div class="loading">No contacts available</div>';
+            } else {
+                membersSelection.innerHTML = '';
+                contacts.forEach(contact => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.style.padding = '10px';
+                    checkboxDiv.style.borderBottom = '1px solid var(--border)';
+                    checkboxDiv.innerHTML = `
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+                            <input type="checkbox" value="${contact.username}" style="cursor: pointer; width: 18px; height: 18px;">
+                            <span>${contact.username}</span>
+                        </label>
+                    `;
+                    membersSelection.appendChild(checkboxDiv);
+                });
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.remove('active');
+        }
+
+        function createGroup() {
+            const groupName = document.getElementById('groupNameInput').value.trim();
+            const membersSelection = document.getElementById('groupMembersSelection');
+            const checkboxes = membersSelection.querySelectorAll('input[type="checkbox"]:checked');
+
+            if (!groupName) {
+                alert('Please enter a group name');
+                return;
+            }
+
+            const memberUsernames = Array.from(checkboxes).map(cb => cb.value);
+
+            if (memberUsernames.length === 0) {
+                alert('Please select at least one member');
+                return;
+            }
+
+            socket.emit('create-group', {
+                groupName: groupName,
+                memberUsernames: memberUsernames
+            });
+        }
+
+        function selectGroup(groupId) {
+            currentGroupId = groupId;
+            currentChatId = null;
+            isGroupChat = true;
+            const group = groups.get(groupId);
+
+            if (!group) return;
+
+            document.getElementById('emptyChat').style.display = 'none';
+            document.getElementById('activeChat').style.display = 'flex';
+
+            renderGroupHeader();
+
+            if (!group.messages || group.messages.length === 0) {
+                socket.emit('get-group-messages', { groupId });
+            } else {
+                renderGroupMessages();
+            }
+
+            renderGroupsList();
+            document.getElementById('messageInput').focus();
+        }
+
+        function renderGroupHeader() {
+            const group = groups.get(currentGroupId);
+            if (!group) return;
+
+            const initials = group.name.substring(0, 2).toUpperCase();
+            document.getElementById('chatAvatarText').textContent = initials;
+            document.getElementById('chatName').textContent = group.name;
+            document.getElementById('chatStatus').textContent = `${group.members.length} members`;
+        }
+
+        function renderGroupMessages() {
+            const container = document.getElementById('messagesContainer');
+            const group = groups.get(currentGroupId);
+
+            if (!group || !group.messages || group.messages.length === 0) {
+                container.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            group.messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ' + (msg.sent ? 'sent' : 'received');
+
+                let content = '';
+
+                if (!msg.sent) {
+                    content += `<div class="message-sender">${msg.senderUsername}</div>`;
+                }
+
+                if (msg.text) {
+                    content += `<div class="message-text">${escapeHtml(msg.text)}</div>`;
+                }
+
+                if (msg.file) {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file.originalName);
+
+                    if (isImage) {
+                        content += `
+                            <a href="${msg.file.url}" target="_blank">
+                                <img src="${msg.file.url}" alt="${msg.file.originalName}" class="message-image">
+                            </a>
+                        `;
+                    } else {
+                        const icon = getFileIcon(msg.file.mimetype);
+                        content += `
+                            <div class="message-file">
+                                <div class="file-info">
+                                    <span class="file-icon">${icon}</span>
+                                    <div>
+                                        <a href="${msg.file.url}" target="_blank" class="file-name" download="${msg.file.originalName}">
+                                            ${msg.file.originalName}
+                                        </a>
+                                        <div class="file-size">${formatFileSize(msg.file.size)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                content += `
+                    <div class="message-meta">
+                        <span>${formatTime(msg.timestamp)}</span>
+                    </div>
+                `;
+
+                messageDiv.innerHTML = content;
+                container.appendChild(messageDiv);
+            });
+
+            scrollToBottom();
+        }
+
         function renderChatList() {
             const chatList = document.getElementById('chatList');
 
@@ -4224,6 +4621,8 @@
 
         function selectChat(chatId) {
             currentChatId = chatId;
+            currentGroupId = null;
+            isGroupChat = false;
             const chat = chats.get(chatId);
 
             if (!chat) return;
@@ -4457,17 +4856,85 @@
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
 
-            if (!currentChatId || (!text && !selectedFile && selectedFiles.length === 0)) return;
+            // Check if we have a valid chat or group context
+            if ((!currentChatId && !currentGroupId) || (!text && !selectedFile && selectedFiles.length === 0)) return;
 
-            // Handle multiple files upload
-            if (selectedFiles.length > 0) {
-                for (const file of selectedFiles) {
-                    await uploadSingleFile(file);
+            // Handle group messages
+            if (isGroupChat && currentGroupId) {
+                // Handle multiple files upload
+                if (selectedFiles.length > 0) {
+                    for (const file of selectedFiles) {
+                        await uploadSingleFileToGroup(file);
+                    }
+                    clearFileSelection();
+
+                    // Send text message if provided
+                    if (text) {
+                        socket.emit('send-group-message', {
+                            groupId: currentGroupId,
+                            text: text
+                        });
+                        messageInput.value = '';
+                        autoResize(messageInput);
+                    }
                 }
-                clearFileSelection();
+                // Handle single file upload (old attachment method)
+                else if (selectedFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        socket.emit('upload-group-file', {
+                            groupId: currentGroupId,
+                            fileData: e.target.result,
+                            fileName: selectedFile.name,
+                            fileType: selectedFile.type
+                        });
+                    };
+                    reader.readAsDataURL(selectedFile);
+                }
+                // Handle text-only message
+                else if (text) {
+                    socket.emit('send-group-message', {
+                        groupId: currentGroupId,
+                        text: text
+                    });
+                    messageInput.value = '';
+                    autoResize(messageInput);
+                }
+            }
+            // Handle regular chat messages
+            else if (!isGroupChat && currentChatId) {
+                // Handle multiple files upload
+                if (selectedFiles.length > 0) {
+                    for (const file of selectedFiles) {
+                        await uploadSingleFile(file);
+                    }
+                    clearFileSelection();
 
-                // Send text message if provided
-                if (text) {
+                    // Send text message if provided
+                    if (text) {
+                        socket.emit('send-message', {
+                            chatId: currentChatId,
+                            text: text
+                        });
+                        messageInput.value = '';
+                        autoResize(messageInput);
+                    }
+                }
+                // Handle single file upload (old attachment method)
+                else if (selectedFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        socket.emit('upload-file', {
+                            chatId: currentChatId,
+                            fileData: e.target.result,
+                            fileName: selectedFile.name,
+                            fileType: selectedFile.type
+                        });
+                    };
+                    reader.readAsDataURL(selectedFile);
+                }
+                // Handle text-only message
+                else if (text) {
                     socket.emit('send-message', {
                         chatId: currentChatId,
                         text: text
@@ -4475,28 +4942,6 @@
                     messageInput.value = '';
                     autoResize(messageInput);
                 }
-            }
-            // Handle single file upload (old attachment method)
-            else if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('upload-file', {
-                        chatId: currentChatId,
-                        fileData: e.target.result,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
-                    });
-                };
-                reader.readAsDataURL(selectedFile);
-            }
-            // Handle text-only message
-            else if (text) {
-                socket.emit('send-message', {
-                    chatId: currentChatId,
-                    text: text
-                });
-                messageInput.value = '';
-                autoResize(messageInput);
             }
         }
 
@@ -4506,6 +4951,23 @@
                 reader.onload = function(e) {
                     socket.emit('upload-file', {
                         chatId: currentChatId,
+                        fileData: e.target.result,
+                        fileName: file.name,
+                        fileType: file.type
+                    });
+                    resolve();
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function uploadSingleFileToGroup(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('upload-group-file', {
+                        groupId: currentGroupId,
                         fileData: e.target.result,
                         fileName: file.name,
                         fileType: file.type
