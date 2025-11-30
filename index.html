@@ -2021,6 +2021,76 @@
             border-color: var(--accent-primary);
         }
 
+        /* Face Recognition */
+        .face-capture-container {
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .face-video {
+            width: 100%;
+            max-width: 320px;
+            height: 240px;
+            background: #000;
+            border-radius: 12px;
+            margin: 16px auto;
+            display: block;
+        }
+
+        .face-canvas {
+            display: none;
+        }
+
+        .face-preview {
+            width: 160px;
+            height: 120px;
+            border-radius: 8px;
+            margin: 12px auto;
+            display: block;
+            border: 2px solid var(--accent-primary);
+        }
+
+        .auth-method-choice {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .method-btn {
+            flex: 1;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .method-btn:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-elevated);
+        }
+
+        .method-btn.active {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .method-btn .method-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .method-btn .method-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             /* Whiteboard Mobile */
             .whiteboard-container {
@@ -2141,15 +2211,39 @@
 
             <!-- Security Question for Registration -->
             <div id="securityQuestionSection" style="display:none;">
-                <select id="securityQuestionSelect" style="width: 100%; padding: 16px 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 12px; font-size: 15px; margin-bottom: 16px; transition: all 0.2s ease; color: var(--text-primary);">
-                    <option value="">Select a security question</option>
-                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                    <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                    <option value="What city were you born in?">What city were you born in?</option>
-                    <option value="What is your favorite book?">What is your favorite book?</option>
-                    <option value="What was your childhood nickname?">What was your childhood nickname?</option>
-                </select>
-                <input type="text" id="securityAnswerInput" placeholder="Your answer (case-insensitive)" style="display:none;">
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Choose verification method:</p>
+                <div class="auth-method-choice">
+                    <div class="method-btn active" id="methodSecurityBtn" onclick="selectAuthMethod('security')">
+                        <div class="method-icon">🔐</div>
+                        <div class="method-name">Security Question</div>
+                    </div>
+                    <div class="method-btn" id="methodFaceBtn" onclick="selectAuthMethod('face')">
+                        <div class="method-icon">👤</div>
+                        <div class="method-name">Face Recognition</div>
+                    </div>
+                </div>
+
+                <div id="securityQuestionMethod">
+                    <select id="securityQuestionSelect" style="width: 100%; padding: 16px 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 12px; font-size: 15px; margin-bottom: 16px; transition: all 0.2s ease; color: var(--text-primary);">
+                        <option value="">Select a security question</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                        <option value="What city were you born in?">What city were you born in?</option>
+                        <option value="What is your favorite book?">What is your favorite book?</option>
+                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                    </select>
+                    <input type="text" id="securityAnswerInput" placeholder="Your answer (case-insensitive)" style="display:none;">
+                </div>
+
+                <div id="faceRecognitionMethod" style="display:none;">
+                    <div class="face-capture-container">
+                        <p style="color: var(--text-secondary); margin-bottom: 12px;">Position your face in the camera</p>
+                        <video id="regFaceVideo" class="face-video" autoplay playsinline></video>
+                        <canvas id="regFaceCanvas" class="face-canvas"></canvas>
+                        <img id="regFacePreview" class="face-preview" style="display:none;">
+                        <button type="button" class="reset-btn" id="captureFaceBtn" onclick="captureRegistrationFace()" style="max-width: 200px; margin: 0 auto;">📸 Capture Face</button>
+                    </div>
+                </div>
             </div>
 
             <button id="authBtn" onclick="handleAuth()">Sign In</button>
@@ -2177,7 +2271,7 @@
                 <!-- Step 1: Request Reset Code -->
                 <div id="resetStep1" class="reset-step">
                     <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
-                        To verify your identity, answer your security question. Only you know this answer!
+                        Choose how to verify your identity
                     </p>
 
                     <div class="error-message" id="resetErrorMessage"></div>
@@ -2185,14 +2279,36 @@
 
                     <input type="text" id="resetUsernameInput" placeholder="Enter your username" class="reset-input">
 
-                    <div id="securityQuestionDisplay" style="background: var(--bg-elevated); padding: 14px 18px; border-radius: 10px; margin-bottom: 14px; color: var(--text-secondary); font-size: 14px; display: none;">
-                        <strong style="color: var(--text-primary);">Security Question:</strong><br>
-                        <span id="displayedQuestion" style="color: var(--accent-primary); margin-top: 6px; display: block;"></span>
+                    <div id="resetMethodChoice" style="display:none;">
+                        <div class="auth-method-choice">
+                            <div class="method-btn active" id="resetMethodSecurityBtn" onclick="selectResetMethod('security')">
+                                <div class="method-icon">🔐</div>
+                                <div class="method-name">Security Question</div>
+                            </div>
+                            <div class="method-btn" id="resetMethodFaceBtn" onclick="selectResetMethod('face')">
+                                <div class="method-icon">👤</div>
+                                <div class="method-name">Face Recognition</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <input type="text" id="securityAnswerResetInput" placeholder="Answer to your security question" class="reset-input" style="display:none;">
+                    <div id="resetSecurityMethod" style="display:none;">
+                        <div id="securityQuestionDisplay" style="background: var(--bg-elevated); padding: 14px 18px; border-radius: 10px; margin-bottom: 14px; color: var(--text-secondary); font-size: 14px;">
+                            <strong style="color: var(--text-primary);">Security Question:</strong><br>
+                            <span id="displayedQuestion" style="color: var(--accent-primary); margin-top: 6px; display: block;"></span>
+                        </div>
+                        <input type="text" id="securityAnswerResetInput" placeholder="Answer to your security question" class="reset-input">
+                        <button onclick="requestResetCode()" class="reset-btn">Request Reset Code</button>
+                    </div>
 
-                    <button onclick="requestResetCode()" class="reset-btn">Request Reset Code</button>
+                    <div id="resetFaceMethod" style="display:none;">
+                        <div class="face-capture-container">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">Position your face in the camera</p>
+                            <video id="resetFaceVideo" class="face-video" autoplay playsinline></video>
+                            <canvas id="resetFaceCanvas" class="face-canvas"></canvas>
+                            <button type="button" class="reset-btn" onclick="verifyFaceReset()">✅ Verify Face</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Step 2: Contact Admin Message -->
@@ -2593,6 +2709,171 @@
             clearMessages();
         }
 
+        // Face Recognition Variables
+        let registrationFaceData = null;
+        let regFaceStream = null;
+        let resetFaceStream = null;
+        let selectedAuthMethod = 'security';
+        let selectedResetMethod = 'security';
+
+        // Select authentication method during registration
+        function selectAuthMethod(method) {
+            selectedAuthMethod = method;
+            const securityBtn = document.getElementById('methodSecurityBtn');
+            const faceBtn = document.getElementById('methodFaceBtn');
+            const securityMethod = document.getElementById('securityQuestionMethod');
+            const faceMethod = document.getElementById('faceRecognitionMethod');
+
+            if (method === 'security') {
+                securityBtn.classList.add('active');
+                faceBtn.classList.remove('active');
+                securityMethod.style.display = 'block';
+                faceMethod.style.display = 'none';
+                stopRegFaceCamera();
+            } else {
+                securityBtn.classList.remove('active');
+                faceBtn.classList.add('active');
+                securityMethod.style.display = 'none';
+                faceMethod.style.display = 'block';
+                startRegFaceCamera();
+            }
+        }
+
+        // Select reset method
+        function selectResetMethod(method) {
+            selectedResetMethod = method;
+            const securityBtn = document.getElementById('resetMethodSecurityBtn');
+            const faceBtn = document.getElementById('resetMethodFaceBtn');
+            const securityMethod = document.getElementById('resetSecurityMethod');
+            const faceMethod = document.getElementById('resetFaceMethod');
+
+            if (method === 'security') {
+                securityBtn.classList.add('active');
+                faceBtn.classList.remove('active');
+                securityMethod.style.display = 'block';
+                faceMethod.style.display = 'none';
+                stopResetFaceCamera();
+            } else {
+                securityBtn.classList.remove('active');
+                faceBtn.classList.add('active');
+                securityMethod.style.display = 'none';
+                faceMethod.style.display = 'block';
+                startResetFaceCamera();
+            }
+        }
+
+        // Start camera for registration
+        async function startRegFaceCamera() {
+            try {
+                const video = document.getElementById('regFaceVideo');
+                regFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = regFaceStream;
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Could not access camera. Please grant camera permissions.');
+            }
+        }
+
+        // Stop registration camera
+        function stopRegFaceCamera() {
+            if (regFaceStream) {
+                regFaceStream.getTracks().forEach(track => track.stop());
+                regFaceStream = null;
+            }
+        }
+
+        // Start camera for password reset
+        async function startResetFaceCamera() {
+            try {
+                const video = document.getElementById('resetFaceVideo');
+                resetFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = resetFaceStream;
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Could not access camera. Please grant camera permissions.');
+            }
+        }
+
+        // Stop reset camera
+        function stopResetFaceCamera() {
+            if (resetFaceStream) {
+                resetFaceStream.getTracks().forEach(track => track.stop());
+                resetFaceStream = null;
+            }
+        }
+
+        // Capture face during registration
+        function captureRegistrationFace() {
+            const video = document.getElementById('regFaceVideo');
+            const canvas = document.getElementById('regFaceCanvas');
+            const preview = document.getElementById('regFacePreview');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            registrationFaceData = canvas.toDataURL('image/jpeg', 0.8);
+            preview.src = registrationFaceData;
+            preview.style.display = 'block';
+
+            alert('✅ Face captured successfully!');
+        }
+
+        // Verify face during password reset
+        async function verifyFaceReset() {
+            const username = document.getElementById('resetUsernameInput').value.trim();
+            const errorDiv = document.getElementById('resetErrorMessage');
+            const successDiv = document.getElementById('resetSuccessMessage');
+
+            if (!username) {
+                errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            const video = document.getElementById('resetFaceVideo');
+            const canvas = document.getElementById('resetFaceCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            const faceData = canvas.toDataURL('image/jpeg', 0.8);
+
+            try {
+                const response = await fetch('/api/verify-face-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, faceData })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.display = 'none';
+                    successDiv.textContent = data.message;
+                    successDiv.style.display = 'block';
+                    stopResetFaceCamera();
+
+                    setTimeout(() => {
+                        document.getElementById('resetStep1').style.display = 'none';
+                        document.getElementById('resetStep2').style.display = 'block';
+                    }, 1000);
+                } else {
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Face verification failed. Please try again.';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            }
+        }
+
         // Show answer input when security question is selected
         document.addEventListener('DOMContentLoaded', () => {
             const securitySelect = document.getElementById('securityQuestionSelect');
@@ -2608,7 +2889,7 @@
                 });
             }
 
-            // Show security question when username is entered in reset form
+            // Show auth methods when username is entered in reset form
             const resetUsernameInput = document.getElementById('resetUsernameInput');
             if (resetUsernameInput) {
                 let debounceTimer;
@@ -2617,17 +2898,16 @@
                     debounceTimer = setTimeout(async () => {
                         const username = resetUsernameInput.value.trim();
                         if (username) {
-                            await fetchSecurityQuestion(username);
+                            await fetchUserAuthMethods(username);
                         } else {
-                            document.getElementById('securityQuestionDisplay').style.display = 'none';
-                            document.getElementById('securityAnswerResetInput').style.display = 'none';
+                            document.getElementById('resetMethodChoice').style.display = 'none';
                         }
                     }, 500);
                 });
                 resetUsernameInput.addEventListener('blur', async () => {
                     const username = resetUsernameInput.value.trim();
                     if (username) {
-                        await fetchSecurityQuestion(username);
+                        await fetchUserAuthMethods(username);
                     }
                 });
             }
@@ -2639,17 +2919,17 @@
             document.getElementById('resetStep1').style.display = 'block';
             document.getElementById('resetStep2').style.display = 'none';
             document.getElementById('resetUsernameInput').value = '';
-            document.getElementById('securityAnswerResetInput').value = '';
-            document.getElementById('securityQuestionDisplay').style.display = 'none';
-            document.getElementById('securityAnswerResetInput').style.display = 'none';
+            document.getElementById('resetMethodChoice').style.display = 'none';
+            document.getElementById('resetSecurityMethod').style.display = 'none';
+            document.getElementById('resetFaceMethod').style.display = 'none';
             document.getElementById('resetErrorMessage').style.display = 'none';
             document.getElementById('resetSuccessMessage').style.display = 'none';
         }
 
-        // Fetch security question for username
-        async function fetchSecurityQuestion(username) {
+        // Fetch user auth methods
+        async function fetchUserAuthMethods(username) {
             try {
-                const response = await fetch('/api/get-security-question', {
+                const response = await fetch('/api/get-auth-methods', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -2659,16 +2939,24 @@
 
                 const data = await response.json();
 
-                if (response.ok && data.question) {
-                    document.getElementById('displayedQuestion').textContent = data.question;
-                    document.getElementById('securityQuestionDisplay').style.display = 'block';
-                    document.getElementById('securityAnswerResetInput').style.display = 'block';
+                if (response.ok) {
+                    const methodChoice = document.getElementById('resetMethodChoice');
+                    methodChoice.style.display = 'block';
+
+                    // Store user auth data
+                    if (data.authMethod === 'security' && data.question) {
+                        document.getElementById('displayedQuestion').textContent = data.question;
+                        // Default to security method
+                        selectResetMethod('security');
+                    } else if (data.authMethod === 'face') {
+                        // Default to face method
+                        selectResetMethod('face');
+                    }
                 } else {
-                    document.getElementById('securityQuestionDisplay').style.display = 'none';
-                    document.getElementById('securityAnswerResetInput').style.display = 'none';
+                    document.getElementById('resetMethodChoice').style.display = 'none';
                 }
             } catch (error) {
-                console.error('Error fetching security question:', error);
+                console.error('Error fetching auth methods:', error);
             }
         }
 
@@ -2836,19 +3124,26 @@
                 return;
             }
 
-            // Check security question for registration
+            // Check verification method for registration
             if (!isLoginMode) {
-                const securityQuestion = document.getElementById('securityQuestionSelect').value;
-                const securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+                if (selectedAuthMethod === 'security') {
+                    const securityQuestion = document.getElementById('securityQuestionSelect').value;
+                    const securityAnswer = document.getElementById('securityAnswerInput').value.trim();
 
-                if (!securityQuestion) {
-                    showError('Please select a security question');
-                    return;
-                }
+                    if (!securityQuestion) {
+                        showError('Please select a security question');
+                        return;
+                    }
 
-                if (!securityAnswer) {
-                    showError('Please answer your security question');
-                    return;
+                    if (!securityAnswer) {
+                        showError('Please answer your security question');
+                        return;
+                    }
+                } else if (selectedAuthMethod === 'face') {
+                    if (!registrationFaceData) {
+                        showError('Please capture your face');
+                        return;
+                    }
                 }
             }
 
@@ -2856,8 +3151,14 @@
             const requestBody = { username, password };
 
             if (!isLoginMode) {
-                requestBody.securityQuestion = document.getElementById('securityQuestionSelect').value;
-                requestBody.securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+                requestBody.authMethod = selectedAuthMethod;
+
+                if (selectedAuthMethod === 'security') {
+                    requestBody.securityQuestion = document.getElementById('securityQuestionSelect').value;
+                    requestBody.securityAnswer = document.getElementById('securityAnswerInput').value.trim();
+                } else if (selectedAuthMethod === 'face') {
+                    requestBody.faceData = registrationFaceData;
+                }
             }
 
             try {

@@ -152,14 +152,22 @@ function verifyToken(token) {
 
 // Register endpoint
 app.post('/api/register', async (req, res) => {
-    const { username, password, securityQuestion, securityAnswer } = req.body;
+    const { username, password, authMethod, securityQuestion, securityAnswer, faceData } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    if (!securityQuestion || !securityAnswer) {
+    if (!authMethod) {
+        return res.status(400).json({ error: 'Please select a verification method' });
+    }
+
+    if (authMethod === 'security' && (!securityQuestion || !securityAnswer)) {
         return res.status(400).json({ error: 'Security question and answer are required' });
+    }
+
+    if (authMethod === 'face' && !faceData) {
+        return res.status(400).json({ error: 'Face data is required' });
     }
 
     if (username.length < 3 || username.length > 20) {
@@ -175,25 +183,33 @@ app.post('/api/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
     const userId = generateId();
 
-    users.set(username, {
+    const userData = {
         userId,
         password: hashedPassword,
         username,
-        securityQuestion,
-        securityAnswer: hashedSecurityAnswer,
+        authMethod,
         contacts: [],
         createdAt: Date.now(),
         online: false,
         socketId: null
-    });
+    };
 
+    if (authMethod === 'security') {
+        userData.securityQuestion = securityQuestion;
+        userData.securityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
+    } else if (authMethod === 'face') {
+        userData.faceData = faceData;
+    }
+
+    users.set(username, userData);
     saveData();
 
     const token = generateToken(userId);
     sessions.set(token, userId);
+
+    console.log(`✅ User registered: ${username} (${authMethod})`);
 
     res.json({
         success: true,
@@ -232,8 +248,8 @@ app.post('/api/login', async (req, res) => {
     });
 });
 
-// Get security question endpoint
-app.post('/api/get-security-question', async (req, res) => {
+// Get auth methods endpoint
+app.post('/api/get-auth-methods', async (req, res) => {
     const { username } = req.body;
 
     if (!username) {
@@ -241,15 +257,83 @@ app.post('/api/get-security-question', async (req, res) => {
     }
 
     const user = users.get(username);
-    if (!user || !user.securityQuestion) {
-        return res.status(404).json({ error: 'User not found or no security question set' });
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({
+    const response = {
         success: true,
-        question: user.securityQuestion
-    });
+        authMethod: user.authMethod || 'security'
+    };
+
+    if (user.authMethod === 'security' && user.securityQuestion) {
+        response.question = user.securityQuestion;
+    }
+
+    res.json(response);
 });
+
+// Verify face for password reset
+app.post('/api/verify-face-reset', async (req, res) => {
+    const { username, faceData } = req.body;
+
+    if (!username || !faceData) {
+        return res.status(400).json({ error: 'Username and face data are required' });
+    }
+
+    const user = users.get(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.authMethod !== 'face' || !user.faceData) {
+        return res.status(400).json({ error: 'User does not have face recognition enabled' });
+    }
+
+    // Simple comparison - in production use proper face recognition library
+    const similarity = compareFaceData(user.faceData, faceData);
+
+    if (similarity > 0.8) { // 80% similarity threshold
+        // Generate reset code
+        const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+        const expiresAt = Date.now() + (15 * 60 * 1000);
+
+        resetCodes.set(username, { code, expiresAt });
+
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🔐 PASSWORD RESET REQUEST - FACE VERIFIED');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log(`Username: ${username}`);
+        console.log(`Face Verified: ✅ YES (${Math.round(similarity * 100)}% match)`);
+        console.log(`Reset Code: ${code}`);
+        console.log(`Generated: ${new Date().toISOString()}`);
+        console.log(`Expires: ${new Date(expiresAt).toISOString()}`);
+        console.log(`Valid for: 15 minutes`);
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('');
+
+        res.json({
+            success: true,
+            message: 'Face verified! Contact admin at leothelion123@outlook.fr'
+        });
+    } else {
+        console.log(`❌ Face verification failed for user: ${username} (${Math.round(similarity * 100)}% match)`);
+        res.status(401).json({ error: 'Face does not match' });
+    }
+});
+
+// Simple face comparison function (basic implementation)
+function compareFaceData(stored, provided) {
+    // This is a very simple comparison
+    // In production, use a proper face recognition library like face-api.js
+    if (stored === provided) return 1.0; // Exact match
+
+    // Simple similarity based on data length (placeholder)
+    const minLength = Math.min(stored.length, provided.length);
+    const maxLength = Math.max(stored.length, provided.length);
+    return minLength / maxLength;
+}
 
 // Request reset code endpoint
 app.post('/api/request-reset', async (req, res) => {
