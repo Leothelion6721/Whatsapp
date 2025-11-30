@@ -1894,6 +1894,260 @@
             outline: 2px solid var(--accent-primary);
         }
 
+        /* Customizer Modals */
+        .customizer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 3500;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .customizer-modal.active {
+            display: flex;
+        }
+
+        .customizer-container {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .customizer-header {
+            padding: 24px 28px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .customizer-header h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .customizer-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .customizer-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .customizer-content {
+            padding: 24px 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .customizer-content::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .customizer-content::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+        }
+
+        .customizer-content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 6px;
+        }
+
+        .customizer-section {
+            margin-bottom: 32px;
+        }
+
+        .customizer-section h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .background-grid, .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .background-option, .theme-option {
+            aspect-ratio: 16 / 9;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .background-option:hover, .theme-option:hover {
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+        }
+
+        .background-option.active, .theme-option.active {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+
+        .background-option span {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .theme-option {
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .theme-preview {
+            width: 100%;
+            height: 60%;
+            border-radius: 8px;
+        }
+
+        .theme-option span {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .custom-bg-controls, .color-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .custom-bg-controls {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .customizer-btn {
+            padding: 12px 20px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .customizer-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+        }
+
+        .customizer-btn.primary {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .customizer-btn.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .customizer-btn.secondary {
+            background: var(--bg-tertiary);
+        }
+
+        .option-controls label, .color-controls label {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .option-controls input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .option-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        .color-controls label {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .color-controls input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .color-picker {
+            display: none;
+        }
+
+        .customizer-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .customizer-actions button {
+            flex: 1;
+        }
+
         /* Password Reset Modal */
         .reset-modal {
             display: none;
@@ -2484,8 +2738,16 @@
                         <div class="menu-dropdown">
                             <button class="icon-btn" onclick="toggleMenu()" title="More Options">⋮</button>
                             <div class="menu-content" id="chatMenu">
-                                <div class="menu-item" onclick="openWhiteboard()">
+                                <div class="menu-item" onclick="openBackgroundCustomizer()">
                                     <span>🎨</span>
+                                    <span>Chat Background</span>
+                                </div>
+                                <div class="menu-item" onclick="openThemeCustomizer()">
+                                    <span>🌈</span>
+                                    <span>Theme Colors</span>
+                                </div>
+                                <div class="menu-item" onclick="openWhiteboard()">
+                                    <span>✏️</span>
                                     <span>Whiteboard</span>
                                 </div>
                             </div>
@@ -2691,6 +2953,145 @@
 
             <div class="whiteboard-canvas-container">
                 <canvas id="whiteboardCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Customizer Modal -->
+    <div class="customizer-modal" id="backgroundModal">
+        <div class="customizer-container">
+            <div class="customizer-header">
+                <h2>🎨 Chat Background</h2>
+                <button class="customizer-close" onclick="closeBackgroundCustomizer()">✕</button>
+            </div>
+            <div class="customizer-content">
+                <div class="customizer-section">
+                    <h3>Preset Backgrounds</h3>
+                    <div class="background-grid">
+                        <div class="background-option" data-bg="none" onclick="setBackground('none')" style="background: var(--bg-secondary);">
+                            <span>Default</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient1" onclick="setBackground('gradient1')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <span>Purple Dream</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient2" onclick="setBackground('gradient2')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <span>Pink Sunset</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient3" onclick="setBackground('gradient3')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <span>Ocean Blue</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient4" onclick="setBackground('gradient4')" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <span>Mint Fresh</span>
+                        </div>
+                        <div class="background-option" data-bg="gradient5" onclick="setBackground('gradient5')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <span>Sunrise</span>
+                        </div>
+                        <div class="background-option" data-bg="dark" onclick="setBackground('dark')" style="background: #000000;">
+                            <span style="color: white;">Pure Dark</span>
+                        </div>
+                        <div class="background-option" data-bg="pattern1" onclick="setBackground('pattern1')" style="background: repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #1a1a1a 10px, #1a1a1a 20px);">
+                            <span>Stripes</span>
+                        </div>
+                        <div class="background-option" data-bg="pattern2" onclick="setBackground('pattern2')" style="background: radial-gradient(circle, #1a1a1a 1px, #0a0a0a 1px); background-size: 20px 20px;">
+                            <span>Dots</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Custom Background</h3>
+                    <div class="custom-bg-controls">
+                        <input type="file" id="bgFileInput" accept="image/*" onchange="uploadCustomBackground(event)" style="display: none;">
+                        <button class="customizer-btn" onclick="document.getElementById('bgFileInput').click()">
+                            📁 Upload Image
+                        </button>
+                        <input type="color" id="solidColorPicker" onchange="setSolidColor(this.value)" class="color-picker">
+                        <label for="solidColorPicker" class="customizer-btn">🎨 Solid Color</label>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Background Options</h3>
+                    <div class="option-controls">
+                        <label>
+                            <input type="range" id="bgOpacity" min="0" max="100" value="20" oninput="setBgOpacity(this.value)">
+                            <span>Background Opacity: <span id="opacityValue">20</span>%</span>
+                        </label>
+                        <label>
+                            <input type="range" id="bgBlur" min="0" max="20" value="0" oninput="setBgBlur(this.value)">
+                            <span>Blur: <span id="blurValue">0</span>px</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="customizer-actions">
+                    <button class="customizer-btn secondary" onclick="resetBackground()">🔄 Reset</button>
+                    <button class="customizer-btn primary" onclick="closeBackgroundCustomizer()">✅ Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Customizer Modal -->
+    <div class="customizer-modal" id="themeModal">
+        <div class="customizer-container">
+            <div class="customizer-header">
+                <h2>🌈 Theme Colors</h2>
+                <button class="customizer-close" onclick="closeThemeCustomizer()">✕</button>
+            </div>
+            <div class="customizer-content">
+                <div class="customizer-section">
+                    <h3>Preset Themes</h3>
+                    <div class="theme-grid">
+                        <div class="theme-option" onclick="applyTheme('default')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0a0a0a 0%, #0ea5e9 100%);"></div>
+                            <span>Default Dark</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('purple')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #9d4edd 100%);"></div>
+                            <span>Purple Night</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('green')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0d1b2a 0%, #10b981 100%);"></div>
+                            <span>Matrix Green</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('red')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a1a 0%, #ef4444 100%);"></div>
+                            <span>Red Alert</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('orange')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1c1917 0%, #f97316 100%);"></div>
+                            <span>Sunset Orange</span>
+                        </div>
+                        <div class="theme-option" onclick="applyTheme('blue')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0c1222 0%, #3b82f6 100%);"></div>
+                            <span>Deep Blue</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="customizer-section">
+                    <h3>Custom Colors</h3>
+                    <div class="color-controls">
+                        <label>
+                            <span>Accent Color:</span>
+                            <input type="color" id="accentColorPicker" value="#0ea5e9" onchange="setAccentColor(this.value)">
+                        </label>
+                        <label>
+                            <span>Message Sent:</span>
+                            <input type="color" id="sentColorPicker" value="#0ea5e9" onchange="setSentColor(this.value)">
+                        </label>
+                        <label>
+                            <span>Message Received:</span>
+                            <input type="color" id="receivedColorPicker" value="#1a1a1a" onchange="setReceivedColor(this.value)">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="customizer-actions">
+                    <button class="customizer-btn secondary" onclick="resetTheme()">🔄 Reset</button>
+                    <button class="customizer-btn primary" onclick="closeThemeCustomizer()">✅ Done</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3843,6 +4244,9 @@
 
             renderChatList();
             document.getElementById('messageInput').focus();
+
+            // Apply saved background for this chat
+            applyBackgroundToChat();
         }
 
         function renderMessages() {
@@ -4139,6 +4543,304 @@
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
         }
+
+        // Background and Theme Customization
+        let chatBackgrounds = new Map(); // Store background per chat
+        let currentBackground = null;
+        let bgOpacity = 0.2;
+        let bgBlur = 0;
+
+        function openBackgroundCustomizer() {
+            document.getElementById('backgroundModal').classList.add('active');
+            toggleMenu(); // Close the chat menu
+        }
+
+        function closeBackgroundCustomizer() {
+            document.getElementById('backgroundModal').classList.remove('active');
+        }
+
+        function openThemeCustomizer() {
+            document.getElementById('themeModal').classList.add('active');
+            toggleMenu(); // Close the chat menu
+        }
+
+        function closeThemeCustomizer() {
+            document.getElementById('themeModal').classList.remove('active');
+        }
+
+        function setBackground(bgType) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            const messagesContainer = document.getElementById('messagesContainer');
+            const backgrounds = {
+                'none': 'none',
+                'gradient1': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'gradient2': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'gradient3': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'gradient4': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'gradient5': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'dark': '#000000',
+                'pattern1': 'repeating-linear-gradient(45deg, #0a0a0a, #0a0a0a 10px, #1a1a1a 10px, #1a1a1a 20px)',
+                'pattern2': 'radial-gradient(circle, #1a1a1a 1px, #0a0a0a 1px)'
+            };
+
+            currentBackground = { type: bgType, value: backgrounds[bgType] };
+            chatBackgrounds.set(currentChatId, currentBackground);
+
+            applyBackgroundToChat();
+            markActiveBackground(bgType);
+            localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+        }
+
+        function uploadCustomBackground(event) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentBackground = { type: 'custom', value: `url(${e.target.result})` };
+                chatBackgrounds.set(currentChatId, currentBackground);
+                applyBackgroundToChat();
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setSolidColor(color) {
+            if (!currentChatId) {
+                alert('Please select a chat first');
+                return;
+            }
+
+            currentBackground = { type: 'color', value: color };
+            chatBackgrounds.set(currentChatId, currentBackground);
+            applyBackgroundToChat();
+            localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+        }
+
+        function setBgOpacity(value) {
+            bgOpacity = value / 100;
+            document.getElementById('opacityValue').textContent = value;
+            applyBackgroundToChat();
+            if (currentChatId) {
+                const bg = chatBackgrounds.get(currentChatId) || {};
+                bg.opacity = bgOpacity;
+                chatBackgrounds.set(currentChatId, bg);
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            }
+        }
+
+        function setBgBlur(value) {
+            bgBlur = value;
+            document.getElementById('blurValue').textContent = value;
+            applyBackgroundToChat();
+            if (currentChatId) {
+                const bg = chatBackgrounds.get(currentChatId) || {};
+                bg.blur = bgBlur;
+                chatBackgrounds.set(currentChatId, bg);
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+            }
+        }
+
+        function applyBackgroundToChat() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer) return;
+
+            if (currentChatId && chatBackgrounds.has(currentChatId)) {
+                const bg = chatBackgrounds.get(currentChatId);
+                messagesContainer.style.backgroundImage = bg.value;
+                messagesContainer.style.backgroundSize = 'cover';
+                messagesContainer.style.backgroundPosition = 'center';
+                messagesContainer.style.backgroundAttachment = 'fixed';
+
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.right = '0';
+                overlay.style.bottom = '0';
+                overlay.style.background = `rgba(0, 0, 0, ${1 - (bg.opacity || bgOpacity)})`;
+                overlay.style.backdropFilter = `blur(${bg.blur || bgBlur}px)`;
+                overlay.style.pointerEvents = 'none';
+                overlay.className = 'bg-overlay';
+
+                // Remove old overlay
+                const oldOverlay = messagesContainer.querySelector('.bg-overlay');
+                if (oldOverlay) oldOverlay.remove();
+
+                // Add new overlay
+                messagesContainer.style.position = 'relative';
+                messagesContainer.insertBefore(overlay, messagesContainer.firstChild);
+            } else {
+                messagesContainer.style.backgroundImage = 'none';
+                const oldOverlay = messagesContainer.querySelector('.bg-overlay');
+                if (oldOverlay) oldOverlay.remove();
+            }
+        }
+
+        function markActiveBackground(bgType) {
+            document.querySelectorAll('.background-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelector(`.background-option[data-bg="${bgType}"]`)?.classList.add('active');
+        }
+
+        function resetBackground() {
+            if (currentChatId) {
+                chatBackgrounds.delete(currentChatId);
+                currentBackground = null;
+                applyBackgroundToChat();
+                localStorage.setItem('chatBackgrounds', JSON.stringify(Array.from(chatBackgrounds)));
+                document.querySelectorAll('.background-option').forEach(opt => opt.classList.remove('active'));
+                alert('✅ Background reset to default!');
+            }
+        }
+
+        // Theme customization
+        const themes = {
+            default: {
+                primary: '#0a0a0a',
+                secondary: '#141414',
+                accent: '#0ea5e9',
+                sent: '#0ea5e9',
+                received: '#1a1a1a'
+            },
+            purple: {
+                primary: '#1a1a2e',
+                secondary: '#222236',
+                accent: '#9d4edd',
+                sent: '#9d4edd',
+                received: '#2d2d44'
+            },
+            green: {
+                primary: '#0d1b2a',
+                secondary: '#1b263b',
+                accent: '#10b981',
+                sent: '#10b981',
+                received: '#1b2838'
+            },
+            red: {
+                primary: '#1a1a1a',
+                secondary: '#242424',
+                accent: '#ef4444',
+                sent: '#ef4444',
+                received: '#2a2a2a'
+            },
+            orange: {
+                primary: '#1c1917',
+                secondary: '#292524',
+                accent: '#f97316',
+                sent: '#f97316',
+                received: '#2d2823'
+            },
+            blue: {
+                primary: '#0c1222',
+                secondary: '#161d31',
+                accent: '#3b82f6',
+                sent: '#3b82f6',
+                received: '#1a2332'
+            }
+        };
+
+        function applyTheme(themeName) {
+            const theme = themes[themeName];
+            if (!theme) return;
+
+            const root = document.documentElement;
+            root.style.setProperty('--bg-primary', theme.primary);
+            root.style.setProperty('--bg-secondary', theme.secondary);
+            root.style.setProperty('--accent-primary', theme.accent);
+
+            // Update message colors
+            updateMessageColors(theme.sent, theme.received);
+
+            localStorage.setItem('currentTheme', themeName);
+            alert(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
+        }
+
+        function setAccentColor(color) {
+            document.documentElement.style.setProperty('--accent-primary', color);
+            localStorage.setItem('customAccentColor', color);
+        }
+
+        function setSentColor(color) {
+            localStorage.setItem('customSentColor', color);
+            updateMessageColors(color, null);
+        }
+
+        function setReceivedColor(color) {
+            localStorage.setItem('customReceivedColor', color);
+            updateMessageColors(null, color);
+        }
+
+        function updateMessageColors(sentColor, receivedColor) {
+            const style = document.createElement('style');
+            style.id = 'custom-message-colors';
+
+            const oldStyle = document.getElementById('custom-message-colors');
+            if (oldStyle) oldStyle.remove();
+
+            let css = '';
+            if (sentColor) {
+                css += `.message.sent .message-content { background: ${sentColor} !important; }`;
+            }
+            if (receivedColor) {
+                css += `.message.received .message-content { background: ${receivedColor} !important; }`;
+            }
+
+            style.textContent = css;
+            document.head.appendChild(style);
+        }
+
+        function resetTheme() {
+            applyTheme('default');
+            localStorage.removeItem('currentTheme');
+            localStorage.removeItem('customAccentColor');
+            localStorage.removeItem('customSentColor');
+            localStorage.removeItem('customReceivedColor');
+
+            const customStyle = document.getElementById('custom-message-colors');
+            if (customStyle) customStyle.remove();
+        }
+
+        // Load saved backgrounds and themes on startup
+        function loadCustomizations() {
+            // Load backgrounds
+            const savedBackgrounds = localStorage.getItem('chatBackgrounds');
+            if (savedBackgrounds) {
+                chatBackgrounds = new Map(JSON.parse(savedBackgrounds));
+            }
+
+            // Load theme
+            const savedTheme = localStorage.getItem('currentTheme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            }
+
+            const customAccent = localStorage.getItem('customAccentColor');
+            if (customAccent) {
+                setAccentColor(customAccent);
+            }
+
+            const customSent = localStorage.getItem('customSentColor');
+            const customReceived = localStorage.getItem('customReceivedColor');
+            if (customSent || customReceived) {
+                updateMessageColors(customSent, customReceived);
+            }
+        }
+
+        // Call loadCustomizations when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCustomizations();
+        });
 
         // Voice Recording Variables
         let mediaRecorder = null;
